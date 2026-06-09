@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function userRole() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) ? userDoc().role : null;
+    }
+
+    function isAdminOrHr() {
+      return signedIn() && (userRole() == 'admin' || userRole() == 'hr');
+    }
+
+    function isAdmin() {
+      return signedIn() && userRole() == 'admin';
+    }
+
+    function isOwnRecord(data) {
+      return signedIn() && (data.uid == request.auth.uid || data.email == request.auth.token.email);
+    }
+
+    function isOwnEmployeeId(data) {
+      return signedIn() && data.employeeId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isAdminOrHr());
+      allow create, update, delete: if isAdminOrHr() || (signedIn() && request.auth.uid == userId);
+    }
+
+    match /employees/{employeeId} {
+      allow read: if signedIn() && (isAdminOrHr() || isOwnRecord(resource.data));
+      allow create, delete: if isAdminOrHr();
+      allow update: if isAdminOrHr() || (signedIn() && isOwnRecord(resource.data));
+    }
+
+    match /departments/{departmentId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdminOrHr();
+    }
+
+    match /attendance/{attendanceId} {
+      allow read: if signedIn() && (isAdminOrHr() || isOwnEmployeeId(resource.data));
+      allow create, update, delete: if isAdminOrHr();
+    }
+
+    match /attendanceCorrections/{correctionId} {
+      allow create: if signedIn() && isOwnEmployeeId(request.resource.data);
+      allow read, update, delete: if isAdminOrHr() || (signedIn() && isOwnEmployeeId(resource.data));
+    }
+
+    match /leaveRequests/{leaveRequestId} {
+      allow create: if signedIn() && isOwnEmployeeId(request.resource.data);
+      allow read: if signedIn() && (isAdminOrHr() || isOwnEmployeeId(resource.data));
+      allow update: if isAdminOrHr() || (signedIn() && isOwnEmployeeId(resource.data) && resource.data.status == 'pending' && request.resource.data.status == 'pending');
+      allow delete: if isAdminOrHr();
+    }
+
+    match /leaveBalance/{balanceId} {
+      allow read: if signedIn() && (isAdminOrHr() || balanceId == request.auth.uid);
+      allow create, update, delete: if isAdminOrHr();
+    }
+
+    match /leaveTypes/{leaveTypeId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /holidays/{holidayId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /payroll/{payrollId} {
+      allow read: if signedIn() && (isAdminOrHr() || isOwnEmployeeId(resource.data));
+      allow create, update, delete: if isAdminOrHr();
+    }
+
+    match /payslips/{payslipId} {
+      allow read: if signedIn() && (isAdminOrHr() || isOwnEmployeeId(resource.data));
+      allow create, update, delete: if isAdminOrHr();
+    }
+
+    match /documents/{documentId} {
+      allow read: if signedIn() && (isAdminOrHr() || isOwnEmployeeId(resource.data));
+      allow create: if signedIn() && (isAdminOrHr() || isOwnEmployeeId(request.resource.data));
+      allow update, delete: if isAdminOrHr();
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if signedIn() && (isAdminOrHr() || isOwnEmployeeId(resource.data) || isOwnEmployeeId(request.resource.data));
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

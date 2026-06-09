@@ -1,0 +1,55 @@
+export const ROLES = {
+  admin: 'admin',
+  hr: 'hr',
+  manager: 'manager',
+  employee: 'employee',
+};
+
+export const ROLE_LABELS = {
+  admin: 'Admin',
+  hr: 'HR',
+  manager: 'Manager',
+  employee: 'Employee',
+};
+
+export const ROLE_COLORS = {
+  admin: 'bg-primary-100 text-primary-700',
+  hr: 'bg-accent-100 text-accent-600',
+  manager: 'bg-indigo-100 text-indigo-700',
+  employee: 'bg-neutral-100 text-neutral-700',
+};
+
+export const PERMISSIONS = {
+  dashboard: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  employees: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  departments: [ROLES.admin],
+  attendance: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  leave: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  payroll: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  documents: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  reports: [ROLES.admin, ROLES.hr, ROLES.manager],
+  profile: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  settings: [ROLES.admin],
+};
+
+export function canAccess(role, allowedRoles = []) {
+  if (!role) {
+    return false;
+  }
+  if (!allowedRoles.length) {
+    return true;
+  }
+  return allowedRoles.includes(role);
+}
+
+export function isAdminLike(role) {
+  return role === ROLES.admin || role === ROLES.hr;
+}
+
+export function isEmployee(role) {
+  return role === ROLES.employee;
+}
+
+export function roleLabel(role) {
+  return ROLE_LABELS[role] || 'User';
+}

@@ -1,0 +1,1792 @@
+import { createPortal } from 'react-dom';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { query, orderBy, where, serverTimestamp } from 'firebase/firestore';
+import {
+  ArrowDownTrayIcon,
+  CalendarDaysIcon,
+  ChevronDownIcon,
+  ChevronUpDownIcon,
+  EllipsisVerticalIcon,
+  MagnifyingGlassIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  TrashIcon,
+  UserCircleIcon,
+  EyeIcon,
+} from '@heroicons/react/24/outline';
+import { useAuth } from '../../hooks/useAuth';
+import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { isAdminLike } from '../../utils/rbac';
+import Card from '../../components/ui/Card';
+import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
+import Modal from '../../components/ui/Modal';
+import { formatDate, safeDate } from '../../utils/dateHelpers';
+import { removeDocument, upsertDocument, createDocument } from '../../firebase/firestore';
+import toast from 'react-hot-toast';
+
+const TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'managers', label: 'Managers' },
+  { key: 'employees', label: 'Employees' },
+];
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All Status' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+];
+
+const PAGE_SIZE = 10;
+
+// Utility: Export CSV
+function exportCsv(rows, filename = 'employees') {
+  const header = ['Employee ID', 'Name', 'Email', 'Department', 'Designation', 'Role', 'Status', 'Join Date'];
+  const csv = [
+    header.join(','),
+    ...rows.map((row) => [
+      row.employeeId,
+      `${row.firstName} ${row.lastName}`,
+      row.email,
+      row.department,
+      row.designation,
+      row.role,
+      row.status,
+      formatDate(row.joinDate, 'dd MMM yyyy'),
+    ].map((value) => `"${String(value || '').replaceAll('"', '""')}"`).join(',')),
+  ].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  const today = formatDate(new Date(), 'yyyy-MM-dd');
+  link.download = `${filename}-${today}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+// Component: Status Badge
+function StatusBadge({ status }) {
+  const normalized = String(status || 'active').toLowerCase();
+  const styles = {
+    active: 'bg-emerald-100 text-emerald-700',
+    inactive: 'bg-slate-100 text-slate-600',
+    'on leave': 'bg-amber-100 text-amber-700',
+    terminated: 'bg-rose-100 text-rose-700',
+    default: 'bg-slate-100 text-slate-600',
+  };
+  return (
+    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${styles[normalized] || styles.default}`}>
+      {status ? String(status).replace(/\b\w/g, (char) => char.toUpperCase()) : 'Active'}
+    </span>
+  );
+}
+
+// Component: Attendance Badge
+function AttendanceBadge({ status }) {
+  const normalized = status ? String(status).toLowerCase() : 'not marked';
+  const options = {
+    present: { label: 'Present', classes: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
+    absent: { label: 'Absent', classes: 'bg-rose-100 text-rose-700', dot: 'bg-rose-500' },
+    'not marked': { label: 'Not Marked', classes: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' },
+  };
+  const { label, classes, dot } = options[normalized] || options['not marked'];
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${classes}`}>
+      <span className={`inline-flex h-2.5 w-2.5 rounded-full ${dot}`} />
+      {label}
+    </span>
+  );
+}
+
+// Component: Sortable Table Header
+function SortableHeading({ label, active, sortDirection, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-2 text-left font-semibold text-slate-700 transition hover:text-primary-700"
+    >
+      <span>{label}</span>
+      <ChevronUpDownIcon className={`h-4 w-4 text-slate-400 ${active && sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+    </button>
+  );
+}
+
+// Component: Attendance Dropdown
+function AttendanceDropdown({ employee, attendanceStatus, onMark }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [coords, setCoords] = useState({ top: 0, right: 0, bottom: 0, left: 0, windowHeight: 0 });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isOpen && buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setCoords({
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          left: rect.left,
+          windowHeight: window.innerHeight
+        });
+      }
+    };
+
+    if (isOpen) {
+      handleScroll();
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleScroll);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (buttonRef.current && buttonRef.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setIsOpen(false);
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const handleMark = (status) => {
+    onMark(employee, status);
+    setIsOpen(false);
+  };
+
+  const getButtonContent = () => {
+    switch (attendanceStatus) {
+      case 'present':
+        return {
+          text: 'Present',
+          icon: '✅',
+          styles: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 ring-emerald-100'
+        };
+      case 'late':
+        return {
+          text: 'Late',
+          icon: '🕐',
+          styles: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 ring-amber-100'
+        };
+      case 'absent':
+        return {
+          text: 'Absent',
+          icon: '❌',
+          styles: 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 ring-rose-100'
+        };
+      default:
+        return {
+          text: 'Mark Attendance',
+          icon: null,
+          styles: 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 focus:ring-primary-100 focus:border-primary-300 ring-primary-100'
+        };
+    }
+  };
+
+  const btnContent = getButtonContent();
+
+  const menuHeight = 180;
+  const spaceBelow = coords.windowHeight - coords.bottom;
+  const openUpwards = spaceBelow < menuHeight && coords.top > menuHeight;
+
+  const menu = isOpen ? createPortal(
+    <div
+      ref={menuRef}
+      className={`fixed z-[99999] w-40 ${openUpwards ? 'origin-bottom-right' : 'origin-top-right'} rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-xl p-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] focus:outline-none`}
+      style={{
+        ...(openUpwards
+          ? { bottom: `${coords.windowHeight - coords.top + 8}px` }
+          : { top: `${coords.bottom + 8}px` }),
+        left: `${coords.right - 155}px`,
+      }}
+    >
+      <div className="mb-1 px-3 py-2">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Select Status</p>
+      </div>
+      <button
+        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${attendanceStatus === 'present' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50 hover:text-emerald-600'}`}
+        onClick={() => handleMark('present')}
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-sm shadow-sm">✅</span>
+        Present
+        {attendanceStatus === 'present' && <span className="ml-auto text-emerald-600 font-bold">✓</span>}
+      </button>
+
+      <button
+        className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${attendanceStatus === 'late' ? 'bg-amber-50 text-amber-700' : 'text-slate-600 hover:bg-slate-50 hover:text-amber-600'}`}
+        onClick={() => handleMark('late')}
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-sm shadow-sm">🕐</span>
+        Late
+        {attendanceStatus === 'late' && <span className="ml-auto text-amber-600 font-bold">✓</span>}
+      </button>
+
+      <button
+        className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${attendanceStatus === 'absent' ? 'bg-rose-50 text-rose-700' : 'text-slate-600 hover:bg-slate-50 hover:text-rose-600'}`}
+        onClick={() => handleMark('absent')}
+      >
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-sm shadow-sm">❌</span>
+        Absent
+        {attendanceStatus === 'absent' && <span className="ml-auto text-rose-600 font-bold">✓</span>}
+      </button>
+    </div>,
+    document.body
+  ) : null;
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        className={`relative inline-flex items-center justify-between gap-2 px-3.5 py-1.5 text-xs h-[34px] min-w-[145px] rounded-xl shadow-sm border font-semibold transition-all duration-200 outline-none ${btnContent.styles} ${isOpen ? 'ring-4 scale-[0.98] border-transparent' : (!attendanceStatus ? 'hover:-translate-y-0.5 cursor-pointer' : 'cursor-default')}`}
+        onClick={() => { if (!attendanceStatus) setIsOpen(!isOpen); }}
+      >
+        <span className="flex items-center gap-1.5 truncate">
+          {btnContent.icon && <span>{btnContent.icon}</span>}
+          {btnContent.text}
+        </span>
+        {!attendanceStatus && (
+          <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'opacity-70'}`} />
+        )}
+      </button>
+      {menu}
+    </>
+  );
+}
+
+// Component: View Employee Modal
+function ViewEmployeeModal({ employee, attendanceStatus, open, onClose, managers }) {
+  if (!employee) return null;
+
+  return (
+    <Modal open={open} title="Employee Details" onClose={onClose}>
+      <div className="space-y-6">
+        {/* Profile Header */}
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary-100 text-xl font-bold text-primary-700 ring-4 ring-white shadow-sm">
+            {employee.photoURL ? (
+              <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" />
+            ) : (
+              `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`
+            )}
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">{employee.firstName} {employee.lastName}</h3>
+            <p className="text-sm font-medium text-slate-500">{employee.designation || 'Employee'} • {employee.department || 'No Dept'}</p>
+          </div>
+        </div>
+
+        {/* Personal Info */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900">Personal Information</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-slate-500">First Name</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.firstName || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Last Name</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.lastName || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Email</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.email || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Phone</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.phone || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Date of Birth</p>
+              <p className="mt-1 text-sm text-slate-900">{formatDate(employee.dob) || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Gender</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.gender || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Blood Group</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.bloodGroup || '—'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Info */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900">Contact Information</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Address Line</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.address?.line1 || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">City</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.address?.city || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">State</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.address?.state || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Pincode</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.address?.pincode || '—'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Job Info */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900">Job Information</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Employee ID</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.employeeId || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Department</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.department || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Designation</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.designation || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Role</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.role || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Manager</p>
+              <p className="mt-1 text-sm text-slate-900">
+                {employee.managerId 
+                  ? (() => {
+                      const m = managers?.find(mgr => mgr.id === employee.managerId);
+                      return m ? `${m.firstName} ${m.lastName}` : employee.managerId;
+                    })()
+                  : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Status</p>
+              <div className="mt-1"><StatusBadge status={employee.status} /></div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Join Date</p>
+              <p className="mt-1 text-sm text-slate-900">{formatDate(employee.joinDate) || '—'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Salary Info */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900">Compensation & Bank Details</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Basic Salary</p>
+              <p className="mt-1 text-sm text-slate-900">₹{(employee.basicSalary || 0).toLocaleString('en-IN')}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Attendance Today</p>
+              <div className="mt-1"><AttendanceBadge status={attendanceStatus} /></div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">HRA</p>
+              <p className="mt-1 text-sm text-slate-900">₹{(employee.hra || 0).toLocaleString('en-IN')}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">DA</p>
+              <p className="mt-1 text-sm text-slate-900">₹{(employee.da || 0).toLocaleString('en-IN')}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Travel Allowance</p>
+              <p className="mt-1 text-sm text-slate-900">₹{(employee.travelAllowance || 0).toLocaleString('en-IN')}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">PF Applicable</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.pfApplicable ? 'Yes' : 'No'}</p>
+            </div>
+            <div className="sm:col-span-2">
+              <h5 className="text-xs font-semibold text-slate-700 mt-2 border-t border-slate-100 pt-3">Bank Details</h5>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Bank Name</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.bankName || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Account Number</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.bankAccount || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">IFSC Code</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.ifsc || '—'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Documents */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900">Documents & Emergency Contacts</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Aadhaar Number</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.aadhar || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">PAN Number</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.pan || '—'}</p>
+            </div>
+            <div className="sm:col-span-2">
+              <h5 className="text-xs font-semibold text-slate-700 mt-2 border-t border-slate-100 pt-3">Emergency Contact 1</h5>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Name</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.emergencyContactName || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Phone</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.emergencyContactPhone || '—'}</p>
+            </div>
+            <div className="sm:col-span-2">
+              <h5 className="text-xs font-semibold text-slate-700 mt-2 border-t border-slate-100 pt-3">Emergency Contact 2</h5>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Name</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.emergencyContactName2 || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Phone</p>
+              <p className="mt-1 text-sm text-slate-900">{employee.emergencyContactPhone2 || '—'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 pt-4 mt-6">
+        <Button variant="secondary" className="w-full" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+// Component: Edit Employee Modal
+function EditEmployeeModal({ employee, departments, managers, open, onClose, onSave }) {
+  const [formData, setFormData] = useState(employee || {});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setFormData(employee || {});
+  }, [employee]);
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => {
+      const val = field === 'email' ? value.toLowerCase() : value;
+      const nextData = { ...prev, [field]: val };
+      if (field === 'role' && val === 'manager') {
+        nextData.managerId = '';
+      }
+      if (field === 'basicSalary') {
+        const basic = parseFloat(val) || 0;
+        nextData.hra = (basic * 0.40).toFixed(2).replace(/\.00$/, '');
+        nextData.da = (basic * 0.15).toFixed(2).replace(/\.00$/, '');
+      }
+      return nextData;
+    });
+  };
+
+  const handleAddressChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      address: { ...prev.address, [field]: value },
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(formData);
+      toast.success('Employee updated successfully');
+      onClose();
+    } catch (error) {
+      toast.error(error.message || 'Failed to update employee');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!employee) return null;
+
+  return (
+    <Modal open={open} title="Edit Employee" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Personal Info */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900">Personal Information</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="First Name"
+              value={formData.firstName || ''}
+              onChange={(e) => handleChange('firstName', e.target.value)}
+              required
+            />
+            <Input
+              label="Last Name"
+              value={formData.lastName || ''}
+              onChange={(e) => handleChange('lastName', e.target.value)}
+              required
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={formData.email || ''}
+              onChange={(e) => handleChange('email', e.target.value)}
+              required
+            />
+            <Input
+              label="Phone"
+              type="tel"
+              value={formData.phone || ''}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                handleChange('phone', val);
+              }}
+              pattern="[0-9]{10}"
+              title="Please enter exactly 10 digits"
+            />
+          </div>
+        </div>
+
+        {/* Job Info */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900">Job Information</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select
+              label="Role"
+              value={formData.role || 'employee'}
+              onChange={(e) => handleChange('role', e.target.value)}
+            >
+              <option value="employee">Employee</option>
+              <option value="manager">Manager</option>
+            </Select>
+            <Input
+              label="Employee ID"
+              value={formData.employeeId || ''}
+              onChange={(e) => handleChange('employeeId', e.target.value)}
+              required
+            />
+            <Select
+              label="Department"
+              value={formData.departmentId || ''}
+              onChange={(e) => handleChange('departmentId', e.target.value)}
+            >
+              <option value="">Select Department</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>{dept.name}</option>
+              ))}
+            </Select>
+            <Input
+              label="Designation"
+              value={formData.designation || ''}
+              onChange={(e) => handleChange('designation', e.target.value)}
+            />
+            <Select
+              label="Manager"
+              value={formData.managerId || ''}
+              onChange={(e) => handleChange('managerId', e.target.value)}
+              disabled={formData.role === 'manager'}
+              required={formData.role !== 'manager'}
+            >
+              {formData.role === 'manager' ? (
+                <option value="">Not applicable for Manager</option>
+              ) : (
+                <>
+                  <option value="">Select Manager</option>
+                  {managers.map((mgr) => (
+                    <option key={mgr.id} value={mgr.id}>{mgr.firstName} {mgr.lastName}</option>
+                  ))}
+                </>
+              )}
+            </Select>
+            <Input
+              label="Join Date"
+              type="date"
+              value={formData.joinDate || ''}
+              onChange={(e) => handleChange('joinDate', e.target.value)}
+            />
+            <Input
+              label="Basic Salary"
+              type="number"
+              value={formData.basicSalary || ''}
+              onChange={(e) => handleChange('basicSalary', e.target.value)}
+            />
+            <Select
+              label="Status"
+              value={formData.status || 'active'}
+              onChange={(e) => handleChange('status', e.target.value)}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="on leave">On Leave</option>
+              <option value="terminated">Terminated</option>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex gap-3 border-t border-slate-200 pt-6">
+          <Button variant="secondary" className="flex-1" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" className="flex-1" disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// Component: Add Employee Modal
+function AddEmployeeModal({ departments, managers, existingEmails = [], existingPhones = [], open, onClose, onSave }) {
+  const [currentTab, setCurrentTab] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  const initialFormState = {
+    // Tab 1: Personal
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    dob: '',
+    gender: '',
+    bloodGroup: '',
+    profilePhoto: '',
+    address: { line1: '', city: '', state: '', pincode: '' },
+    // Tab 2: Job
+    employeeId: '',
+    departmentId: '',
+    designation: '',
+    role: 'employee',
+    managerId: '',
+    joinDate: formatDate(new Date(), 'yyyy-MM-dd'),
+    status: 'active',
+    // Tab 3: Salary
+    basicSalary: '',
+    hra: '',
+    da: '',
+    travelAllowance: '',
+    pfApplicable: false,
+    bankAccount: '',
+    ifsc: '',
+    bankName: '',
+    // Tab 4: Documents
+    aadhar: '',
+    pan: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    emergencyContactName2: '',
+    emergencyContactPhone2: '',
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+
+  const TABS = ['Personal Info', 'Job Info', 'Salary Info', 'Documents'];
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => {
+      const val = field === 'email' ? value.toLowerCase() : value;
+      const nextData = { ...prev, [field]: val };
+      if (field === 'role' && val === 'manager') {
+        nextData.managerId = '';
+      }
+      if (field === 'basicSalary') {
+        const basic = parseFloat(val) || 0;
+        nextData.hra = (basic * 0.40).toFixed(2).replace(/\.00$/, '');
+        nextData.da = (basic * 0.15).toFixed(2).replace(/\.00$/, '');
+      }
+      return nextData;
+    });
+  };
+
+  const handleAddressChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      address: { ...prev.address, [field]: value },
+    }));
+  };
+
+  const validateTab = (tabIndex) => {
+    if (tabIndex === 0) {
+      const required = ['firstName', 'lastName', 'email', 'phone', 'dob', 'gender', 'bloodGroup'];
+      const addrRequired = ['line1', 'city', 'state', 'pincode'];
+      if (required.some(k => !formData[k]) || addrRequired.some(k => !formData.address[k])) {
+        toast.error('Please fill all fields in Personal Info');
+        return false;
+      }
+      if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+        toast.error('Please enter a valid email address');
+        return false;
+      }
+      if (existingEmails.includes(formData.email.trim().toLowerCase())) {
+        toast.error('This email is already in use by another employee');
+        return false;
+      }
+      if (existingPhones.includes(formData.phone.trim())) {
+        toast.error('This phone number is already in use by another employee');
+        return false;
+      }
+      if (formData.dob) {
+        const [year, month, day] = formData.dob.split('-');
+        const parsedDob = new Date(year, month - 1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (parsedDob >= today) {
+          toast.error('Date of birth cannot be today or in the future');
+          return false;
+        }
+      }
+    }
+    if (tabIndex === 1) {
+      const required = ['employeeId', 'departmentId', 'designation', 'role', 'joinDate', 'status'];
+      if (formData.role !== 'manager') {
+        required.push('managerId');
+      }
+      if (required.some(k => !formData[k])) {
+        toast.error('Please fill all fields in Job Info');
+        return false;
+      }
+    }
+    if (tabIndex === 2) {
+      const required = ['basicSalary', 'hra', 'da', 'travelAllowance', 'bankAccount', 'ifsc', 'bankName'];
+      if (required.some(k => String(formData[k]).trim() === '')) {
+        toast.error('Please fill all fields in Salary Info');
+        return false;
+      }
+    }
+    if (tabIndex === 3) {
+      const required = ['aadhar', 'pan', 'emergencyContactName', 'emergencyContactPhone', 'emergencyContactName2', 'emergencyContactPhone2'];
+      if (required.some(k => !formData[k])) {
+        toast.error('Please fill all fields in Documents');
+        return false;
+      }
+      if (!/^\d{12}$/.test(formData.aadhar)) {
+        toast.error('Aadhaar must be exactly 12 digits');
+        return false;
+      }
+      if (!/^[A-Z0-9]{10}$/.test(formData.pan)) {
+        toast.error('PAN must be exactly 10 alphanumeric characters');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNextTab = () => {
+    if (validateTab(currentTab)) {
+      setCurrentTab(c => c + 1);
+    }
+  };
+
+  const handleTabClick = (index) => {
+    if (index < currentTab) {
+      setCurrentTab(index);
+      return;
+    }
+    for (let i = currentTab; i < index; i++) {
+      if (!validateTab(i)) return;
+    }
+    setCurrentTab(index);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Final check across all tabs before submitting
+    for (let i = 0; i < TABS.length; i++) {
+      if (!validateTab(i)) {
+        setCurrentTab(i);
+        return;
+      }
+    }
+
+    setSaving(true);
+    try {
+      await onSave(formData);
+      toast.success('Employee added successfully');
+
+      // Reset form and close
+      setFormData(initialFormState);
+      setCurrentTab(0);
+      onClose();
+    } catch (error) {
+      toast.error(error.message || 'Failed to add employee');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      setFormData(initialFormState);
+      setCurrentTab(0);
+    }
+  }, [open]);
+
+  return (
+    <Modal open={open} title="Add New Employee" onClose={onClose} size="max-w-3xl">
+      <div className="mb-8">
+        {/* Progress Indicator */}
+        <div className="flex items-center justify-between relative">
+          <div className="absolute left-0 top-1/2 w-full h-0.5 bg-slate-100 -z-10 -translate-y-1/2"></div>
+          {TABS.map((tab, index) => {
+            const isActive = index === currentTab;
+            const isPast = index < currentTab;
+            return (
+              <div
+                key={tab}
+                className="flex flex-col items-center gap-2 cursor-pointer bg-white px-2"
+                onClick={() => handleTabClick(index)}
+              >
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors duration-300 ${isActive ? 'bg-primary-600 text-white ring-4 ring-primary-50' : isPast ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  {isPast ? '✓' : index + 1}
+                </div>
+                <span className={`text-xs font-semibold ${isActive ? 'text-primary-700' : isPast ? 'text-slate-700' : 'text-slate-400'}`}>
+                  {tab}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6 min-h-[320px]">
+
+        {/* TAB 1: Personal Info */}
+        {currentTab === 0 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="First Name *" value={formData.firstName} onChange={(e) => handleChange('firstName', e.target.value)} required />
+              <Input label="Last Name *" value={formData.lastName} onChange={(e) => handleChange('lastName', e.target.value)} required />
+              <Input label="Email *" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} required />
+              <Input label="Phone *" type="tel" value={formData.phone} onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                handleChange('phone', val);
+              }} pattern="[0-9]{10}" title="Please enter exactly 10 digits" />
+              <Input label="Date of Birth *" type="date" value={formData.dob} max={new Date().toISOString().split('T')[0]} onChange={(e) => handleChange('dob', e.target.value)} />
+              <Select label="Gender *" value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)}>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </Select>
+              <Select label="Blood Group *" value={formData.bloodGroup} onChange={(e) => handleChange('bloodGroup', e.target.value)}>
+                <option value="">Select</option>
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+              </Select>
+            </div>
+
+            <div className="mt-6 border-t border-slate-100 pt-6">
+              <h5 className="text-sm font-semibold text-slate-700 mb-4">Address</h5>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Input label="Address Line *" value={formData.address.line1} onChange={(e) => handleAddressChange('line1', e.target.value)} />
+                </div>
+                <Input label="City *" value={formData.address.city} onChange={(e) => handleAddressChange('city', e.target.value)} />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label="State *" value={formData.address.state} onChange={(e) => handleAddressChange('state', e.target.value)} />
+                  <Input label="Pincode *" value={formData.address.pincode} onChange={(e) => handleAddressChange('pincode', e.target.value)} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: Job Info */}
+        {currentTab === 1 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Select label="Role *" value={formData.role} onChange={(e) => handleChange('role', e.target.value)}>
+                <option value="employee">Employee</option>
+                <option value="manager">Manager</option>
+              </Select>
+              <Input label="Employee ID *" value={formData.employeeId} onChange={(e) => handleChange('employeeId', e.target.value)} />
+              <Select label="Department *" value={formData.departmentId} onChange={(e) => {
+                const deptId = e.target.value;
+                const dept = departments.find((d) => d.id === deptId);
+                const matchedManager = managers.find((m) => m.uid === dept?.managerId || m.id === dept?.managerId);
+                setFormData(prev => ({
+                  ...prev,
+                  departmentId: deptId,
+                  managerId: prev.role === 'manager' ? '' : (matchedManager ? matchedManager.id : '')
+                }));
+              }}>
+                <option value="">Select Department</option>
+                {departments.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
+              </Select>
+              <Input label="Designation *" value={formData.designation} onChange={(e) => handleChange('designation', e.target.value)} />
+              <Select
+                label="Manager *"
+                value={formData.managerId}
+                onChange={(e) => handleChange('managerId', e.target.value)}
+                disabled={formData.role === 'manager'}
+              >
+                {formData.role === 'manager' ? (
+                  <option value="">Not applicable for Manager</option>
+                ) : (
+                  <>
+                    <option value="">Select Manager</option>
+                    {managers.map((mgr) => <option key={mgr.id} value={mgr.id}>{mgr.firstName} {mgr.lastName}</option>)}
+                  </>
+                )}
+              </Select>
+              <Input label="Join Date *" type="date" value={formData.joinDate} onChange={(e) => handleChange('joinDate', e.target.value)} />
+              <Select label="Status *" value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="on leave">On Leave</option>
+                <option value="terminated">Terminated</option>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: Salary Info */}
+        {currentTab === 2 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Basic Salary (₹) *" type="number" value={formData.basicSalary} onChange={(e) => handleChange('basicSalary', e.target.value)} />
+              <Input label="HRA (₹) *" type="number" value={formData.hra} onChange={(e) => handleChange('hra', e.target.value)} />
+              <Input label="DA (₹) *" type="number" value={formData.da} onChange={(e) => handleChange('da', e.target.value)} />
+              <Input label="Travel Allowance (₹) *" type="number" value={formData.travelAllowance} onChange={(e) => handleChange('travelAllowance', e.target.value)} />
+              <div className="flex items-center gap-3 mt-6 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  id="pfApplicable"
+                  className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-600 cursor-pointer"
+                  checked={formData.pfApplicable}
+                  onChange={(e) => handleChange('pfApplicable', e.target.checked)}
+                />
+                <label htmlFor="pfApplicable" className="text-sm font-medium text-slate-700 cursor-pointer">
+                  PF Applicable (Provident Fund deductions apply)
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-6 border-t border-slate-100 pt-6">
+              <h5 className="text-sm font-semibold text-slate-700 mb-4">Bank Details</h5>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input label="Bank Name *" value={formData.bankName} onChange={(e) => handleChange('bankName', e.target.value)} />
+                <Input label="Account Number *" value={formData.bankAccount} onChange={(e) => handleChange('bankAccount', e.target.value)} />
+                <Input label="IFSC Code *" value={formData.ifsc} onChange={(e) => handleChange('ifsc', e.target.value)} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: Docs & Security */}
+        {currentTab === 3 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Aadhar Number *" value={formData.aadhar} onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 12);
+                handleChange('aadhar', val);
+              }} placeholder="12-digit number" pattern="[0-9]{12}" title="12-digit Aadhaar Number" />
+              <Input label="PAN Number *" value={formData.pan} onChange={(e) => {
+                const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
+                handleChange('pan', val);
+              }} placeholder="10-character alphanumeric" pattern="[A-Z0-9]{10}" title="10-character alphanumeric PAN" />
+
+              <div className="sm:col-span-2 border-t border-slate-100 pt-6 mt-2">
+                <h5 className="text-sm font-semibold text-slate-700 mb-4">Emergency Contact 1</h5>
+              </div>
+              <Input label="Contact Name *" value={formData.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} />
+              <Input label="Contact Phone *" type="tel" value={formData.emergencyContactPhone} onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                handleChange('emergencyContactPhone', val);
+              }} />
+
+              <div className="sm:col-span-2 mt-2">
+                <h5 className="text-sm font-semibold text-slate-700 mb-4">Emergency Contact 2</h5>
+              </div>
+              <Input label="Contact Name *" value={formData.emergencyContactName2} onChange={(e) => handleChange('emergencyContactName2', e.target.value)} />
+              <Input label="Contact Phone *" type="tel" value={formData.emergencyContactPhone2} onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                handleChange('emergencyContactPhone2', val);
+              }} />
+
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 border-t border-slate-200 pt-6 mt-8">
+          <Button variant="secondary" className="mr-auto" onClick={onClose} disabled={saving} type="button">
+            Cancel
+          </Button>
+
+          {currentTab > 0 && (
+            <Button variant="secondary" onClick={() => setCurrentTab(c => c - 1)} type="button">
+              Previous
+            </Button>
+          )}
+
+          {currentTab < TABS.length - 1 && (
+            <Button onClick={handleNextTab} type="button">
+              Next Step
+            </Button>
+          )}
+
+          {currentTab === TABS.length - 1 && (
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Adding Employee...' : 'Add Employee'}
+            </Button>
+          )}
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// Main Component
+export default function EmployeeList() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // State
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('all');
+  const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
+  const [sortBy, setSortBy] = useState('firstName');
+  const [sortDirection, setSortDirection] = useState('asc');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'card'
+  const [groupedView, setGroupedView] = useState(true);
+  const [page, setPage] = useState(1);
+  const [openMenuId, setOpenMenuId] = useState(null);
+
+  // Modals
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [attendanceConfirmOpen, setAttendanceConfirmOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [attendancePending, setAttendancePending] = useState({ employee: null, status: null, checkIn: '', checkOut: '' });
+
+  // Firestore Data
+  const employeesQuery = useMemo(() => {
+    if (!user) return undefined;
+    return (base) => query(base, orderBy('createdAt', 'desc'));
+  }, [user?.uid]);
+
+  const { items: employees, loading: employeesLoading } = useFirestoreCollection('employees', employeesQuery);
+  const { items: allDepartments, loading: departmentsLoading } = useFirestoreCollection('departments', useMemo(() => (base) => query(base, orderBy('name')), []));
+  const attendanceQuery = useMemo(() => (base) => query(base, where('date', '==', attendanceDate)), [attendanceDate]);
+  const { items: attendanceRecords } = useFirestoreCollection('attendance', attendanceQuery);
+
+  // Enrich employees with department names
+  const enrichedEmployees = useMemo(
+    () => {
+      // Find current logged in employee's record to get their department
+      const currentEmployee = employees.find((e) => e.uid === user?.uid || e.email === user?.email);
+
+      let filtered = employees.filter((emp) => emp.designation?.toLowerCase() !== 'admin' && emp.role !== 'admin');
+
+      // If user is a manager, only show employees from their department
+      if (user?.role === 'manager' && currentEmployee?.departmentId) {
+        filtered = filtered.filter(emp => emp.departmentId === currentEmployee.departmentId);
+      }
+
+      return filtered.map((emp) => {
+        let dept = allDepartments.find((d) => d.id === emp.departmentId);
+        if (!dept && (emp.designation?.toLowerCase() === 'manager' || emp.role === 'manager')) {
+          dept = allDepartments.find((d) => d.managerId === emp.id || d.managerId === emp.uid);
+        }
+        return {
+          ...emp,
+          department: dept?.name || emp.department || '—',
+        };
+      });
+    },
+    [employees, allDepartments, user]
+  );
+
+  // Derive managers from already-loaded employees — avoids compound Firestore index issues
+  const managers = useMemo(
+    () =>
+      employees
+        .filter((e) => e.role?.toLowerCase() === 'manager' || e.designation?.toLowerCase() === 'manager')
+        .sort((a, b) => (a.firstName || '').localeCompare(b.firstName || '')),
+    [employees]
+  );
+
+  // Attendance lookup
+  const attendanceLookup = useMemo(() => {
+    return attendanceRecords.reduce((map, record) => {
+      if (record.employeeId) map[record.employeeId] = record.status;
+      return map;
+    }, {});
+  }, [attendanceRecords]);
+
+  // Grouping logic
+  const groupedEmployees = useMemo(() => {
+    const managers = enrichedEmployees.filter((e) => e.role?.toLowerCase() === 'manager' || e.designation?.toLowerCase() === 'manager');
+    const regularEmployees = enrichedEmployees.filter((e) => e.role?.toLowerCase() !== 'manager' && e.designation?.toLowerCase() !== 'manager');
+    return { managers, employees: regularEmployees };
+  }, [enrichedEmployees]);
+
+  // Filter employees
+  const getFilteredEmployees = useMemo(() => {
+    return (empList) => {
+      const term = search.trim().toLowerCase();
+      return empList.filter((employee) => {
+        const employeeName = `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase();
+        const matchesText = [employeeName, employee.email, employee.employeeId, employee.department, employee.designation]
+          .some((value) => String(value || '').toLowerCase().includes(term));
+
+        const matchesStatus = statusFilter === 'all' || String(employee.status || 'active').toLowerCase() === statusFilter;
+
+        const tab = activeTab.toLowerCase();
+        const matchesTab =
+          tab === 'all' ||
+          (tab === 'managers' && (employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager')) ||
+          (tab === 'employees' && employee.role?.toLowerCase() !== 'manager' && employee.designation?.toLowerCase() !== 'manager');
+
+        return matchesText && matchesStatus && matchesTab;
+      });
+    };
+  }, [search, statusFilter, activeTab]);
+
+  // Sort employees
+  const getSortedEmployees = (empList) => {
+    const sorted = [...empList];
+    sorted.sort((a, b) => {
+      const getValue = (item) => {
+        if (sortBy === 'firstName') return `${item.firstName || ''} ${item.lastName || ''}`.toLowerCase();
+        if (sortBy === 'employeeId') return String(item.employeeId || '').toLowerCase();
+        if (sortBy === 'department') return String(item.department || '').toLowerCase();
+        if (sortBy === 'designation') return String(item.designation || '').toLowerCase();
+        if (sortBy === 'status') return String(item.status || '').toLowerCase();
+        if (sortBy === 'joinDate') return safeDate(item.joinDate)?.getTime() || 0;
+        return '';
+      };
+      const aValue = getValue(a);
+      const bValue = getValue(b);
+      if (typeof aValue === 'number' || typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      return sortDirection === 'asc'
+        ? String(aValue).localeCompare(String(bValue))
+        : String(bValue).localeCompare(String(aValue));
+    });
+    return sorted;
+  };
+
+  // Count totals
+  const totalManagers = groupedEmployees.managers.length;
+  const totalEmployees = groupedEmployees.employees.length;
+  const presentToday = attendanceRecords.filter((r) => r.status?.toLowerCase() === 'present').length;
+  const activeCount = enrichedEmployees.filter((e) => e.status?.toLowerCase() === 'active').length;
+
+  const runMarkAttendance = async (employee, status, checkIn = '', checkOut = '') => {
+    try {
+      const targetId = employee.uid || employee.id;
+      const docId = `${targetId}_${attendanceDate}`;
+      await upsertDocument('attendance', docId, {
+        date: attendanceDate,
+        month: attendanceDate.substring(0, 7),
+        year: attendanceDate.substring(0, 4),
+        employeeId: targetId,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        status,
+        checkIn: (status === 'present' || status === 'late') ? checkIn : '',
+        checkOut: (status === 'present' || status === 'late') ? checkOut : '',
+        markedBy: user?.uid,
+        markedByName: user?.displayName,
+        timestamp: serverTimestamp(),
+      });
+
+      await createDocument('auditLogs', {
+        action: `Mark ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        employeeId: employee.id,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        performedBy: user?.uid,
+        performedByName: user?.displayName,
+        timestamp: serverTimestamp(),
+      });
+
+      toast.success(`Marked ${status}`);
+    } catch (error) {
+      toast.error('Failed to mark attendance');
+    }
+  };
+
+  const markAttendance = async (employee, status) => {
+    if (!isAdminLike(user?.role)) {
+      toast.error('Only admin users can mark attendance.');
+      return;
+    }
+
+    setAttendancePending({ employee, status, checkIn: '', checkOut: '' });
+    setAttendanceConfirmOpen(true);
+  };
+
+  const handleConfirmAttendance = async () => {
+    if (!attendancePending.employee || !attendancePending.status) {
+      setAttendanceConfirmOpen(false);
+      setAttendancePending({ employee: null, status: null, checkIn: '', checkOut: '' });
+      return;
+    }
+
+
+
+    await runMarkAttendance(attendancePending.employee, attendancePending.status, attendancePending.checkIn, attendancePending.checkOut);
+    setAttendancePending({ employee: null, status: null, checkIn: '', checkOut: '' });
+    setAttendanceConfirmOpen(false);
+  };
+
+  const handleCancelAttendance = () => {
+    setAttendancePending({ employee: null, status: null, checkIn: '', checkOut: '' });
+    setAttendanceConfirmOpen(false);
+  };
+
+  const canDeleteEmployee = (employee) => {
+    if (employee.designation?.toLowerCase() !== 'manager' && employee.role?.toLowerCase() !== 'manager') return true;
+
+    let dept = allDepartments.find((d) => d.id === employee.departmentId);
+    if (!dept) {
+      dept = allDepartments.find((d) => d.managerId === employee.id || d.managerId === employee.uid);
+    }
+    if (!dept) return true;
+
+    const hasEmployees = employees.some(e => e.id !== employee.id && e.departmentId === dept.id);
+    return !hasEmployees;
+  };
+
+  // Delete employee
+  const confirmDelete = (employee) => {
+    setSelectedEmployee(employee);
+    setDeleteModalOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!selectedEmployee) return;
+    const employee = selectedEmployee;
+    try {
+      await removeDocument('employees', employee.id);
+
+      // Audit log
+      await createDocument('auditLogs', {
+        action: 'Delete Employee',
+        employeeId: employee.id,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        performedBy: user?.uid,
+        performedByName: user?.displayName,
+        timestamp: serverTimestamp(),
+      });
+
+      toast.success(`${employee.firstName} ${employee.lastName} deleted.`);
+      setDeleteModalOpen(false);
+      setSelectedEmployee(null);
+    } catch (error) {
+      toast.error(error.message || 'Unable to delete employee.');
+    }
+  };
+
+  // Modal handlers
+  const openViewModal = (employee) => {
+    setSelectedEmployee(employee);
+    setViewModalOpen(true);
+  };
+
+  const openEditModal = (employee) => {
+    setSelectedEmployee(employee);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (formData) => {
+    try {
+      const payload = {
+        ...formData,
+        email: formData.email ? formData.email.toLowerCase().trim() : formData.email
+      };
+      await upsertDocument('employees', selectedEmployee.id, payload);
+
+      // Auto-assign as department manager if applicable
+      const isManager = payload.role?.toLowerCase() === 'manager' || payload.designation?.toLowerCase() === 'manager';
+      if (isManager && payload.departmentId) {
+        const dept = allDepartments.find((d) => d.id === formData.departmentId);
+        if (dept) {
+          await upsertDocument('departments', dept.id, { managerId: selectedEmployee.id });
+        }
+      }
+
+      // Audit log
+      await createDocument('auditLogs', {
+        action: 'Edit Employee',
+        employeeId: selectedEmployee.id,
+        employeeName: `${formData.firstName} ${formData.lastName}`,
+        performedBy: user?.uid,
+        performedByName: user?.displayName,
+        timestamp: serverTimestamp(),
+      });
+
+      setEditModalOpen(false);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleAddEmployee = async (formData) => {
+    try {
+      const payload = {
+        ...formData,
+        email: formData.email ? formData.email.toLowerCase().trim() : formData.email,
+        createdAt: serverTimestamp(),
+      };
+      const docRef = await createDocument('employees', payload);
+
+      // Auto-assign as department manager if applicable
+      const isManager = payload.role?.toLowerCase() === 'manager' || payload.designation?.toLowerCase() === 'manager';
+      if (isManager && payload.departmentId) {
+        const dept = allDepartments.find((d) => d.id === formData.departmentId);
+        if (dept) {
+          await upsertDocument('departments', dept.id, { managerId: docRef.id });
+        }
+      }
+
+      // Audit log
+      await createDocument('auditLogs', {
+        action: 'Add Employee',
+        employeeId: docRef.id,
+        employeeName: `${formData.firstName} ${formData.lastName}`,
+        performedBy: user?.uid,
+        performedByName: user?.displayName,
+        timestamp: serverTimestamp(),
+      });
+
+      setAddModalOpen(false);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Pagination
+  const toggleSort = (key) => {
+    if (sortBy === key) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortBy(key);
+    setSortDirection('asc');
+  };
+
+  const resetFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setActiveTab('all');
+    setAttendanceDate(formatDate(new Date(), 'yyyy-MM-dd'));
+    setPage(1);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('[data-action-menu]')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const isLoading = employeesLoading || departmentsLoading;
+
+  // Render table section
+  const renderTableSection = (title, empList, count) => {
+    if (empList.length === 0) return null;
+
+    const filteredEmp = getFilteredEmployees(empList);
+    if (filteredEmp.length === 0) return null;
+
+    const sortedEmp = getSortedEmployees(filteredEmp);
+    const paginatedEmp = sortedEmp.slice(0, PAGE_SIZE);
+
+    return (
+      <div key={title} className="space-y-3">
+        <div className="flex items-center justify-between rounded-3xl bg-slate-50 px-4 py-3 shadow-sm">
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <Badge variant="neutral">{count}</Badge>
+        </div>
+
+        {viewMode === 'card' ? (
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {paginatedEmp.map((employee) => {
+              const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
+              return (
+                <Card key={employee.id} className="flex flex-col p-5 hover:shadow-md transition-shadow relative overflow-hidden group border border-slate-200 bg-white rounded-3xl">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-bold text-white shadow-sm">
+                        {`${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-900 leading-tight">{employee.firstName} {employee.lastName}</h4>
+                        <p className="text-xs text-slate-500 mt-0.5">{employee.designation || 'Employee'}</p>
+                      </div>
+                    </div>
+                    {isAdminLike(user?.role) && (
+                      <div className="flex items-center gap-1">
+                        <button type="button" onClick={() => openEditModal(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit">
+                          <PencilSquareIcon className="h-4 w-4" />
+                        </button>
+                        <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm flex-1">
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium">Department</p>
+                      <p className="font-medium text-slate-700 mt-0.5">{employee.department}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium">Status</p>
+                      <div className="mt-0.5"><StatusBadge status={employee.status} /></div>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-400 font-medium">Email</p>
+                      <p className="font-medium text-slate-700 mt-0.5 truncate" title={employee.email}>{employee.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium">Join Date</p>
+                      <p className="font-medium text-slate-700 mt-0.5">{formatDate(employee.joinDate, 'dd MMM yy')}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => openViewModal(employee)}
+                      className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
+                    >
+                      <EyeIcon className="h-3.5 w-3.5 mr-1.5" />
+                      View
+                    </Button>
+
+                    {isAdminLike(user?.role) && (
+                      <>
+                        <AttendanceDropdown
+                          employee={employee}
+                          attendanceStatus={attendanceStatus}
+                          onMark={markAttendance}
+                        />
+                      </>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
+                  <tr>
+                    <th className="px-4 py-4"><SortableHeading label="Employee" active={sortBy === 'firstName'} sortDirection={sortDirection} onClick={() => toggleSort('firstName')} /></th>
+                    <th className="px-4 py-4"><SortableHeading label="Department" active={sortBy === 'department'} sortDirection={sortDirection} onClick={() => toggleSort('department')} /></th>
+                    <th className="px-4 py-4"><SortableHeading label="Designation" active={sortBy === 'designation'} sortDirection={sortDirection} onClick={() => toggleSort('designation')} /></th>
+                    <th className="px-4 py-4"><SortableHeading label="Status" active={sortBy === 'status'} sortDirection={sortDirection} onClick={() => toggleSort('status')} /></th>
+                    <th className="px-4 py-4"><SortableHeading label="Join Date" active={sortBy === 'joinDate'} sortDirection={sortDirection} onClick={() => toggleSort('joinDate')} /></th>
+                    <th className='px-4 py-4 text-center font-semibold text-slate-700 normal-case'>Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                  {paginatedEmp.map((employee) => {
+                    const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
+                    return (
+                      <tr key={employee.id} className="group hover:bg-slate-50 transition-colors">
+                        <td className="whitespace-nowrap px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-xs font-semibold text-white">
+                              {`${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-slate-900">{employee.firstName} {employee.lastName}</p>
+                              <p className="truncate text-xs text-slate-500">{employee.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700">{employee.department}</td>
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700">{employee.designation || '—'}</td>
+                        <td className="whitespace-nowrap px-4 py-4"><StatusBadge status={employee.status} /></td>
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700">{formatDate(employee.joinDate, 'dd MMM yyyy')}</td>
+                        <td className="whitespace-nowrap px-4 py-4 text-right">
+                          <div data-action-menu className="inline-flex items-center gap-2">
+                            <Button
+                              variant="secondary"
+                              onClick={() => openViewModal(employee)}
+                              className="gap-2 px-3 py-2 text-xs"
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                              View
+                            </Button>
+                            {isAdminLike(user?.role) && (
+                              <>
+                                <AttendanceDropdown
+                                  employee={employee}
+                                  attendanceStatus={attendanceStatus}
+                                  onMark={markAttendance}
+                                />
+                              </>
+                            )}
+                            {isAdminLike(user?.role) && (
+                              <div className="flex items-center gap-1 ml-2">
+                                <Button variant="secondary" onClick={() => openEditModal(employee)} className="px-2.5 py-2 text-xs" title="Edit">
+                                  <PencilSquareIcon className="h-4 w-4" />
+                                </Button>
+                                <Button variant="danger" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="px-2.5 py-2 text-xs" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
+                                  <TrashIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const hasResults = (
+    (groupedView && activeTab === 'all')
+      ? getFilteredEmployees(groupedEmployees.managers).length > 0 || getFilteredEmployees(groupedEmployees.employees).length > 0
+      : activeTab === 'managers'
+        ? getFilteredEmployees(groupedEmployees.managers).length > 0
+        : getFilteredEmployees(groupedEmployees.employees).length > 0
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-slate-50 shadow-2xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-sky-300/80">Employee Management</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Directory and access control</h1>
+            <p className="mt-2 text-sm text-slate-300/80">Search, filter, and manage employee records in real time.</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => exportCsv(getSortedEmployees(getFilteredEmployees(enrichedEmployees)), 'employees')}
+              className="gap-2"
+            >
+              <ArrowDownTrayIcon className="h-4 w-4" />
+              Export CSV
+            </Button>
+            {isAdminLike(user?.role) && (
+              <Button onClick={() => setAddModalOpen(true)} className="gap-2">
+                <PlusIcon className="h-4 w-4" />
+                Add Employee
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+
+
+      {/* Filters */}
+      <Card className="p-4 space-y-4">
+        <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+          <div className="relative">
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              className="pl-10"
+              placeholder="Search by name, email, or ID"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </Select>
+          <Input type="date" value={attendanceDate} onChange={(event) => setAttendanceDate(event.target.value)} />
+          <Select value={viewMode} onChange={(e) => setViewMode(e.target.value)}>
+            <option value="table">Table View</option>
+            <option value="card">Card View</option>
+          </Select>
+          <Button variant="secondary" onClick={resetFilters}>Reset</Button>
+        </div>
+      </Card>
+
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2 rounded-3xl bg-slate-50 px-4 py-3 shadow-sm">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => {
+              setActiveTab(tab.key);
+              setPage(1);
+            }}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${activeTab === tab.key ? 'bg-slate-900 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      {isLoading ? (
+        <Card className="p-8">
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-12 rounded-2xl bg-slate-100 animate-pulse" />
+            ))}
+          </div>
+        </Card>
+      ) : enrichedEmployees.length === 0 ? (
+        <Card className="p-12 text-center border border-slate-200 border-dashed bg-slate-50/50">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+            <UserCircleIcon className="h-6 w-6 text-slate-400" />
+          </div>
+          <h3 className="mt-4 text-sm font-semibold text-slate-900">No employees found</h3>
+          <p className="mt-1 text-sm text-slate-500">There are no employees or managers in the system.</p>
+          <div className="mt-6">
+            {isAdminLike(user?.role) && (
+              <Button onClick={() => setAddModalOpen(true)} className="gap-2">
+                <PlusIcon className="h-4 w-4" />
+                Add Employee
+              </Button>
+            )}
+          </div>
+        </Card>
+      ) : !hasResults ? (
+        <Card className="p-12 text-center border border-slate-200 border-dashed bg-slate-50/50">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+            <UserCircleIcon className="h-6 w-6 text-slate-400" />
+          </div>
+          <h3 className="mt-4 text-sm font-semibold text-slate-900">No employees found</h3>
+          <p className="mt-1 text-sm text-slate-500">We couldn't find anything matching your current filters.</p>
+          <div className="mt-6">
+            <Button variant="secondary" onClick={resetFilters}>
+              Clear Filters
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {groupedView && activeTab === 'all' ? (
+            <>
+              {renderTableSection('Managers', groupedEmployees.managers, totalManagers)}
+              {renderTableSection('Employees', groupedEmployees.employees, totalEmployees)}
+            </>
+          ) : activeTab === 'managers' ? (
+            renderTableSection('Managers', groupedEmployees.managers, totalManagers)
+          ) : (
+            renderTableSection('Employees', groupedEmployees.employees, totalEmployees)
+          )}
+        </div>
+      )}
+
+      {/* Modals */}
+      <ViewEmployeeModal
+        employee={selectedEmployee}
+        attendanceStatus={selectedEmployee ? attendanceLookup[selectedEmployee.id] : null}
+        managers={managers}
+        open={viewModalOpen}
+        onClose={() => {
+          setViewModalOpen(false);
+          setSelectedEmployee(null);
+        }}
+      />
+      <EditEmployeeModal
+        employee={selectedEmployee}
+        departments={allDepartments}
+        managers={managers}
+        open={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedEmployee(null);
+        }}
+        onSave={handleSaveEdit}
+      />
+      <AddEmployeeModal
+        departments={allDepartments}
+        managers={managers}
+        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean)}
+        existingPhones={employees.map(e => e.phone).filter(Boolean)}
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        onSave={handleAddEmployee}
+      />
+      <Modal
+        open={attendanceConfirmOpen}
+        title="Confirm Attendance"
+        onClose={handleCancelAttendance}
+        footer={
+          <div className="flex gap-3 pt-3">
+            <Button variant="secondary" onClick={handleCancelAttendance} className="flex-1">
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleConfirmAttendance} className="flex-1">
+              Confirm
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          Are you sure you want to mark <span className="font-semibold text-slate-900">{attendancePending.employee?.firstName} {attendancePending.employee?.lastName}</span> as <span className="font-semibold text-slate-900">{attendancePending.status ? attendancePending.status.charAt(0).toUpperCase() + attendancePending.status.slice(1) : ''}</span>?
+        </p>
+
+      </Modal>
+      <Modal
+        open={deleteModalOpen}
+        title="Delete Employee"
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedEmployee(null);
+        }}
+        footer={
+          <div className="flex gap-3 pt-3">
+            <Button variant="secondary" onClick={() => {
+              setDeleteModalOpen(false);
+              setSelectedEmployee(null);
+            }} className="flex-1">
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={executeDelete} className="flex-1">
+              Delete Employee
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-600">
+          Are you sure you want to delete <span className="font-semibold text-slate-900">{selectedEmployee?.firstName} {selectedEmployee?.lastName}</span>? This action cannot be undone.
+        </p>
+      </Modal>
+    </div>
+  );
+}
