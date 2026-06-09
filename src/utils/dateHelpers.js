@@ -1,4 +1,4 @@
-import { addDays, differenceInDays, format, isAfter, isBefore, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfDay } from 'date-fns';
+import { addDays, differenceInDays, format, isAfter, isBefore, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, startOfDay, addBusinessDays, isWeekend } from 'date-fns';
 
 export function safeDate(value) {
   if (!value) {
@@ -44,7 +44,7 @@ export function daysInMonth(date = new Date()) {
 }
 
 export function addBusinessDaysSafe(date, days) {
-  return addDays(date, days);
+  return addBusinessDays(date, days);
 }
 
 export function clampDateRange(start, end) {
@@ -70,5 +70,9 @@ export function daysBetween(start, end) {
   if (!a || !b) {
     return 0;
   }
-  return Math.max(0, differenceInDays(b, a) + 1);
+  
+  if (isAfter(a, b)) return 0;
+
+  const allDays = eachDayOfInterval({ start: a, end: b });
+  return allDays.filter(day => !isWeekend(day)).length;
 }
