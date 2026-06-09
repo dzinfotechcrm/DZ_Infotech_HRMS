@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { query, orderBy, where, serverTimestamp } from 'firebase/firestore';
 import {
   ArrowDownTrayIcon,
@@ -24,7 +24,7 @@ import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Modal from '../../components/ui/Modal';
-import { formatDate, safeDate } from '../../utils/dateHelpers';
+import { formatDate, safeDate, daysBetween } from '../../utils/dateHelpers';
 import { removeDocument, upsertDocument, createDocument } from '../../firebase/firestore';
 import toast from 'react-hot-toast';
 
@@ -368,11 +368,11 @@ function ViewEmployeeModal({ employee, attendanceStatus, open, onClose, managers
             <div>
               <p className="text-xs font-medium text-slate-500">Manager</p>
               <p className="mt-1 text-sm text-slate-900">
-                {employee.managerId 
+                {employee.managerId
                   ? (() => {
-                      const m = managers?.find(mgr => mgr.id === employee.managerId);
-                      return m ? `${m.firstName} ${m.lastName}` : employee.managerId;
-                    })()
+                    const m = managers?.find(mgr => mgr.id === employee.managerId);
+                    return m ? `${m.firstName} ${m.lastName}` : employee.managerId;
+                  })()
                   : '—'}
               </p>
             </div>
@@ -469,8 +469,73 @@ function ViewEmployeeModal({ employee, attendanceStatus, open, onClose, managers
             </div>
           </div>
         </div>
+
       </div>
 
+      <div className="border-t border-slate-200 pt-4 mt-6">
+        <Button variant="secondary" className="w-full" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+// Component: Leave History Modal
+function LeaveHistoryModal({ employee, open, onClose }) {
+  const leaveQuery = useMemo(() => {
+    if (!employee || !open) return (base) => query(base, where('employeeId', '==', 'INVALID'));
+    const ids = [employee.uid, employee.id].filter(Boolean);
+    return (base) => query(base, where('employeeId', 'in', ids.length > 0 ? ids : ['INVALID']));
+  }, [employee, open]);
+
+  const { items: leaves } = useFirestoreCollection('leaveRequests', leaveQuery);
+
+  if (!employee) return null;
+
+  return (
+    <Modal open={open} title={`${employee.firstName}'s Leave History`} onClose={onClose} size="max-w-2xl">
+      <div className="space-y-6">
+        <div>
+          {leaves.length > 0 ? (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="max-h-80 overflow-y-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="sticky top-0 bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Leave Type</th>
+                      <th className="px-4 py-3 font-medium">Duration</th>
+                      <th className="px-4 py-3 font-medium">Days</th>
+                      <th className="px-4 py-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {leaves.map((leave) => (
+                      <tr key={leave.id}>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-900 font-medium">{leave.leaveTypeName || leave.leaveType || leave.leaveTypeId || '—'}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                          {formatDate(leave.fromDate, 'dd MMM')} - {formatDate(leave.toDate, 'dd MMM yyyy')}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-500">{leave.totalDays || daysBetween(leave.fromDate, leave.toDate)}</td>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${leave.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                            leave.status === 'rejected' ? 'bg-rose-100 text-rose-700' :
+                              'bg-amber-100 text-amber-700'
+                            }`}>
+                            {leave.status ? leave.status.charAt(0).toUpperCase() + leave.status.slice(1) : 'Pending'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 italic">No leave requests found for this employee.</p>
+          )}
+        </div>
+      </div>
       <div className="border-t border-slate-200 pt-4 mt-6">
         <Button variant="secondary" className="w-full" onClick={onClose}>
           Close
@@ -589,7 +654,16 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
             <Select
               label="Department"
               value={formData.departmentId || ''}
-              onChange={(e) => handleChange('departmentId', e.target.value)}
+              onChange={(e) => {
+                const deptId = e.target.value;
+                const dept = departments.find((d) => d.id === deptId);
+                const matchedManager = managers.find((m) => m.uid === dept?.managerId || m.id === dept?.managerId);
+                setFormData((prev) => ({
+                  ...prev,
+                  departmentId: deptId,
+                  managerId: prev.role === 'manager' ? '' : (matchedManager ? matchedManager.id : '')
+                }));
+              }}
             >
               <option value="">Select Department</option>
               {departments.map((dept) => (
@@ -641,6 +715,25 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
               <option value="on leave">On Leave</option>
               <option value="terminated">Terminated</option>
             </Select>
+          </div>
+        </div>
+
+        {/* Leaves Info */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900">Leave Balances</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Casual Leaves"
+              type="number"
+              value={formData.casualLeaves || '0'}
+              onChange={(e) => handleChange('casualLeaves', e.target.value)}
+            />
+            <Input
+              label="Paid Leaves"
+              type="number"
+              value={formData.paidLeaves || '0'}
+              onChange={(e) => handleChange('paidLeaves', e.target.value)}
+            />
           </div>
         </div>
 
@@ -697,11 +790,14 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
     emergencyContactPhone: '',
     emergencyContactName2: '',
     emergencyContactPhone2: '',
+    // Tab 5: Leaves
+    casualLeaves: '0',
+    paidLeaves: '0',
   };
 
   const [formData, setFormData] = useState(initialFormState);
 
-  const TABS = ['Personal Info', 'Job Info', 'Salary Info', 'Documents'];
+  const TABS = ['Personal Info', 'Job Info', 'Salary Info', 'Documents', 'Leaves'];
 
   const handleChange = (field, value) => {
     setFormData((prev) => {
@@ -732,6 +828,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       const addrRequired = ['line1', 'city', 'state', 'pincode'];
       if (required.some(k => !formData[k]) || addrRequired.some(k => !formData.address[k])) {
         toast.error('Please fill all fields in Personal Info');
+        return false;
+      }
+      if (!/^\d{6}$/.test(formData.address.pincode)) {
+        toast.error('Pincode must be exactly 6 digits');
         return false;
       }
       if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
@@ -786,6 +886,13 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       }
       if (!/^[A-Z0-9]{10}$/.test(formData.pan)) {
         toast.error('PAN must be exactly 10 alphanumeric characters');
+        return false;
+      }
+    }
+    if (tabIndex === 4) {
+      const required = ['casualLeaves', 'paidLeaves'];
+      if (required.some(k => String(formData[k]).trim() === '')) {
+        toast.error('Please fill all fields in Leaves');
         return false;
       }
     }
@@ -905,7 +1012,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
                 <Input label="City *" value={formData.address.city} onChange={(e) => handleAddressChange('city', e.target.value)} />
                 <div className="grid grid-cols-2 gap-4">
                   <Input label="State *" value={formData.address.state} onChange={(e) => handleAddressChange('state', e.target.value)} />
-                  <Input label="Pincode *" value={formData.address.pincode} onChange={(e) => handleAddressChange('pincode', e.target.value)} />
+                  <Input label="Pincode *" value={formData.address.pincode} onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    handleAddressChange('pincode', val);
+                  }} pattern="[0-9]{6}" title="Please enter exactly 6 digits" />
                 </div>
               </div>
             </div>
@@ -1029,6 +1139,16 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
           </div>
         )}
 
+        {/* TAB 5: Leaves */}
+        {currentTab === 4 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Casual Leaves *" type="number" min="0" value={formData.casualLeaves} onChange={(e) => handleChange('casualLeaves', e.target.value)} />
+              <Input label="Paid Leaves *" type="number" min="0" value={formData.paidLeaves} onChange={(e) => handleChange('paidLeaves', e.target.value)} />
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-3 border-t border-slate-200 pt-6 mt-8">
           <Button variant="secondary" className="mr-auto" onClick={onClose} disabled={saving} type="button">
             Cancel
@@ -1061,9 +1181,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
 export default function EmployeeList() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // State
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('department') || '');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('all');
   const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
@@ -1076,6 +1197,7 @@ export default function EmployeeList() {
 
   // Modals
   const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [leaveHistoryModalOpen, setLeaveHistoryModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -1480,10 +1602,23 @@ export default function EmployeeList() {
                       variant="secondary"
                       onClick={() => openViewModal(employee)}
                       className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
+                      title="View Profile"
                     >
-                      <EyeIcon className="h-3.5 w-3.5 mr-1.5" />
-                      View
+                      <EyeIcon className="h-3.5 w-3.5" />
                     </Button>
+                    {isAdminLike(user?.role) && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setSelectedEmployee(employee);
+                          setLeaveHistoryModalOpen(true);
+                        }}
+                        className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
+                        title="Leave History"
+                      >
+                        <CalendarDaysIcon className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
 
                     {isAdminLike(user?.role) && (
                       <>
@@ -1539,10 +1674,23 @@ export default function EmployeeList() {
                               variant="secondary"
                               onClick={() => openViewModal(employee)}
                               className="gap-2 px-3 py-2 text-xs"
+                              title="View Profile"
                             >
                               <EyeIcon className="h-4 w-4" />
-                              View
                             </Button>
+                            {isAdminLike(user?.role) && (
+                              <Button
+                                variant="secondary"
+                                onClick={() => {
+                                  setSelectedEmployee(employee);
+                                  setLeaveHistoryModalOpen(true);
+                                }}
+                                className="gap-2 px-3 py-2 text-xs"
+                                title="Leave History"
+                              >
+                                <CalendarDaysIcon className="h-4 w-4" />
+                              </Button>
+                            )}
                             {isAdminLike(user?.role) && (
                               <>
                                 <AttendanceDropdown
@@ -1721,6 +1869,11 @@ export default function EmployeeList() {
           setViewModalOpen(false);
           setSelectedEmployee(null);
         }}
+      />
+      <LeaveHistoryModal
+        open={leaveHistoryModalOpen}
+        employee={selectedEmployee}
+        onClose={() => setLeaveHistoryModalOpen(false)}
       />
       <EditEmployeeModal
         employee={selectedEmployee}

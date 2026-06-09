@@ -72,29 +72,7 @@ export default function LeaveList() {
         )}
       />
 
-      {!isAdminLike(user?.role) && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {visibleBalances.map((balance) => (
-            <Card key={balance.id} className="p-5">
-              <div className="section-title">Leave Balance</div>
-              <p className="muted-text mt-1">Employee: {getEmpName(balance.employeeId)}</p>
-              <div className="mt-4 grid gap-2">
-                {Object.entries(balance.balances || {}).map(([typeId, value]) => {
-                  const typeName = leaveTypes.find((t) => t.id === typeId)?.name || typeId;
-                  const remaining = value?.remaining ?? 0;
-                  const used = value?.used ?? 0;
-                  return (
-                    <div key={typeId} className="flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 text-sm">
-                      <span>{typeName}</span>
-                      <span className="font-semibold text-neutral-900">{remaining} remaining (used {used})</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+
 
       <Card className="p-5">
         <Table

@@ -66,7 +66,7 @@ export async function initializeSeedData() {
         basicSalary: 50000,
         status: 'active',
         managerId: '',
-        uid: '', 
+        uid: '',
         photoURL: '',
       });
     }
