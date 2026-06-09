@@ -24,7 +24,7 @@ import { formatDateTime, safeDate } from '../../utils/dateHelpers';
 import { upsertDocument, updateDocument } from '../../firebase/firestore';
 import { exportPayslipPdf } from '../../utils/pdfExport';
 import toast from 'react-hot-toast';
-import { isSunday, isSameMonth, isSameDay, startOfDay, isBefore, isAfter, eachDayOfInterval, endOfMonth } from 'date-fns';
+import { isWeekend, isSameMonth, isSameDay, startOfDay, isBefore, isAfter, eachDayOfInterval, endOfMonth } from 'date-fns';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -67,15 +67,15 @@ function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, 
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const totalDays = daysInMonth.length;
-  const sundaysCount = daysInMonth.filter(d => isSunday(d)).length;
+  const weekendCount = daysInMonth.filter(d => isWeekend(d)).length;
 
   const monthHolidays = holidays.filter(h => {
     const hDate = safeDate(h.date);
-    return hDate && isSameMonth(hDate, monthStart) && !isSunday(hDate);
+    return hDate && isSameMonth(hDate, monthStart) && !isWeekend(hDate);
   });
   const holidayCount = monthHolidays.length;
 
-  const workingDays = totalDays - sundaysCount - holidayCount;
+  const workingDays = totalDays - weekendCount - holidayCount;
 
   // 2. Present & Half Days from Attendance
   const monthAtt = attendance.filter(
@@ -101,9 +101,9 @@ function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, 
 
     daysInMonth.forEach(d => {
       if (!isBefore(d, startOfDay(lStart)) && !isAfter(d, startOfDay(lEnd))) {
-        const isSun = isSunday(d);
+        const isWknd = isWeekend(d);
         const isHol = monthHolidays.some(h => isSameDay(safeDate(h.date), d));
-        if (!isSun && !isHol) {
+        if (!isWknd && !isHol) {
           paidLeaveDays++;
         }
       }
@@ -715,6 +715,22 @@ export default function PayrollList() {
     }
   }
 
+  // ── Bulk Reprocess ───────────────────────────────────────────────────────────
+  async function bulkReprocess() {
+    const targets = filtered.filter((r) => selectedIds.includes(r.id) && r.status === 'draft');
+    if (!targets.length) return toast.error('Select at least one draft record to reprocess');
+    setBulkLoading(true);
+    try {
+      await Promise.all(targets.map((r) => processOne(r, true)));
+      toast.success(`${targets.length} record(s) reprocessed`);
+      setSelectedIds([]);
+    } catch {
+      toast.error('Failed to reprocess some records');
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
   // ── Bulk status update ───────────────────────────────────────────────────────
   async function bulkUpdateStatus(newStatus) {
     const targets = filtered.filter((r) => selectedIds.includes(r.id) && r._hasPayroll);
@@ -1001,10 +1017,21 @@ export default function PayrollList() {
             {selectedIds.length > 0 && (() => {
               const selectedRecords = filtered.filter(r => selectedIds.includes(r.id));
               const showApprove = selectedRecords.some(r => r.status === 'draft' || r.status === 'pending');
+              const showReprocess = selectedRecords.some(r => r.status === 'draft');
               return (
                 <>
                   <span className="text-xs text-neutral-400">({selectedIds.length} selected)</span>
                   <div className="ml-auto flex gap-2">
+                    {showReprocess && (
+                      <button
+                        onClick={bulkReprocess}
+                        disabled={bulkLoading}
+                        className="flex items-center gap-1.5 rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-xs font-bold text-sky-700 hover:bg-sky-100 transition disabled:opacity-50"
+                      >
+                        <PlayIcon className="h-4 w-4" />
+                        Reprocess Selected
+                      </button>
+                    )}
                     {showApprove && (
                       <button
                         onClick={() => bulkUpdateStatus('approved')}

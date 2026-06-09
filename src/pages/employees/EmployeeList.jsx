@@ -797,7 +797,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
 
   const [formData, setFormData] = useState(initialFormState);
 
-  const TABS = ['Personal Info', 'Job Info', 'Salary Info', 'Documents', 'Leaves'];
+  const TABS = ['Personal Info', 'Job Info', 'Salary Info', 'Documents'];
 
   const handleChange = (field, value) => {
     setFormData((prev) => {
@@ -868,9 +868,9 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       }
     }
     if (tabIndex === 2) {
-      const required = ['basicSalary', 'hra', 'da', 'travelAllowance', 'bankAccount', 'ifsc', 'bankName'];
+      const required = ['basicSalary', 'hra', 'da', 'travelAllowance', 'bankAccount', 'ifsc', 'bankName', 'casualLeaves', 'paidLeaves'];
       if (required.some(k => String(formData[k]).trim() === '')) {
-        toast.error('Please fill all fields in Salary Info');
+        toast.error('Please fill all fields in Salary Info (including leaves)');
         return false;
       }
     }
@@ -886,13 +886,6 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       }
       if (!/^[A-Z0-9]{10}$/.test(formData.pan)) {
         toast.error('PAN must be exactly 10 alphanumeric characters');
-        return false;
-      }
-    }
-    if (tabIndex === 4) {
-      const required = ['casualLeaves', 'paidLeaves'];
-      if (required.some(k => String(formData[k]).trim() === '')) {
-        toast.error('Please fill all fields in Leaves');
         return false;
       }
     }
@@ -1101,6 +1094,13 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
                 <Input label="IFSC Code *" value={formData.ifsc} onChange={(e) => handleChange('ifsc', e.target.value)} />
               </div>
             </div>
+            <div className="mt-6 border-t border-slate-100 pt-6">
+              <h5 className="text-sm font-semibold text-slate-700 mb-4">Leaves Allocation</h5>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input label="Casual Leaves *" type="number" min="0" value={formData.casualLeaves} onChange={(e) => handleChange('casualLeaves', e.target.value)} />
+                <Input label="Paid Leaves *" type="number" min="0" value={formData.paidLeaves} onChange={(e) => handleChange('paidLeaves', e.target.value)} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -1139,15 +1139,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
           </div>
         )}
 
-        {/* TAB 5: Leaves */}
-        {currentTab === 4 && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input label="Casual Leaves *" type="number" min="0" value={formData.casualLeaves} onChange={(e) => handleChange('casualLeaves', e.target.value)} />
-              <Input label="Paid Leaves *" type="number" min="0" value={formData.paidLeaves} onChange={(e) => handleChange('paidLeaves', e.target.value)} />
-            </div>
-          </div>
-        )}
+
 
         <div className="flex gap-3 border-t border-slate-200 pt-6 mt-8">
           <Button variant="secondary" className="mr-auto" onClick={onClose} disabled={saving} type="button">
