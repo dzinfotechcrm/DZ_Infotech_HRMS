@@ -126,6 +126,7 @@ export default function LeaveList() {
 
   const [activeTab, setActiveTab] = useState('my');
   const canSeeTeam = isManager || isAdminLike(user?.role);
+  const pendingTeamLeavesCount = othersLeaves.filter(item => String(item.status || '').toLowerCase().trim() === 'pending').length;
 
   return (
     <div className="space-y-6">
@@ -152,10 +153,15 @@ export default function LeaveList() {
           </button>
           <button
             type="button"
-            className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'team' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+            className={`flex items-center gap-2 pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'team' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
             onClick={() => setActiveTab('team')}
           >
             {isAdminLike(user?.role) ? "All Employees' Leaves" : "Team Leaves"}
+            {pendingTeamLeavesCount > 0 && (
+              <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'team' ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                {pendingTeamLeavesCount}
+              </span>
+            )}
           </button>
         </div>
       )}
