@@ -27,8 +27,32 @@ export default function LeaveList() {
     return emp ? `${emp.firstName} ${emp.lastName}`.trim() : id;
   }
 
-  const columns = [
-    ...(isAdminLike(user?.role) ? [{ key: 'employee', label: 'Employee' }] : []),
+  const myLeaves = leaveRequests.filter((item) => item.employeeId === user?.uid);
+  
+  const currentEmployee = employees.find(e => e.uid === user?.uid || e.email === user?.email);
+  const isManager = user?.role === 'manager';
+
+  const othersLeaves = isAdminLike(user?.role) 
+    ? leaveRequests.filter((item) => item.employeeId !== user?.uid)
+    : isManager 
+      ? leaveRequests.filter(item => {
+          if (item.employeeId === user?.uid) return false;
+          const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
+          return requestEmp?.departmentId === currentEmployee?.departmentId;
+        })
+      : [];
+
+  const visibleBalances = isAdminLike(user?.role) 
+    ? leaveBalance 
+    : isManager 
+      ? leaveBalance.filter(item => {
+          if (item.employeeId === user?.uid) return true;
+          const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
+          return requestEmp?.departmentId === currentEmployee?.departmentId;
+        })
+      : leaveBalance.filter((item) => item.employeeId === user?.uid);
+
+  const baseColumns = [
     { key: 'type', label: 'Type' },
     { key: 'range', label: 'Range' },
     { key: 'days', label: 'Days' },
@@ -37,6 +61,26 @@ export default function LeaveList() {
     { key: 'reason', label: 'Reason' }
   ];
 
+  const hasMyActions = myLeaves.some((item) => {
+    if (item.status === 'pending' || item.status === 'rejected') return true;
+    if (isAdminLike(user?.role) && (item.status === 'approved' || item.status === 'rejected')) return true;
+    return false;
+  });
+
+  const hasOthersActions = othersLeaves.some((item) => {
+    if (isAdminLike(user?.role) && (item.status === 'approved' || item.status === 'rejected')) return true;
+    return false;
+  });
+
+  const myColumns = [...baseColumns];
+  if (hasMyActions) myColumns.push({ key: 'actions', label: 'Actions' });
+
+  const othersColumns = [
+    { key: 'employee', label: 'Employee' },
+    ...baseColumns
+  ];
+  if (hasOthersActions) othersColumns.push({ key: 'actions', label: 'Actions' });
+
   const [deleting, setDeleting] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmItem, setConfirmItem] = useState(null);
@@ -44,19 +88,44 @@ export default function LeaveList() {
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reasonItem, setReasonItem] = useState(null);
 
-  const visibleLeaves = isAdminLike(user?.role) ? leaveRequests : leaveRequests.filter((item) => item.employeeId === user?.uid);
-  const visibleBalances = isAdminLike(user?.role) ? leaveBalance : leaveBalance.filter((item) => item.employeeId === user?.uid);
-
-  const showActions = visibleLeaves.some((item) => {
+  const renderActions = (item) => {
     const isOwner = item.employeeId === user?.uid;
     const isAdmin = isAdminLike(user?.role);
-    if (isAdmin && (item.status === 'approved' || item.status === 'rejected')) return true;
-    if (isOwner && (item.status === 'pending' || item.status === 'rejected')) return true;
-    return false;
-  });
-  if (showActions) {
-    columns.push({ key: 'actions', label: 'Actions' });
-  }
+    const canEdit = isOwner && item.status === 'pending';
+    const canSeeWhy = isOwner && item.status === 'rejected';
+    const canDelete = isAdmin && (item.status === 'approved' || item.status === 'rejected');
+
+    if (!canEdit && !canSeeWhy && !canDelete) return null;
+
+    return (
+      <div className="flex gap-2">
+        {canEdit && (
+          <Link to={`/leave/${item.id}/edit`}>
+            <Button variant="secondary" className="px-3 py-1 text-xs">Edit</Button>
+          </Link>
+        )}
+        {canSeeWhy && (
+          <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => { setReasonItem(item); setReasonOpen(true); }}>Why</Button>
+        )}
+        {canDelete && (
+          <Button
+            variant="danger"
+            disabled={deleting === item.id}
+            className="px-3 py-1 text-xs"
+            onClick={() => {
+              setConfirmItem(item);
+              setConfirmOpen(true);
+            }}
+          >
+            Delete
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  const [activeTab, setActiveTab] = useState('my');
+  const canSeeTeam = isManager || isAdminLike(user?.role);
 
   return (
     <div className="space-y-6">
@@ -67,65 +136,98 @@ export default function LeaveList() {
         actions={(
           <div className="flex flex-wrap gap-2">
             {!isAdminLike(user?.role) && <Link to="/leave/new"><Button>Apply Leave</Button></Link>}
-            {(user?.role === 'admin' || user?.role === 'hr') && <Link to="/leave/approval"><Button variant="secondary">Approval Queue</Button></Link>}
+            {(user?.role === 'admin' || user?.role === 'hr' || user?.role === 'manager') && <Link to="/leave/approval"><Button variant="secondary">Approval Queue</Button></Link>}
           </div>
         )}
       />
 
+      {canSeeTeam && (
+        <div className="flex gap-4 border-b border-neutral-200">
+          <button
+            type="button"
+            className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'my' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+            onClick={() => setActiveTab('my')}
+          >
+            My Leaves
+          </button>
+          <button
+            type="button"
+            className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'team' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+            onClick={() => setActiveTab('team')}
+          >
+            {isAdminLike(user?.role) ? "All Employees' Leaves" : "Team Leaves"}
+          </button>
+        </div>
+      )}
 
-
-      <Card className="p-5">
-        <Table
-          columns={columns}
-          data={visibleLeaves}
-          renderRow={(item) => (
-            <tr key={item.id}>
-              {isAdminLike(user?.role) && <td className="px-4 py-3">{getEmpName(item.employeeId)}</td>}
-              <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
-              <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
-              <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
-              <td className="px-4 py-3">
-                {item.attachmentURL ? (
-                  <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
-                    View File
-                  </a>
-                ) : (
-                  <span className="text-neutral-400 text-sm">—</span>
-                )}
-              </td>
-              <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
-              <td className="px-4 py-3">{item.reason}</td>
-              {showActions && (
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    {item.status === 'pending' && item.employeeId === user?.uid && (
-                      <Link to={`/leave/${item.id}/edit`}>
-                        <Button variant="secondary" className="px-3 py-1 text-xs">Edit</Button>
-                      </Link>
+      {/* My Leaves Section */}
+      {(!canSeeTeam || activeTab === 'my') && (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Card className="p-5">
+            <Table
+              columns={myColumns}
+              data={myLeaves}
+              renderRow={(item) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
+                  <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
+                  <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                  <td className="px-4 py-3">
+                    {item.attachmentURL ? (
+                      <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
+                        View File
+                      </a>
+                    ) : (
+                      <span className="text-neutral-400 text-sm">—</span>
                     )}
-                    {item.status === 'rejected' && item.employeeId === user?.uid && (
-                      <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => { setReasonItem(item); setReasonOpen(true); }}>Why</Button>
-                    )}
-                    {(item.status === 'approved' || item.status === 'rejected') && isAdminLike(user?.role) && (
-                      <Button
-                        variant="danger"
-                        disabled={deleting === item.id}
-                        className="px-3 py-1 text-xs"
-                        onClick={() => {
-                          setConfirmItem(item);
-                          setConfirmOpen(true);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    )}
-                  </div>
-                </td>
+                  </td>
+                  <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
+                  <td className="px-4 py-3">{item.reason}</td>
+                  {hasMyActions && <td className="px-4 py-3">{renderActions(item)}</td>}
+                </tr>
               )}
-            </tr>
-          )}
-        />
-      </Card>
+            />
+            {myLeaves.length === 0 && (
+              <div className="text-center py-6 text-neutral-500 text-sm">You have not applied for any leaves yet.</div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* Team/Others Leaves Section */}
+      {canSeeTeam && activeTab === 'team' && (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Card className="p-5">
+            <Table
+              columns={othersColumns}
+              data={othersLeaves}
+              renderRow={(item) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-3 font-medium text-neutral-900">{getEmpName(item.employeeId)}</td>
+                  <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
+                  <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
+                  <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                  <td className="px-4 py-3">
+                    {item.attachmentURL ? (
+                      <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
+                        View File
+                      </a>
+                    ) : (
+                      <span className="text-neutral-400 text-sm">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
+                  <td className="px-4 py-3">{item.reason}</td>
+                  {hasOthersActions && <td className="px-4 py-3">{renderActions(item)}</td>}
+                </tr>
+              )}
+            />
+            {othersLeaves.length === 0 && (
+              <div className="text-center py-6 text-neutral-500 text-sm">No leave requests found for your team.</div>
+            )}
+          </Card>
+        </div>
+      )}
 
       <Modal
         open={confirmOpen}

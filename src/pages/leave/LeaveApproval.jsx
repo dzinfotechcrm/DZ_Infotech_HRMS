@@ -27,15 +27,28 @@ export default function LeaveApproval() {
     return emp ? `${emp.firstName} ${emp.lastName}`.trim() : id;
   }
 
-  if (!isAdminLike(user?.role)) {
-    return <Card className="p-6 text-center">Approval queue is restricted to Admin and HR users.</Card>;
+  const currentEmployee = employees.find((e) => e.uid === user?.uid || e.email === user?.email);
+  const isManager = user?.role === 'manager';
+
+  if (!isAdminLike(user?.role) && !isManager) {
+    return <Card className="p-6 text-center">Approval queue is restricted to Admin, HR, and Manager users.</Card>;
   }
 
   if (error) {
     return <Card className="p-6 text-center text-danger">Unable to load approval requests: {error.message}</Card>;
   }
 
-  const pendingRequests = requests.filter((request) => String(request.status || '').toLowerCase().trim() === 'pending');
+  const pendingRequests = requests.filter((request) => {
+    if (String(request.status || '').toLowerCase().trim() !== 'pending') return false;
+    
+    if (isManager && !isAdminLike(user?.role)) {
+      const requestEmp = employees.find(e => e.uid === request.employeeId || e.id === request.employeeId);
+      // Make it visible to manager if the employee is in the same department
+      if (requestEmp?.departmentId !== currentEmployee?.departmentId) return false;
+    }
+    
+    return true;
+  });
 
   async function updateStatus(request, status) {
     try {
