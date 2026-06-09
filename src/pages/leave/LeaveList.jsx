@@ -21,26 +21,41 @@ export default function LeaveList() {
   const { items: leaveBalance } = useFirestoreCollection('leaveBalance', balanceQuery);
   const { items: leaveTypes } = useFirestoreCollection('leaveTypes');
   const { items: employees } = useFirestoreCollection('employees');
+  const { items: departments } = useFirestoreCollection('departments');
 
   function getEmpName(id) {
     const emp = employees.find(e => e.uid === id || e.id === id);
     return emp ? `${emp.firstName} ${emp.lastName}`.trim() : id;
   }
 
+  function getEmpDetails(id) {
+    const emp = employees.find(e => e.uid === id || e.id === id);
+    if (!emp) return { name: id, designation: '-', department: '-' };
+    const dept = departments.find(d => d.id === emp.departmentId);
+    return {
+      name: `${emp.firstName} ${emp.lastName}`.trim(),
+      designation: emp.designation || '-',
+      department: dept?.name || '-',
+    };
+  }
+
+  const isAdmin = isAdminLike(user?.role);
+  const isManager = user?.role === 'manager';
+
   const myLeaves = leaveRequests.filter((item) => item.employeeId === user?.uid);
   
   const currentEmployee = employees.find(e => e.uid === user?.uid || e.email === user?.email);
-  const isManager = user?.role === 'manager';
 
-  const othersLeaves = isAdminLike(user?.role) 
-    ? leaveRequests.filter((item) => item.employeeId !== user?.uid)
-    : isManager 
-      ? leaveRequests.filter(item => {
-          if (item.employeeId === user?.uid) return false;
-          const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
-          return requestEmp?.departmentId === currentEmployee?.departmentId;
-        })
-      : [];
+  const othersLeaves = isManager 
+    ? leaveRequests.filter(item => {
+        if (item.employeeId === user?.uid) return false;
+        const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
+        return requestEmp?.departmentId === currentEmployee?.departmentId;
+      })
+    : [];
+
+  const approvedByMeLeaves = leaveRequests.filter(item => item.status === 'approved' && item.approvedBy === user?.uid);
+  const approvedByManagerLeaves = leaveRequests.filter(item => item.status === 'approved' && item.approvedBy && item.approvedBy !== user?.uid);
 
   const visibleBalances = isAdminLike(user?.role) 
     ? leaveBalance 
@@ -63,12 +78,12 @@ export default function LeaveList() {
 
   const hasMyActions = myLeaves.some((item) => {
     if (item.status === 'pending' || item.status === 'rejected') return true;
-    if (isAdminLike(user?.role) && (item.status === 'approved' || item.status === 'rejected')) return true;
+    if (isAdmin && (item.status === 'approved' || item.status === 'rejected')) return true;
     return false;
   });
 
   const hasOthersActions = othersLeaves.some((item) => {
-    if (isAdminLike(user?.role) && (item.status === 'approved' || item.status === 'rejected')) return true;
+    if (isAdmin && (item.status === 'approved' || item.status === 'rejected')) return true;
     return false;
   });
 
@@ -77,9 +92,19 @@ export default function LeaveList() {
 
   const othersColumns = [
     { key: 'employee', label: 'Employee' },
+    { key: 'department', label: 'Department' },
+    { key: 'designation', label: 'Designation' },
     ...baseColumns
   ];
   if (hasOthersActions) othersColumns.push({ key: 'actions', label: 'Actions' });
+
+  const adminColumns = [
+    { key: 'employee', label: 'Employee' },
+    { key: 'department', label: 'Department' },
+    { key: 'designation', label: 'Designation' },
+    ...baseColumns,
+    { key: 'actions', label: 'Actions' }
+  ];
 
   const [deleting, setDeleting] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -124,9 +149,12 @@ export default function LeaveList() {
     );
   };
 
-  const [activeTab, setActiveTab] = useState('my');
-  const canSeeTeam = isManager || isAdminLike(user?.role);
-  const pendingTeamLeavesCount = othersLeaves.filter(item => String(item.status || '').toLowerCase().trim() === 'pending').length;
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'approvedByMe' : 'my');
+  const pendingLeavesCount = isAdmin
+    ? leaveRequests.filter(req => String(req.status || '').toLowerCase().trim() === 'pending' && req.employeeId !== user?.uid).length
+    : isManager
+      ? othersLeaves.filter(item => String(item.status || '').toLowerCase().trim() === 'pending').length
+      : 0;
 
   return (
     <div className="space-y-6">
@@ -136,13 +164,41 @@ export default function LeaveList() {
         description="Apply for leave, review pending approvals, and monitor employee leave balances in one place."
         actions={(
           <div className="flex flex-wrap gap-2">
-            {!isAdminLike(user?.role) && <Link to="/leave/new"><Button>Apply Leave</Button></Link>}
-            {(user?.role === 'admin' || user?.role === 'hr' || user?.role === 'manager') && <Link to="/leave/approval"><Button variant="secondary">Approval Queue</Button></Link>}
+            {!isAdmin && <Link to="/leave/new"><Button>Apply Leave</Button></Link>}
+            {(isAdmin || isManager || user?.role === 'hr') && (
+              <Link to="/leave/approval">
+                <Button variant="secondary" className="relative">
+                  Approval Queue
+                  {pendingLeavesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-white" />
+                  )}
+                </Button>
+              </Link>
+            )}
           </div>
         )}
       />
 
-      {canSeeTeam && (
+      {isAdmin && (
+        <div className="flex gap-4 border-b border-neutral-200">
+          <button
+            type="button"
+            className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'approvedByMe' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+            onClick={() => setActiveTab('approvedByMe')}
+          >
+            Approved By Me
+          </button>
+          <button
+            type="button"
+            className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'approvedByManager' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+            onClick={() => setActiveTab('approvedByManager')}
+          >
+            Approved By Manager
+          </button>
+        </div>
+      )}
+
+      {isManager && !isAdmin && (
         <div className="flex gap-4 border-b border-neutral-200">
           <button
             type="button"
@@ -156,10 +212,10 @@ export default function LeaveList() {
             className={`flex items-center gap-2 pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'team' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
             onClick={() => setActiveTab('team')}
           >
-            {isAdminLike(user?.role) ? "All Employees' Leaves" : "Team Leaves"}
-            {pendingTeamLeavesCount > 0 && (
+            Team Leaves
+            {pendingLeavesCount > 0 && (
               <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'team' ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600'}`}>
-                {pendingTeamLeavesCount}
+                {pendingLeavesCount}
               </span>
             )}
           </button>
@@ -167,7 +223,7 @@ export default function LeaveList() {
       )}
 
       {/* My Leaves Section */}
-      {(!canSeeTeam || activeTab === 'my') && (
+      {!isAdmin && activeTab === 'my' && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Card className="p-5">
             <Table
@@ -200,16 +256,20 @@ export default function LeaveList() {
         </div>
       )}
 
-      {/* Team/Others Leaves Section */}
-      {canSeeTeam && activeTab === 'team' && (
+      {/* Team Leaves Section */}
+      {isManager && !isAdmin && activeTab === 'team' && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Card className="p-5">
             <Table
               columns={othersColumns}
               data={othersLeaves}
-              renderRow={(item) => (
+              renderRow={(item) => {
+                const empInfo = getEmpDetails(item.employeeId);
+                return (
                 <tr key={item.id}>
-                  <td className="px-4 py-3 font-medium text-neutral-900">{getEmpName(item.employeeId)}</td>
+                  <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
+                  <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
+                  <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
                   <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
                   <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
                   <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
@@ -226,10 +286,88 @@ export default function LeaveList() {
                   <td className="px-4 py-3">{item.reason}</td>
                   {hasOthersActions && <td className="px-4 py-3">{renderActions(item)}</td>}
                 </tr>
-              )}
+              )}}
             />
             {othersLeaves.length === 0 && (
               <div className="text-center py-6 text-neutral-500 text-sm">No leave requests found for your team.</div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* Admin: Approved By Me */}
+      {isAdmin && activeTab === 'approvedByMe' && (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Card className="p-5">
+            <Table
+              columns={adminColumns}
+              data={approvedByMeLeaves}
+              renderRow={(item) => {
+                const empInfo = getEmpDetails(item.employeeId);
+                return (
+                <tr key={item.id}>
+                  <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
+                  <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
+                  <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
+                  <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
+                  <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
+                  <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                  <td className="px-4 py-3">
+                    {item.attachmentURL ? (
+                      <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
+                        View File
+                      </a>
+                    ) : (
+                      <span className="text-neutral-400 text-sm">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
+                  <td className="px-4 py-3">{item.reason}</td>
+                  <td className="px-4 py-3">{renderActions(item)}</td>
+                </tr>
+              )}}
+            />
+            {approvedByMeLeaves.length === 0 && (
+              <div className="text-center py-6 text-neutral-500 text-sm">No leaves approved by you yet.</div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* Admin: Approved By Manager */}
+      {isAdmin && activeTab === 'approvedByManager' && (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Card className="p-5">
+            <Table
+              columns={adminColumns}
+              data={approvedByManagerLeaves}
+              renderRow={(item) => {
+                const empInfo = getEmpDetails(item.employeeId);
+                return (
+                <tr key={item.id}>
+                  <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
+                  <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
+                  <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
+                  <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
+                  <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
+                  <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                  <td className="px-4 py-3">
+                    {item.attachmentURL ? (
+                      <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
+                        View File
+                      </a>
+                    ) : (
+                      <span className="text-neutral-400 text-sm">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
+                  <td className="px-4 py-3">{item.reason}</td>
+                  <td className="px-4 py-3">{renderActions(item)}</td>
+                </tr>
+              )}}
+            />
+            {approvedByManagerLeaves.length === 0 && (
+              <div className="text-center py-6 text-neutral-500 text-sm">No leaves approved by managers yet.</div>
             )}
           </Card>
         </div>

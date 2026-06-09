@@ -21,10 +21,22 @@ export default function LeaveApproval() {
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
   const { items: requests, error } = useFirestoreCollection('leaveRequests', leaveQuery);
   const { items: employees } = useFirestoreCollection('employees');
+  const { items: departments } = useFirestoreCollection('departments');
 
   function getEmpName(id) {
     const emp = employees.find(e => e.uid === id || e.id === id);
     return emp ? `${emp.firstName} ${emp.lastName}`.trim() : id;
+  }
+
+  function getEmpDetails(id) {
+    const emp = employees.find(e => e.uid === id || e.id === id);
+    if (!emp) return { name: id, designation: '-', department: '-' };
+    const dept = departments.find(d => d.id === emp.departmentId);
+    return {
+      name: `${emp.firstName} ${emp.lastName}`.trim(),
+      designation: emp.designation || '-',
+      department: dept?.name || '-',
+    };
   }
 
   const currentEmployee = employees.find((e) => e.uid === user?.uid || e.email === user?.email);
@@ -40,6 +52,9 @@ export default function LeaveApproval() {
 
   const pendingRequests = requests.filter((request) => {
     if (String(request.status || '').toLowerCase().trim() !== 'pending') return false;
+    
+    // Prevent ANY user from approving their own leave
+    if (request.employeeId === user?.uid) return false;
     
     if (isManager && !isAdminLike(user?.role)) {
       const requestEmp = employees.find(e => e.uid === request.employeeId || e.id === request.employeeId);
@@ -114,11 +129,25 @@ export default function LeaveApproval() {
           <p className="muted-text">Approve or reject leave with comments and automatic balance updates.</p>
         </div>
       <Table
-        columns={[{ key: 'employee', label: 'Employee' }, { key: 'type', label: 'Type' }, { key: 'range', label: 'Range' }, { key: 'attachment', label: 'Attachment' }, { key: 'status', label: 'Status' }, { key: 'comment', label: 'Comment' }, { key: 'actions', label: 'Actions' }]}
+        columns={[
+          { key: 'employee', label: 'Employee' }, 
+          { key: 'department', label: 'Department' },
+          { key: 'designation', label: 'Designation' },
+          { key: 'type', label: 'Type' }, 
+          { key: 'range', label: 'Range' }, 
+          { key: 'attachment', label: 'Attachment' }, 
+          { key: 'status', label: 'Status' }, 
+          { key: 'comment', label: 'Comment' }, 
+          { key: 'actions', label: 'Actions' }
+        ]}
         data={pendingRequests}
-        renderRow={(request) => (
+        renderRow={(request) => {
+          const empInfo = getEmpDetails(request.employeeId);
+          return (
           <tr key={request.id}>
-            <td className="px-4 py-3">{getEmpName(request.employeeId)}</td>
+            <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
+            <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
+            <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
             <td className="px-4 py-3">{request.leaveTypeName || request.leaveType || request.leaveTypeId}</td>
             <td className="px-4 py-3">{formatDate(request.fromDate)} - {formatDate(request.toDate)}</td>
             <td className="px-4 py-3">
@@ -139,7 +168,7 @@ export default function LeaveApproval() {
               </div>
             </td>
           </tr>
-        )}
+        )}}
       />
     </Card>
 

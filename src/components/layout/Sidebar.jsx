@@ -15,6 +15,7 @@ import {
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import { roleLabel } from '../../utils/rbac';
+import { useFirestoreCollection } from '../../hooks/useFirestore';
 
 const navigation = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
@@ -27,6 +28,22 @@ const navigation = [
 ];
 
 export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
+  const { items: employees } = useFirestoreCollection('employees');
+  const { items: leaveRequests } = useFirestoreCollection('leaveRequests');
+  
+  let pendingCount = 0;
+  if (isAdminLikeRole) {
+    pendingCount = leaveRequests.filter(req => String(req.status || '').toLowerCase().trim() === 'pending' && req.employeeId !== user?.uid).length;
+  } else if (user?.role === 'manager') {
+    const currentEmployee = employees.find((e) => e.uid === user?.uid || e.email === user?.email);
+    pendingCount = leaveRequests.filter(req => {
+      if (String(req.status || '').toLowerCase().trim() !== 'pending') return false;
+      if (req.employeeId === user?.uid) return false;
+      const requestEmp = employees.find(e => e.uid === req.employeeId || e.id === req.employeeId);
+      return requestEmp?.departmentId === currentEmployee?.departmentId;
+    }).length;
+  }
+
   return (
     <>
       {open && <div className="fixed inset-0 z-30 bg-neutral-950/50 lg:hidden" onClick={onClose} />}
@@ -60,11 +77,18 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
                 to={item.to}
                 onClick={onClose}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                  `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
                 }
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.label}</span>
+                <div className="flex items-center gap-3">
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </div>
+                {item.to === '/leave' && pendingCount > 0 && (
+                  <span className="flex h-5 items-center justify-center rounded-full bg-danger-500 px-2 text-xs font-bold text-white shadow-sm">
+                    {pendingCount}
+                  </span>
+                )}
               </NavLink>
             );
           })}
