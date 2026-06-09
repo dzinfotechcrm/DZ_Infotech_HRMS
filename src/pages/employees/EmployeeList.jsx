@@ -1224,8 +1224,8 @@ export default function EmployeeList() {
 
       let filtered = employees.filter((emp) => emp.designation?.toLowerCase() !== 'admin' && emp.role !== 'admin');
 
-      // If user is a manager, only show employees from their department
-      if (user?.role === 'manager' && currentEmployee?.departmentId) {
+      // If user is not an admin, only show employees from their department
+      if (!isAdminLike(user?.role) && currentEmployee?.departmentId) {
         filtered = filtered.filter(emp => emp.departmentId === currentEmployee.departmentId);
       }
 
