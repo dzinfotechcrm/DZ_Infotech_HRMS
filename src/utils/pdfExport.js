@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatDate } from './dateHelpers';
+import { fetchDocument, fetchCollection } from '../firebase/firestore';
 
 export function exportTableToPdf({ title, subtitle, columns, rows, fileName = 'report.pdf' }) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
@@ -47,6 +48,22 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.width;
   
+  let finalDeptName = employee.department;
+  if (!finalDeptName || finalDeptName === '—') {
+    try {
+      if (employee.departmentId) {
+        const d = await fetchDocument('departments', employee.departmentId);
+        if (d.exists()) finalDeptName = d.data().name;
+      } else if (employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager') {
+        const depts = await fetchCollection('departments');
+        const d = depts.find(x => x.managerId === employee.id || x.managerId === employee.uid);
+        if (d) finalDeptName = d.name;
+      }
+    } catch(e) {
+      console.warn("Failed to fetch department for PDF", e);
+    }
+  }
+
   try {
     const logoBase64 = await getBase64Image('/DZ_Infotech_Logo.png');
     // Draw Logo
@@ -93,7 +110,7 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   doc.text(`${employee.employeeId || '—'}`, 120, 165);
   
   doc.text(`Department:`, 40, 180);
-  doc.text(`${employee.department || '—'}`, 120, 180);
+  doc.text(`${finalDeptName || '—'}`, 120, 180);
   
   doc.text(`Designation:`, 40, 195);
   doc.text(`${employee.designation || '—'}`, 120, 195);
