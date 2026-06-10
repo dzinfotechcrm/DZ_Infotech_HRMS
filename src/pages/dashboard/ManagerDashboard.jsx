@@ -13,6 +13,7 @@ import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestoreCollection } from '../../hooks/useFirestore';
 import { formatDate } from '../../utils/dateHelpers';
+import AttendanceControl from '../../components/dashboard/AttendanceControl';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
   const tones = {
@@ -40,10 +41,10 @@ function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
 
 export default function ManagerDashboard() {
   const { user } = useAuth();
-  
+
   // Fetch all employees to find the team members
   const { items: employees, loading: loadingEmployees } = useFirestoreCollection('employees');
-  
+
   // Find manager's employee document ID
   const myEmpDoc = employees.find(emp => emp.uid === user?.uid);
   const myEmpDocId = myEmpDoc?.id;
@@ -87,6 +88,8 @@ export default function ManagerDashboard() {
           </p>
         </div>
       </div>
+
+      <AttendanceControl user={user} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Team Headcount" value={loadingEmployees ? '...' : teamHeadcount} icon={UsersIcon} tone="primary" subtitle="Total direct reports" />

@@ -32,6 +32,9 @@ export default function AttendanceList() {
   const [exportStartDate, setExportStartDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
   const [exportEndDate, setExportEndDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
 
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState('');
+
   const today = formatDate(new Date(), 'yyyy-MM-dd');
   const thisMonth = formatDate(new Date(), 'yyyy-MM');
 
@@ -64,7 +67,7 @@ export default function AttendanceList() {
   }, [user, isEmployee, possibleIds]);
 
   const { items: attendance } = useFirestoreCollection('attendance', attendanceQuery);
-  
+
   const sortedAttendance = useMemo(() => {
     return [...attendance].sort((a, b) => {
       const dateA = new Date(a.date || 0);
@@ -99,7 +102,7 @@ export default function AttendanceList() {
   }
 
   function exportCsv(rows, filename = 'attendance') {
-    const header = ['Date', 'Employee', 'Department', 'Role', 'Status', 'Notes'];
+    const header = ['Date', 'Employee', 'Department', 'Role', 'Status', 'Check In', 'Check Out', 'Notes'];
     const csv = [
       header.join(','),
       ...rows.map((row) => [
@@ -108,6 +111,8 @@ export default function AttendanceList() {
         getEmpDept(row.employeeId),
         getEmpRole(row.employeeId),
         row.status || '',
+        row.checkIn || '',
+        row.checkOut || '',
         row.notes || '',
       ].map((value) => `"${String(value || '').replaceAll('"', '""')}"`).join(',')),
     ].join('\n');
@@ -264,6 +269,8 @@ export default function AttendanceList() {
             ...(isEmployee ? [] : [{ key: 'department', label: 'Department' }]),
             ...(isEmployee ? [] : [{ key: 'role', label: 'Role' }]),
             { key: 'status', label: 'Status' },
+            { key: 'checkIn', label: 'Check In' },
+            { key: 'checkOut', label: 'Check Out' },
             { key: 'notes', label: 'Notes' }
           ]}
           data={filtered}
@@ -274,12 +281,45 @@ export default function AttendanceList() {
               {!isEmployee && <td className="px-4 py-3">{getEmpDept(item.employeeId)}</td>}
               {!isEmployee && <td className="px-4 py-3">{getEmpRole(item.employeeId)}</td>}
               <td className="px-4 py-3"><Badge tone={item.status === 'present' ? 'success' : item.status === 'late' ? 'warning' : item.status === 'absent' ? 'danger' : 'neutral'}>{item.status}</Badge></td>
-              <td className="px-4 py-3">{item.notes || '—'}</td>
+              <td className="px-4 py-3 whitespace-nowrap">{item.checkIn || '—'}</td>
+              <td className="px-4 py-3 whitespace-nowrap">{item.checkOut || '—'}</td>
+              <td className="px-4 py-3 min-w-[120px]">
+                {item.notes ? (
+                  <Button
+                    variant="secondary"
+                    className="py-1 px-3 text-xs"
+                    onClick={() => {
+                      setSelectedNote(item.notes);
+                      setNoteModalOpen(true);
+                    }}
+                  >
+                    View Note
+                  </Button>
+                ) : (
+                  '—'
+                )}
+              </td>
             </tr>
           )}
         />
       </Card>
 
+      <Modal
+        open={noteModalOpen}
+        title="Check-Out Note"
+        onClose={() => setNoteModalOpen(false)}
+        footer={
+          <div className="flex pt-3">
+            <Button variant="secondary" onClick={() => setNoteModalOpen(false)} className="w-full">
+              Close
+            </Button>
+          </div>
+        }
+      >
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap break-words">
+          {selectedNote}
+        </div>
+      </Modal>
 
     </div>
   );

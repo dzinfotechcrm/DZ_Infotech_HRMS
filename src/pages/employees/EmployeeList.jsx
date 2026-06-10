@@ -115,156 +115,6 @@ function SortableHeading({ label, active, sortDirection, onClick }) {
   );
 }
 
-// Component: Attendance Dropdown
-function AttendanceDropdown({ employee, attendanceStatus, onMark }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null);
-  const [coords, setCoords] = useState({ top: 0, right: 0, bottom: 0, left: 0, windowHeight: 0 });
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (isOpen && buttonRef.current) {
-        const rect = buttonRef.current.getBoundingClientRect();
-        setCoords({
-          top: rect.top,
-          right: rect.right,
-          bottom: rect.bottom,
-          left: rect.left,
-          windowHeight: window.innerHeight
-        });
-      }
-    };
-
-    if (isOpen) {
-      handleScroll();
-      window.addEventListener('scroll', handleScroll, true);
-      window.addEventListener('resize', handleScroll);
-    }
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (buttonRef.current && buttonRef.current.contains(e.target)) return;
-      if (menuRef.current && menuRef.current.contains(e.target)) return;
-      setIsOpen(false);
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  const handleMark = (status) => {
-    onMark(employee, status);
-    setIsOpen(false);
-  };
-
-  const getButtonContent = () => {
-    switch (attendanceStatus) {
-      case 'present':
-        return {
-          text: 'Present',
-          icon: '✅',
-          styles: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 ring-emerald-100'
-        };
-      case 'late':
-        return {
-          text: 'Late',
-          icon: '🕐',
-          styles: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 ring-amber-100'
-        };
-      case 'absent':
-        return {
-          text: 'Absent',
-          icon: '❌',
-          styles: 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 ring-rose-100'
-        };
-      default:
-        return {
-          text: 'Mark Attendance',
-          icon: null,
-          styles: 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 focus:ring-primary-100 focus:border-primary-300 ring-primary-100'
-        };
-    }
-  };
-
-  const btnContent = getButtonContent();
-
-  const menuHeight = 180;
-  const spaceBelow = coords.windowHeight - coords.bottom;
-  const openUpwards = spaceBelow < menuHeight && coords.top > menuHeight;
-
-  const menu = isOpen ? createPortal(
-    <div
-      ref={menuRef}
-      className={`fixed z-[99999] w-40 ${openUpwards ? 'origin-bottom-right' : 'origin-top-right'} rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-xl p-1.5 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] focus:outline-none`}
-      style={{
-        ...(openUpwards
-          ? { bottom: `${coords.windowHeight - coords.top + 8}px` }
-          : { top: `${coords.bottom + 8}px` }),
-        left: `${coords.right - 155}px`,
-      }}
-    >
-      <div className="mb-1 px-3 py-2">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Select Status</p>
-      </div>
-      <button
-        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${attendanceStatus === 'present' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50 hover:text-emerald-600'}`}
-        onClick={() => handleMark('present')}
-      >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-sm shadow-sm">✅</span>
-        Present
-        {attendanceStatus === 'present' && <span className="ml-auto text-emerald-600 font-bold">✓</span>}
-      </button>
-
-      <button
-        className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${attendanceStatus === 'late' ? 'bg-amber-50 text-amber-700' : 'text-slate-600 hover:bg-slate-50 hover:text-amber-600'}`}
-        onClick={() => handleMark('late')}
-      >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-sm shadow-sm">🕐</span>
-        Late
-        {attendanceStatus === 'late' && <span className="ml-auto text-amber-600 font-bold">✓</span>}
-      </button>
-
-      <button
-        className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all ${attendanceStatus === 'absent' ? 'bg-rose-50 text-rose-700' : 'text-slate-600 hover:bg-slate-50 hover:text-rose-600'}`}
-        onClick={() => handleMark('absent')}
-      >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-sm shadow-sm">❌</span>
-        Absent
-        {attendanceStatus === 'absent' && <span className="ml-auto text-rose-600 font-bold">✓</span>}
-      </button>
-    </div>,
-    document.body
-  ) : null;
-
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={`relative inline-flex items-center justify-between gap-2 px-3.5 py-1.5 text-xs h-[34px] min-w-[145px] rounded-xl shadow-sm border font-semibold transition-all duration-200 outline-none ${btnContent.styles} ${isOpen ? 'ring-4 scale-[0.98] border-transparent' : (!attendanceStatus ? 'hover:-translate-y-0.5 cursor-pointer' : 'cursor-default')}`}
-        onClick={() => { if (!attendanceStatus) setIsOpen(!isOpen); }}
-      >
-        <span className="flex items-center gap-1.5 truncate">
-          {btnContent.icon && <span>{btnContent.icon}</span>}
-          {btnContent.text}
-        </span>
-        {!attendanceStatus && (
-          <ChevronDownIcon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : 'opacity-70'}`} />
-        )}
-      </button>
-      {menu}
-    </>
-  );
-}
-
 // Component: View Employee Modal
 function ViewEmployeeModal({ employee, attendanceStatus, open, onClose, managers }) {
   if (!employee) return null;
@@ -1193,9 +1043,7 @@ export default function EmployeeList() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [attendanceConfirmOpen, setAttendanceConfirmOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [attendancePending, setAttendancePending] = useState({ employee: null, status: null, checkIn: '', checkOut: '' });
 
   // Firestore Data
   const employeesQuery = useMemo(() => {
@@ -1311,68 +1159,6 @@ export default function EmployeeList() {
   const totalEmployees = groupedEmployees.employees.length;
   const presentToday = attendanceRecords.filter((r) => r.status?.toLowerCase() === 'present').length;
   const activeCount = enrichedEmployees.filter((e) => e.status?.toLowerCase() === 'active').length;
-
-  const runMarkAttendance = async (employee, status, checkIn = '', checkOut = '') => {
-    try {
-      const targetId = employee.uid || employee.id;
-      const docId = `${targetId}_${attendanceDate}`;
-      await upsertDocument('attendance', docId, {
-        date: attendanceDate,
-        month: attendanceDate.substring(0, 7),
-        year: attendanceDate.substring(0, 4),
-        employeeId: targetId,
-        employeeName: `${employee.firstName} ${employee.lastName}`,
-        status,
-        checkIn: (status === 'present' || status === 'late') ? checkIn : '',
-        checkOut: (status === 'present' || status === 'late') ? checkOut : '',
-        markedBy: user?.uid,
-        markedByName: user?.displayName,
-        timestamp: serverTimestamp(),
-      });
-
-      await createDocument('auditLogs', {
-        action: `Mark ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-        employeeId: employee.id,
-        employeeName: `${employee.firstName} ${employee.lastName}`,
-        performedBy: user?.uid,
-        performedByName: user?.displayName,
-        timestamp: serverTimestamp(),
-      });
-
-      toast.success(`Marked ${status}`);
-    } catch (error) {
-      toast.error('Failed to mark attendance');
-    }
-  };
-
-  const markAttendance = async (employee, status) => {
-    if (!isAdminLike(user?.role)) {
-      toast.error('Only admin users can mark attendance.');
-      return;
-    }
-
-    setAttendancePending({ employee, status, checkIn: '', checkOut: '' });
-    setAttendanceConfirmOpen(true);
-  };
-
-  const handleConfirmAttendance = async () => {
-    if (!attendancePending.employee || !attendancePending.status) {
-      setAttendanceConfirmOpen(false);
-      setAttendancePending({ employee: null, status: null, checkIn: '', checkOut: '' });
-      return;
-    }
-
-
-
-    await runMarkAttendance(attendancePending.employee, attendancePending.status, attendancePending.checkIn, attendancePending.checkOut);
-    setAttendancePending({ employee: null, status: null, checkIn: '', checkOut: '' });
-    setAttendanceConfirmOpen(false);
-  };
-
-  const handleCancelAttendance = () => {
-    setAttendancePending({ employee: null, status: null, checkIn: '', checkOut: '' });
-    setAttendanceConfirmOpen(false);
-  };
 
   const canDeleteEmployee = (employee) => {
     if (employee.designation?.toLowerCase() !== 'manager' && employee.role?.toLowerCase() !== 'manager') return true;
@@ -1613,14 +1399,10 @@ export default function EmployeeList() {
                     )}
 
                     {isAdminLike(user?.role) && (
-                      <>
-                        <AttendanceDropdown
-                          employee={employee}
-                          attendanceStatus={attendanceStatus}
-                          onMark={markAttendance}
-                        />
-                      </>
-                    )}
+  <div className="flex items-center" title="Attendance">
+    <AttendanceBadge status={attendanceStatus} />
+  </div>
+)}
                   </div>
                 </Card>
               );
@@ -1684,14 +1466,10 @@ export default function EmployeeList() {
                               </Button>
                             )}
                             {isAdminLike(user?.role) && (
-                              <>
-                                <AttendanceDropdown
-                                  employee={employee}
-                                  attendanceStatus={attendanceStatus}
-                                  onMark={markAttendance}
-                                />
-                              </>
-                            )}
+  <div className="flex items-center" title="Attendance">
+    <AttendanceBadge status={attendanceStatus} />
+  </div>
+)}
                             {isAdminLike(user?.role) && (
                               <div className="flex items-center gap-1 ml-2">
                                 <Button variant="secondary" onClick={() => openEditModal(employee)} className="px-2.5 py-2 text-xs" title="Edit">
@@ -1887,26 +1665,6 @@ export default function EmployeeList() {
         onClose={() => setAddModalOpen(false)}
         onSave={handleAddEmployee}
       />
-      <Modal
-        open={attendanceConfirmOpen}
-        title="Confirm Attendance"
-        onClose={handleCancelAttendance}
-        footer={
-          <div className="flex gap-3 pt-3">
-            <Button variant="secondary" onClick={handleCancelAttendance} className="flex-1">
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleConfirmAttendance} className="flex-1">
-              Confirm
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-600">
-          Are you sure you want to mark <span className="font-semibold text-slate-900">{attendancePending.employee?.firstName} {attendancePending.employee?.lastName}</span> as <span className="font-semibold text-slate-900">{attendancePending.status ? attendancePending.status.charAt(0).toUpperCase() + attendancePending.status.slice(1) : ''}</span>?
-        </p>
-
-      </Modal>
       <Modal
         open={deleteModalOpen}
         title="Delete Employee"

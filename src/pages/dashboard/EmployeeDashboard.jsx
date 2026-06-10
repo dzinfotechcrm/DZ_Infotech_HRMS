@@ -12,6 +12,7 @@ import Table from '../../components/ui/Table';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestoreCollection } from '../../hooks/useFirestore';
 import { formatDate } from '../../utils/dateHelpers';
+import AttendanceControl from '../../components/dashboard/AttendanceControl';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
   const tones = {
@@ -67,6 +68,8 @@ export default function EmployeeDashboard() {
           </p>
         </div>
       </div>
+
+      <AttendanceControl user={user} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Today's Status" value={presentToday ? 'Present' : 'Not Marked'} icon={CheckCircleIcon} tone={presentToday ? "success" : "warning"} subtitle={presentToday ? "You're checked in today" : "Awaiting check-in"} />

@@ -14,7 +14,6 @@ const EmployeeProfile = lazy(() => import('./pages/employees/EmployeeProfile'));
 const DepartmentList = lazy(() => import('./pages/departments/DepartmentList'));
 const DepartmentForm = lazy(() => import('./pages/departments/DepartmentForm'));
 const AttendanceList = lazy(() => import('./pages/attendance/AttendanceList'));
-const AttendanceMark = lazy(() => import('./pages/attendance/AttendanceMark'));
 const LeaveList = lazy(() => import('./pages/leave/LeaveList'));
 const LeaveForm = lazy(() => import('./pages/leave/LeaveForm'));
 const LeaveApproval = lazy(() => import('./pages/leave/LeaveApproval'));
@@ -61,7 +60,6 @@ export default function App() {
           <Route path="departments/new" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><DepartmentForm mode="create" /></ProtectedRoute>} />
           <Route path="departments/:id/edit" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><DepartmentForm mode="edit" /></ProtectedRoute>} />
           <Route path="attendance" element={<ProtectedRoute allowedRoles={PERMISSIONS.attendance}><AttendanceList /></ProtectedRoute>} />
-          <Route path="attendance/mark" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr]}><AttendanceMark /></ProtectedRoute>} />
           <Route path="leave" element={<ProtectedRoute allowedRoles={PERMISSIONS.leave}><LeaveList /></ProtectedRoute>} />
           <Route path="leave/new" element={<ProtectedRoute allowedRoles={PERMISSIONS.leave}><LeaveForm mode="create" /></ProtectedRoute>} />
           <Route path="leave/:id/edit" element={<ProtectedRoute allowedRoles={PERMISSIONS.leave}><LeaveForm mode="edit" /></ProtectedRoute>} />
