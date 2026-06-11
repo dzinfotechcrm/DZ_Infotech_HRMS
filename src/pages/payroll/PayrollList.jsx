@@ -220,7 +220,7 @@ function PayslipModal({ open, onClose, row }) {
   const allowances = resolveObj(payroll.allowances) || 0;
   const pf = employee.pfApplicable ? basic * 0.12 : 0;
   const tds = Number(payroll.tax || 0);
-  const absentDed = resolveObj(payroll.deductions) || 0;
+  const absentDed = payroll.deductions?.absent || 0;
   const totalEarnings = basic + hra + da + allowances;
   const totalDeductions = pf + tds + absentDed;
   const netSalary = Number(payroll.netSalary || totalEarnings - totalDeductions);

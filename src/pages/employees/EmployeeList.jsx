@@ -584,6 +584,12 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
               value={formData.paidLeaves || '0'}
               onChange={(e) => handleChange('paidLeaves', e.target.value)}
             />
+            <Input
+              label="Sick Leaves"
+              type="number"
+              value={formData.sickLeaves || '0'}
+              onChange={(e) => handleChange('sickLeaves', e.target.value)}
+            />
           </div>
         </div>
 
@@ -643,6 +649,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
     // Tab 5: Leaves
     casualLeaves: '0',
     paidLeaves: '0',
+    sickLeaves: '0',
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -718,7 +725,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       }
     }
     if (tabIndex === 2) {
-      const required = ['basicSalary', 'hra', 'da', 'travelAllowance', 'bankAccount', 'ifsc', 'bankName', 'casualLeaves', 'paidLeaves'];
+      const required = ['basicSalary', 'hra', 'da', 'travelAllowance', 'bankAccount', 'ifsc', 'bankName', 'casualLeaves', 'paidLeaves', 'sickLeaves'];
       if (required.some(k => String(formData[k]).trim() === '')) {
         toast.error('Please fill all fields in Salary Info (including leaves)');
         return false;
@@ -949,6 +956,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
               <div className="grid gap-4 sm:grid-cols-2">
                 <Input label="Casual Leaves *" type="number" min="0" value={formData.casualLeaves} onChange={(e) => handleChange('casualLeaves', e.target.value)} />
                 <Input label="Paid Leaves *" type="number" min="0" value={formData.paidLeaves} onChange={(e) => handleChange('paidLeaves', e.target.value)} />
+                <Input label="Sick Leaves *" type="number" min="0" value={formData.sickLeaves} onChange={(e) => handleChange('sickLeaves', e.target.value)} />
               </div>
             </div>
           </div>
@@ -1399,10 +1407,10 @@ export default function EmployeeList() {
                     )}
 
                     {isAdminLike(user?.role) && (
-  <div className="flex items-center" title="Attendance">
-    <AttendanceBadge status={attendanceStatus} />
-  </div>
-)}
+                      <div className="flex items-center" title="Attendance">
+                        <AttendanceBadge status={attendanceStatus} />
+                      </div>
+                    )}
                   </div>
                 </Card>
               );
@@ -1466,10 +1474,10 @@ export default function EmployeeList() {
                               </Button>
                             )}
                             {isAdminLike(user?.role) && (
-  <div className="flex items-center" title="Attendance">
-    <AttendanceBadge status={attendanceStatus} />
-  </div>
-)}
+                              <div className="flex items-center" title="Attendance">
+                                <AttendanceBadge status={attendanceStatus} />
+                              </div>
+                            )}
                             {isAdminLike(user?.role) && (
                               <div className="flex items-center gap-1 ml-2">
                                 <Button variant="secondary" onClick={() => openEditModal(employee)} className="px-2.5 py-2 text-xs" title="Edit">
@@ -1632,7 +1640,7 @@ export default function EmployeeList() {
       {/* Modals */}
       <ViewEmployeeModal
         employee={selectedEmployee}
-        attendanceStatus={selectedEmployee ? attendanceLookup[selectedEmployee.id] : null}
+        attendanceStatus={selectedEmployee ? (attendanceLookup[selectedEmployee.uid] || attendanceLookup[selectedEmployee.id]) : null}
         managers={managers}
         open={viewModalOpen}
         onClose={() => {

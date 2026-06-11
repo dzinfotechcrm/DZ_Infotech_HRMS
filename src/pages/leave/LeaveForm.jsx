@@ -131,7 +131,7 @@ export default function LeaveForm({ mode = 'create' }) {
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
         <Select label="Leave Type" {...register('leaveTypeId', { required: 'Leave type is required' })} error={errors.leaveTypeId?.message}>
           <option value="">Select leave type</option>
-          {leaveTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+          {leaveTypes.filter(type => type.name !== 'Annual Leave').map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
         </Select>
         <Input type="file" label="Attachment (optional)" accept="application/pdf,image/*" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
         <Input 
