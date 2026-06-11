@@ -23,11 +23,21 @@ export default function AttendanceControl({ user }) {
     return (base) => query(base, where('employeeId', '==', user.uid), where('date', '==', todayStr));
   }, [user?.uid, todayStr]);
 
+  const leaveQuery = useMemo(() => {
+    if (!user?.uid) return undefined;
+    return (base) => query(base, where('employeeId', '==', user.uid), where('status', '==', 'approved'));
+  }, [user?.uid]);
+
   const { items: attendanceRecords } = useFirestoreCollection('attendance', q);
+  const { items: approvedLeaves } = useFirestoreCollection('leaveRequests', leaveQuery);
   const todayRecord = attendanceRecords[0];
 
   const hasCheckedIn = !!todayRecord?.checkIn;
   const hasCheckedOut = !!todayRecord?.checkOut;
+
+  const isOnLeaveToday = useMemo(() => {
+    return approvedLeaves.some(leave => todayStr >= leave.fromDate && todayStr <= leave.toDate);
+  }, [approvedLeaves, todayStr]);
 
   const handleCheckIn = async () => {
     if (!user) return;
@@ -97,9 +107,14 @@ export default function AttendanceControl({ user }) {
             <h2 className="text-lg font-bold text-slate-900">Attendance Control</h2>
             <p className="text-sm text-slate-500">Record your working hours for {formatDate(new Date(), 'dd MMM yyyy')}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            {isOnLeaveToday && (
+              <span className="text-sm font-semibold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+                On Approved Leave
+              </span>
+            )}
             {!hasCheckedIn ? (
-              <Button onClick={() => setCheckInModalOpen(true)} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button disabled={isOnLeaveToday} onClick={() => setCheckInModalOpen(true)} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
                 <PlayIcon className="h-5 w-5" />
                 Check In
               </Button>
@@ -109,7 +124,7 @@ export default function AttendanceControl({ user }) {
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   Checked In at {todayRecord.checkIn}
                 </div>
-                <Button onClick={() => setCheckOutModalOpen(true)} className="gap-2 bg-rose-600 hover:bg-rose-700 text-white">
+                <Button disabled={isOnLeaveToday} onClick={() => setCheckOutModalOpen(true)} className="gap-2 bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
                   <StopIcon className="h-5 w-5" />
                   Check Out
                 </Button>
