@@ -1344,8 +1344,12 @@ export default function EmployeeList() {
                 <Card key={employee.id} className="flex flex-col p-5 hover:shadow-md transition-shadow relative overflow-hidden group border border-slate-200 bg-white rounded-3xl">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-bold text-white shadow-sm">
-                        {`${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()}
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-bold text-white shadow-sm">
+                        {employee.photoURL ? (
+                          <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" />
+                        ) : (
+                          `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()
+                        )}
                       </div>
                       <div>
                         <h4 className="font-semibold text-slate-900 leading-tight">{employee.firstName} {employee.lastName}</h4>
