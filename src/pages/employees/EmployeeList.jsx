@@ -14,6 +14,8 @@ import {
   TrashIcon,
   UserCircleIcon,
   EyeIcon,
+  Squares2X2Icon,
+  ListBulletIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestoreCollection } from '../../hooks/useFirestore';
@@ -1043,6 +1045,7 @@ export default function EmployeeList() {
   const [groupedView, setGroupedView] = useState(true);
   const [page, setPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [viewMode, setViewMode] = useState('grid');
 
   // Modals
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -1335,89 +1338,172 @@ export default function EmployeeList() {
           <Badge variant="neutral">{count}</Badge>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {paginatedEmp.map((employee) => {
-              const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
-              return (
-                <Card key={employee.id} className="flex flex-col p-5 hover:shadow-md transition-shadow relative overflow-hidden group border border-slate-200 bg-white rounded-3xl">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-bold text-white shadow-sm">
-                        {employee.photoURL ? (
-                          <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" />
-                        ) : (
-                          `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()
-                        )}
+        {viewMode === 'grid' || !isAdminLike(user?.role) ? (
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {paginatedEmp.map((employee) => {
+                const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
+                return (
+                  <Card key={employee.id} className="flex flex-col p-5 hover:shadow-md transition-shadow relative overflow-hidden group border border-slate-200 bg-white rounded-3xl">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-bold text-white shadow-sm">
+                          {employee.photoURL ? (
+                            <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" />
+                          ) : (
+                            `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-900 leading-tight">{employee.firstName} {employee.lastName}</h4>
+                          <p className="text-xs text-slate-500 mt-0.5">{employee.designation || 'Employee'}</p>
+                        </div>
+                      </div>
+                      {isAdminLike(user?.role) && (
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => openEditModal(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit">
+                            <PencilSquareIcon className="h-4 w-4" />
+                          </button>
+                          <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+  
+                    <div className="mt-5 grid grid-cols-2 gap-3 text-sm flex-1">
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium">Department</p>
+                        <p className="font-medium text-slate-700 mt-0.5">{employee.department}</p>
                       </div>
                       <div>
-                        <h4 className="font-semibold text-slate-900 leading-tight">{employee.firstName} {employee.lastName}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">{employee.designation || 'Employee'}</p>
+                        <p className="text-xs text-slate-400 font-medium">Status</p>
+                        <div className="mt-0.5"><StatusBadge status={employee.status} /></div>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-slate-400 font-medium">Email</p>
+                        <p className="font-medium text-slate-700 mt-0.5 truncate" title={employee.email}>{employee.email}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium">Join Date</p>
+                        <p className="font-medium text-slate-700 mt-0.5">{formatDate(employee.joinDate, 'dd MMM yy')}</p>
                       </div>
                     </div>
-                    {isAdminLike(user?.role) && (
-                      <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => openEditModal(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit">
-                          <PencilSquareIcon className="h-4 w-4" />
-                        </button>
-                        <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm flex-1">
-                    <div>
-                      <p className="text-xs text-slate-400 font-medium">Department</p>
-                      <p className="font-medium text-slate-700 mt-0.5">{employee.department}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-medium">Status</p>
-                      <div className="mt-0.5"><StatusBadge status={employee.status} /></div>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-xs text-slate-400 font-medium">Email</p>
-                      <p className="font-medium text-slate-700 mt-0.5 truncate" title={employee.email}>{employee.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-medium">Join Date</p>
-                      <p className="font-medium text-slate-700 mt-0.5">{formatDate(employee.joinDate, 'dd MMM yy')}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => openViewModal(employee)}
-                      className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
-                      title="View Profile"
-                    >
-                      <EyeIcon className="h-3.5 w-3.5" />
-                    </Button>
-                    {isAdminLike(user?.role) && (
+  
+                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                       <Button
                         variant="secondary"
-                        onClick={() => {
-                          setSelectedEmployee(employee);
-                          setLeaveHistoryModalOpen(true);
-                        }}
+                        onClick={() => openViewModal(employee)}
                         className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
-                        title="Leave History"
+                        title="View Profile"
                       >
-                        <CalendarDaysIcon className="h-3.5 w-3.5" />
+                        <EyeIcon className="h-3.5 w-3.5" />
                       </Button>
-                    )}
-
-                    {isAdminLike(user?.role) && (
-                      <div className="flex items-center" title="Attendance">
-                        <AttendanceBadge status={attendanceStatus} />
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
+                      {isAdminLike(user?.role) && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setSelectedEmployee(employee);
+                            setLeaveHistoryModalOpen(true);
+                          }}
+                          className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
+                          title="Leave History"
+                        >
+                          <CalendarDaysIcon className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+  
+                      {isAdminLike(user?.role) && (
+                        <div className="flex items-center" title="Attendance">
+                          <AttendanceBadge status={attendanceStatus} />
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
           </div>
+        ) : (
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-900">Employee</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-900">Contact</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-900">Department</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-900">Status</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-900">Join Date</th>
+                    <th className="px-6 py-4 text-center font-semibold text-slate-900">Attendance</th>
+                    <th className="px-6 py-4 text-right font-semibold text-slate-900">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedEmp.map((employee) => {
+                    const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
+                    return (
+                      <tr key={employee.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-xs font-bold text-white">
+                              {employee.photoURL ? (
+                                <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" />
+                              ) : (
+                                `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900">{employee.firstName} {employee.lastName}</p>
+                              <p className="text-xs text-slate-500">{employee.designation || 'Employee'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <p className="text-slate-900">{employee.email}</p>
+                          <p className="text-xs text-slate-500">{employee.phone || '—'}</p>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-slate-700">{employee.department}</td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <StatusBadge status={employee.status} />
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-slate-700">
+                          {formatDate(employee.joinDate, 'dd MMM yyyy')}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-center">
+                          {isAdminLike(user?.role) ? <AttendanceBadge status={attendanceStatus} /> : '—'}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button type="button" onClick={() => openViewModal(employee)} className="text-slate-400 hover:text-primary-600 transition" title="View Profile">
+                              <EyeIcon className="h-5 w-5" />
+                            </button>
+                            {isAdminLike(user?.role) && (
+                              <button type="button" onClick={() => {
+                                setSelectedEmployee(employee);
+                                setLeaveHistoryModalOpen(true);
+                              }} className="text-slate-400 hover:text-amber-600 transition" title="Leave History">
+                                <CalendarDaysIcon className="h-5 w-5" />
+                              </button>
+                            )}
+                            {isAdminLike(user?.role) && (
+                              <button type="button" onClick={() => openEditModal(employee)} className="text-slate-400 hover:text-emerald-600 transition" title="Edit">
+                                <PencilSquareIcon className="h-5 w-5" />
+                              </button>
+                            )}
+                            {isAdminLike(user?.role) && (
+                              <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="text-slate-400 hover:text-rose-600 transition disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1485,21 +1571,41 @@ export default function EmployeeList() {
         </div>
       </Card>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-2 rounded-3xl bg-slate-50 px-4 py-3 shadow-sm">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => {
-              setActiveTab(tab.key);
-              setPage(1);
-            }}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${activeTab === tab.key ? 'bg-slate-900 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Tabs and Views */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2 rounded-3xl bg-slate-50 px-4 py-3 shadow-sm">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.key);
+                setPage(1);
+              }}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${activeTab === tab.key ? 'bg-slate-900 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {isAdminLike(user?.role) && (
+          <div className="flex items-center gap-1 rounded-3xl bg-slate-50 p-1 shadow-sm">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`rounded-full p-2 transition ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              title="Grid View"
+            >
+              <Squares2X2Icon className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`rounded-full p-2 transition ${viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              title="Table View"
+            >
+              <ListBulletIcon className="h-5 w-5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}
