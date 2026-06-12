@@ -10,7 +10,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../hooks/useAuth';
 import { uploadFile } from '../../firebase/storage';
-import { createDocument, updateDocument, fetchDocument } from '../../firebase/firestore';
+import { createDocument, updateDocument, fetchDocument, fetchCollection, query, where } from '../../firebase/firestore';
 import { useFirestoreCollection } from '../../hooks/useFirestore';
 import { daysBetween } from '../../utils/dateHelpers';
 
@@ -58,6 +58,30 @@ export default function LeaveForm({ mode = 'create' }) {
 
   async function onSubmit(values) {
     try {
+      // Check for overlapping approved leaves
+      const approvedLeaves = await fetchCollection('leaveRequests', (base) => 
+        query(base, where('employeeId', '==', user.uid), where('status', '==', 'approved'))
+      );
+
+      const newStart = new Date(values.fromDate);
+      newStart.setHours(0, 0, 0, 0);
+      const newEnd = new Date(values.toDate);
+      newEnd.setHours(0, 0, 0, 0);
+
+      const hasOverlap = approvedLeaves.some(leave => {
+        if (mode === 'edit' && leave.id === id) return false;
+        const existStart = new Date(leave.fromDate);
+        existStart.setHours(0, 0, 0, 0);
+        const existEnd = new Date(leave.toDate);
+        existEnd.setHours(0, 0, 0, 0);
+        return newStart <= existEnd && newEnd >= existStart;
+      });
+
+      if (hasOverlap) {
+        toast.error('You already have an approved leave during these dates');
+        return;
+      }
+
       let attachmentURL = '';
       if (attachment) {
         if (attachment.size > 5 * 1024 * 1024) {

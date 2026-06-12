@@ -1040,7 +1040,6 @@ export default function EmployeeList() {
   const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
   const [sortBy, setSortBy] = useState('firstName');
   const [sortDirection, setSortDirection] = useState('asc');
-  const [viewMode, setViewMode] = useState('table'); // 'table' or 'card'
   const [groupedView, setGroupedView] = useState(true);
   const [page, setPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -1336,9 +1335,8 @@ export default function EmployeeList() {
           <Badge variant="neutral">{count}</Badge>
         </div>
 
-        {viewMode === 'card' ? (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {paginatedEmp.map((employee) => {
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {paginatedEmp.map((employee) => {
               const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
               return (
                 <Card key={employee.id} className="flex flex-col p-5 hover:shadow-md transition-shadow relative overflow-hidden group border border-slate-200 bg-white rounded-3xl">
@@ -1420,88 +1418,6 @@ export default function EmployeeList() {
               );
             })}
           </div>
-        ) : (
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-[0.2em] text-slate-500">
-                  <tr>
-                    <th className="px-4 py-4"><SortableHeading label="Employee" active={sortBy === 'firstName'} sortDirection={sortDirection} onClick={() => toggleSort('firstName')} /></th>
-                    <th className="px-4 py-4"><SortableHeading label="Department" active={sortBy === 'department'} sortDirection={sortDirection} onClick={() => toggleSort('department')} /></th>
-                    <th className="px-4 py-4"><SortableHeading label="Designation" active={sortBy === 'designation'} sortDirection={sortDirection} onClick={() => toggleSort('designation')} /></th>
-                    <th className="px-4 py-4"><SortableHeading label="Status" active={sortBy === 'status'} sortDirection={sortDirection} onClick={() => toggleSort('status')} /></th>
-                    <th className="px-4 py-4"><SortableHeading label="Join Date" active={sortBy === 'joinDate'} sortDirection={sortDirection} onClick={() => toggleSort('joinDate')} /></th>
-                    <th className='px-4 py-4 text-center font-semibold text-slate-700 normal-case'>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
-                  {paginatedEmp.map((employee) => {
-                    const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
-                    return (
-                      <tr key={employee.id} className="group hover:bg-slate-50 transition-colors">
-                        <td className="whitespace-nowrap px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-xs font-semibold text-white">
-                              {`${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-slate-900">{employee.firstName} {employee.lastName}</p>
-                              <p className="truncate text-xs text-slate-500">{employee.email}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700">{employee.department}</td>
-                        <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700">{employee.designation || '—'}</td>
-                        <td className="whitespace-nowrap px-4 py-4"><StatusBadge status={employee.status} /></td>
-                        <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700">{formatDate(employee.joinDate, 'dd MMM yyyy')}</td>
-                        <td className="whitespace-nowrap px-4 py-4 text-right">
-                          <div data-action-menu className="inline-flex items-center gap-2">
-                            <Button
-                              variant="secondary"
-                              onClick={() => openViewModal(employee)}
-                              className="gap-2 px-3 py-2 text-xs"
-                              title="View Profile"
-                            >
-                              <EyeIcon className="h-4 w-4" />
-                            </Button>
-                            {isAdminLike(user?.role) && (
-                              <Button
-                                variant="secondary"
-                                onClick={() => {
-                                  setSelectedEmployee(employee);
-                                  setLeaveHistoryModalOpen(true);
-                                }}
-                                className="gap-2 px-3 py-2 text-xs"
-                                title="Leave History"
-                              >
-                                <CalendarDaysIcon className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {isAdminLike(user?.role) && (
-                              <div className="flex items-center" title="Attendance">
-                                <AttendanceBadge status={attendanceStatus} />
-                              </div>
-                            )}
-                            {isAdminLike(user?.role) && (
-                              <div className="flex items-center gap-1 ml-2">
-                                <Button variant="secondary" onClick={() => openEditModal(employee)} className="px-2.5 py-2 text-xs" title="Edit">
-                                  <PencilSquareIcon className="h-4 w-4" />
-                                </Button>
-                                <Button variant="danger" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="px-2.5 py-2 text-xs" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
-                                  <TrashIcon className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -1525,14 +1441,16 @@ export default function EmployeeList() {
             <p className="mt-2 text-sm text-slate-300/80">Search, filter, and manage employee records in real time.</p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => exportCsv(getSortedEmployees(getFilteredEmployees(enrichedEmployees)), 'employees')}
-              className="gap-2"
-            >
-              <ArrowDownTrayIcon className="h-4 w-4" />
-              Export CSV
-            </Button>
+            {isAdminLike(user?.role) && (
+              <Button
+                variant="secondary"
+                onClick={() => exportCsv(getSortedEmployees(getFilteredEmployees(enrichedEmployees)), 'employees')}
+                className="gap-2"
+              >
+                <ArrowDownTrayIcon className="h-4 w-4" />
+                Export CSV
+              </Button>
+            )}
             {isAdminLike(user?.role) && (
               <Button onClick={() => setAddModalOpen(true)} className="gap-2">
                 <PlusIcon className="h-4 w-4" />
@@ -1547,7 +1465,7 @@ export default function EmployeeList() {
 
       {/* Filters */}
       <Card className="p-4 space-y-4">
-        <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+        <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto]">
           <div className="relative">
             <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
@@ -1563,10 +1481,6 @@ export default function EmployeeList() {
             ))}
           </Select>
           <Input type="date" value={attendanceDate} onChange={(event) => setAttendanceDate(event.target.value)} />
-          <Select value={viewMode} onChange={(e) => setViewMode(e.target.value)}>
-            <option value="table">Table View</option>
-            <option value="card">Card View</option>
-          </Select>
           <Button variant="secondary" onClick={resetFilters}>Reset</Button>
         </div>
       </Card>

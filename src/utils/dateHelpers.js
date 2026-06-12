@@ -71,8 +71,10 @@ export function daysBetween(start, end) {
     return 0;
   }
   
-  if (isAfter(a, b)) return 0;
+  const startDay = startOfDay(a);
+  const endDay = startOfDay(b);
 
-  const allDays = eachDayOfInterval({ start: a, end: b });
-  return allDays.filter(day => !isWeekend(day)).length;
+  if (isAfter(startDay, endDay)) return 0;
+
+  return differenceInDays(endDay, startDay) + 1;
 }
