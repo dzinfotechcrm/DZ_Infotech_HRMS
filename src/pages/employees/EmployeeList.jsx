@@ -25,10 +25,12 @@ import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 import Modal from '../../components/ui/Modal';
 import { formatDate, safeDate, daysBetween } from '../../utils/dateHelpers';
 import { removeDocument, upsertDocument, createDocument } from '../../firebase/firestore';
 import toast from 'react-hot-toast';
+import { getBankOptions } from '../../data/banks';
 
 const TABS = [
   { key: 'all', label: 'All' },
@@ -656,6 +658,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
 
   const [formData, setFormData] = useState(initialFormState);
   const [errors, setErrors] = useState({});
+  const [isIfscLoading, setIsIfscLoading] = useState(false);
+  const [branchDetails, setBranchDetails] = useState('');
+  
+  const bankOptions = useMemo(() => getBankOptions(), []);
 
   const TABS = ['Personal Info', 'Job Info', 'Salary Info', 'Documents'];
 
@@ -684,10 +690,51 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
     }));
   };
 
+  const handleBankNameChange = (val) => {
+    handleChange('bankName', val);
+    handleChange('ifsc', '');
+    handleChange('bankAccount', '');
+    setBranchDetails('');
+  };
+
+  const handleIfscChange = async (val) => {
+    const formattedVal = val.toUpperCase();
+    handleChange('ifsc', formattedVal);
+    handleChange('bankAccount', '');
+    setBranchDetails('');
+    
+    if (/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formattedVal)) {
+      setIsIfscLoading(true);
+      try {
+        const res = await fetch(`https://ifsc.razorpay.com/${formattedVal}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Ensure it roughly matches the selected bank
+          if (formData.bankName && !data.BANK.toLowerCase().includes(formData.bankName.split(' ')[0].toLowerCase())) {
+             setErrors(prev => ({ ...prev, ifsc: 'IFSC belongs to a different bank' }));
+          } else {
+             setBranchDetails(`${data.BRANCH}, ${data.CITY}`);
+             setErrors(prev => ({ ...prev, ifsc: undefined }));
+          }
+        } else {
+          setErrors(prev => ({ ...prev, ifsc: 'Invalid IFSC Code' }));
+        }
+      } catch (err) {
+        setErrors(prev => ({ ...prev, ifsc: 'Failed to verify IFSC' }));
+      } finally {
+        setIsIfscLoading(false);
+      }
+    } else if (formattedVal.length > 0 && formattedVal.length < 11) {
+      setErrors(prev => ({ ...prev, ifsc: 'IFSC must be 11 characters' }));
+    } else if (formattedVal.length === 11) {
+      setErrors(prev => ({ ...prev, ifsc: 'Invalid IFSC format' }));
+    }
+  };
+
   const validateTab = (tabIndex) => {
     const newErrors = {};
     let isValid = true;
-    
+
     if (tabIndex === 0) {
       const required = ['firstName', 'lastName', 'email', 'phone', 'dob', 'gender', 'bloodGroup'];
       required.forEach(k => {
@@ -736,6 +783,18 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       required.forEach(k => {
         if (String(formData[k]).trim() === '') { newErrors[k] = 'This field is required'; isValid = false; }
       });
+      if (formData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifsc)) {
+        newErrors['ifsc'] = 'Invalid IFSC format';
+        isValid = false;
+      }
+      if (formData.bankAccount && !/^\d{9,18}$/.test(formData.bankAccount)) {
+        newErrors['bankAccount'] = 'Account number must be 9-18 digits';
+        isValid = false;
+      }
+      if (errors.ifsc && errors.ifsc !== 'IFSC must be 11 characters') {
+        newErrors['ifsc'] = errors.ifsc;
+        isValid = false;
+      }
     }
     if (tabIndex === 3) {
       const required = ['aadhar', 'pan', 'emergencyContactName', 'emergencyContactPhone', 'emergencyContactName2', 'emergencyContactPhone2'];
@@ -751,7 +810,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         isValid = false;
       }
     }
-    
+
     setErrors(newErrors);
     return isValid;
   };
@@ -805,6 +864,8 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       setFormData(initialFormState);
       setErrors({});
       setCurrentTab(0);
+      setBranchDetails('');
+      setIsIfscLoading(false);
     }
   }, [open]);
 
@@ -953,9 +1014,52 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
             <div className="mt-6 border-t border-slate-100 pt-6">
               <h5 className="text-sm font-semibold text-slate-700 mb-4">Bank Details</h5>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Input label="Bank Name *" error={errors.bankName} value={formData.bankName} onChange={(e) => handleChange('bankName', e.target.value)} />
-                <Input label="Account Number *" error={errors.bankAccount} value={formData.bankAccount} onChange={(e) => handleChange('bankAccount', e.target.value)} />
-                <Input label="IFSC Code *" error={errors.ifsc} value={formData.ifsc} onChange={(e) => handleChange('ifsc', e.target.value)} />
+                <SearchableSelect 
+                  label="Bank Name *" 
+                  error={errors.bankName} 
+                  options={bankOptions}
+                  value={formData.bankName} 
+                  onChange={(e) => handleBankNameChange(e.target.value)} 
+                />
+                
+                <div className="flex flex-col relative">
+                  <Input 
+                    label="IFSC Code *" 
+                    error={errors.ifsc} 
+                    value={formData.ifsc} 
+                    onChange={(e) => handleIfscChange(e.target.value)} 
+                    disabled={!formData.bankName}
+                    placeholder={formData.bankName ? "e.g. SBIN0001234" : "Select a bank first"}
+                    className={!formData.bankName ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}
+                    maxLength={11}
+                  />
+                  {isIfscLoading && (
+                     <div className="absolute right-3 top-9">
+                        <svg className="animate-spin h-4 w-4 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                     </div>
+                  )}
+                  {branchDetails && !errors.ifsc && (
+                     <span className="text-xs font-medium text-emerald-600 mt-1">{branchDetails}</span>
+                  )}
+                </div>
+
+                <Input 
+                  label="Account Number *" 
+                  error={errors.bankAccount} 
+                  value={formData.bankAccount} 
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 18);
+                    handleChange('bankAccount', val);
+                  }} 
+                  disabled={!branchDetails}
+                  placeholder={!branchDetails ? "Select a valid IFSC first" : ""}
+                  className={!branchDetails ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}
+                  pattern="[0-9]{9,18}" 
+                  title="9 to 18 digit account number"
+                />
               </div>
             </div>
             <div className="mt-6 border-t border-slate-100 pt-6">

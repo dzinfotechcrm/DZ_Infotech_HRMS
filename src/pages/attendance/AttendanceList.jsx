@@ -24,6 +24,7 @@ export default function AttendanceList() {
   const [search, setSearch] = useState('');
   const [month, setMonth] = useState('');
   const [date, setDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
+  const [statusFilter, setStatusFilter] = useState('');
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportScope, setExportScope] = useState('monthly');
@@ -133,26 +134,26 @@ export default function AttendanceList() {
       baseList = employees
         .filter(emp => emp.role !== 'admin')
         .map(emp => {
-        const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === date);
-        if (att) return att;
-        
-        const onLeave = leaveRequests.find(lr => {
-          const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
-          const isApproved = lr.status === 'approved';
-          const overlaps = lr.fromDate <= date && lr.toDate >= date;
-          return isMatch && isApproved && overlaps;
+          const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === date);
+          if (att) return att;
+
+          const onLeave = leaveRequests.find(lr => {
+            const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
+            const isApproved = lr.status === 'approved';
+            const overlaps = lr.fromDate <= date && lr.toDate >= date;
+            return isMatch && isApproved && overlaps;
+          });
+
+          return {
+            id: `virtual-${emp.id || emp.uid}-${date}`,
+            employeeId: emp.id || emp.uid,
+            date: date,
+            status: onLeave ? 'On Leave' : (date > today ? '—' : 'absent'),
+            checkIn: '',
+            checkOut: '',
+            notes: ''
+          };
         });
-        
-        return {
-          id: `virtual-${emp.id || emp.uid}-${date}`,
-          employeeId: emp.id || emp.uid,
-          date: date,
-          status: onLeave ? 'On Leave' : (date > today ? '—' : 'absent'),
-          checkIn: '',
-          checkOut: '',
-          notes: ''
-        };
-      });
     }
 
     return baseList.filter((item) => {
@@ -164,9 +165,10 @@ export default function AttendanceList() {
       const itemMonth = item.month || (itemDate ? itemDate.substring(0, 7) : '');
       const matchesDate = date ? itemDate === date : true;
       const matchesMonth = (!date && month) ? itemMonth === month : true;
-      return employeeMatches && matchesDate && matchesMonth;
+      const matchesStatus = statusFilter ? (item.status || '').toLowerCase() === statusFilter.toLowerCase() : true;
+      return employeeMatches && matchesDate && matchesMonth && matchesStatus;
     });
-  }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, search, today]);
+  }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, search, statusFilter, today]);
 
   const getExportRows = () => {
     return sortedAttendance.filter((item) => {
@@ -226,14 +228,32 @@ export default function AttendanceList() {
         }
       >
         <Card className="p-4 mt-4">
-          <div className={`grid gap-3 ${isEmployee ? 'md:grid-cols-2' : 'md:grid-cols-3 lg:grid-cols-4'} items-end`}>
+          <div className={`grid gap-3 ${isEmployee ? 'md:grid-cols-4' : 'md:grid-cols-5 lg:grid-cols-6'} items-end`}>
             {!isEmployee && (
               <div className="lg:col-span-2">
-                <Input label="Search" placeholder="Employee name or ID" value={search} onChange={(event) => setSearch(event.target.value)} />
+                <Input label="Search" placeholder="Employee Name" value={search} onChange={(event) => setSearch(event.target.value)} />
               </div>
             )}
+            <Select label="Status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="">All</option>
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+              <option value="on leave">On Leave</option>
+            </Select>
             <Input label="Month" type="month" value={month} onChange={(event) => { setMonth(event.target.value); setDate(''); }} max={thisMonth} />
             <Input label="Date" type="date" value={date} onChange={(event) => { setDate(event.target.value); setMonth(''); }} max={today} />
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setMonth('');
+                setDate(today);
+                setStatusFilter('');
+              }}
+              className="h-[42px]"
+            >
+              Reset
+            </Button>
           </div>
         </Card>
       </PageHeader>
