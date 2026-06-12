@@ -11,6 +11,7 @@ import {
   UserCircleIcon,
   UsersIcon,
   XMarkIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -24,6 +25,7 @@ const navigation = [
   { to: '/attendance', label: 'Attendance', icon: CalendarDaysIcon },
   { to: '/leave', label: 'Leave', icon: ClipboardDocumentListIcon },
   { to: '/payroll', label: 'Payroll', icon: BanknotesIcon },
+  { to: '/activities', label: 'Activities', icon: ClockIcon, adminOnly: true },
   { to: '/profile', label: 'Profile', icon: UserCircleIcon },
 ];
 

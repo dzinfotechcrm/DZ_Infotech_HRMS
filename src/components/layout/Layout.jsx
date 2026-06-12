@@ -18,6 +18,7 @@ const titleMap = [
   ['/payroll', 'Payroll Management'],
   ['/documents', 'Document Management'],
   ['/reports', 'Reports & Analytics'],
+  ['/activities', 'Activity Log'],
   ['/profile', 'Profile Management'],
   ['/settings', 'Settings'],
 ];
