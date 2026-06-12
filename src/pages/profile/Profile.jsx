@@ -31,7 +31,7 @@ export default function Profile() {
 
   async function onSubmit(values) {
     try {
-      let photoURL = values.photoURL || employee?.photoURL || '';
+      let photoURL = employee?.photoURL || '';
       if (preview) {
         photoURL = await uploadFile(`profile-photos/${user.uid}/${Date.now()}.png`, await (await fetch(preview)).blob(), { contentType: 'image/png' });
       }
@@ -80,7 +80,7 @@ export default function Profile() {
             disabled 
             className="bg-neutral-50" 
           />
-          <Input label="Profile Photo URL" {...register('photoURL')} disabled={!editableAll && user?.role === 'employee'} />
+
           <Input label="Upload Photo (preview only)" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) { setPreview(URL.createObjectURL(file)); } }} />
           <div className="md:col-span-2 flex flex-wrap gap-3">
             <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Profile'}</Button>

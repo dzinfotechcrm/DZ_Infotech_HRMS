@@ -655,10 +655,12 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [errors, setErrors] = useState({});
 
   const TABS = ['Personal Info', 'Job Info', 'Salary Info', 'Documents'];
 
   const handleChange = (field, value) => {
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
     setFormData((prev) => {
       const val = field === 'email' ? value.toLowerCase() : value;
       const nextData = { ...prev, [field]: val };
@@ -675,6 +677,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
   };
 
   const handleAddressChange = (field, value) => {
+    setErrors((prev) => ({ ...prev, [`address.${field}`]: undefined }));
     setFormData((prev) => ({
       ...prev,
       address: { ...prev.address, [field]: value },
@@ -682,28 +685,33 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
   };
 
   const validateTab = (tabIndex) => {
+    const newErrors = {};
+    let isValid = true;
+    
     if (tabIndex === 0) {
       const required = ['firstName', 'lastName', 'email', 'phone', 'dob', 'gender', 'bloodGroup'];
+      required.forEach(k => {
+        if (!formData[k]) { newErrors[k] = 'This field is required'; isValid = false; }
+      });
       const addrRequired = ['line1', 'city', 'state', 'pincode'];
-      if (required.some(k => !formData[k]) || addrRequired.some(k => !formData.address[k])) {
-        toast.error('Please fill all fields in Personal Info');
-        return false;
+      addrRequired.forEach(k => {
+        if (!formData.address[k]) { newErrors[`address.${k}`] = 'This field is required'; isValid = false; }
+      });
+      if (formData.address.pincode && !/^\d{6}$/.test(formData.address.pincode)) {
+        newErrors['address.pincode'] = 'Pincode must be exactly 6 digits';
+        isValid = false;
       }
-      if (!/^\d{6}$/.test(formData.address.pincode)) {
-        toast.error('Pincode must be exactly 6 digits');
-        return false;
+      if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+        newErrors['email'] = 'Please enter a valid email address';
+        isValid = false;
       }
-      if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
-        toast.error('Please enter a valid email address');
-        return false;
+      if (formData.email && existingEmails.includes(formData.email.trim().toLowerCase())) {
+        newErrors['email'] = 'This email is already in use by another employee';
+        isValid = false;
       }
-      if (existingEmails.includes(formData.email.trim().toLowerCase())) {
-        toast.error('This email is already in use by another employee');
-        return false;
-      }
-      if (existingPhones.includes(formData.phone.trim())) {
-        toast.error('This phone number is already in use by another employee');
-        return false;
+      if (formData.phone && existingPhones.includes(formData.phone.trim())) {
+        newErrors['phone'] = 'This phone number is already in use by another employee';
+        isValid = false;
       }
       if (formData.dob) {
         const [year, month, day] = formData.dob.split('-');
@@ -711,44 +719,41 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         if (parsedDob >= today) {
-          toast.error('Date of birth cannot be today or in the future');
-          return false;
+          newErrors['dob'] = 'Date of birth cannot be today or in the future';
+          isValid = false;
         }
       }
     }
     if (tabIndex === 1) {
       const required = ['employeeId', 'departmentId', 'designation', 'role', 'joinDate', 'status'];
-      if (formData.role !== 'manager') {
-        required.push('managerId');
-      }
-      if (required.some(k => !formData[k])) {
-        toast.error('Please fill all fields in Job Info');
-        return false;
-      }
+      if (formData.role !== 'manager') required.push('managerId');
+      required.forEach(k => {
+        if (!formData[k]) { newErrors[k] = 'This field is required'; isValid = false; }
+      });
     }
     if (tabIndex === 2) {
       const required = ['basicSalary', 'hra', 'da', 'travelAllowance', 'bankAccount', 'ifsc', 'bankName', 'casualLeaves', 'paidLeaves', 'sickLeaves'];
-      if (required.some(k => String(formData[k]).trim() === '')) {
-        toast.error('Please fill all fields in Salary Info (including leaves)');
-        return false;
-      }
+      required.forEach(k => {
+        if (String(formData[k]).trim() === '') { newErrors[k] = 'This field is required'; isValid = false; }
+      });
     }
     if (tabIndex === 3) {
       const required = ['aadhar', 'pan', 'emergencyContactName', 'emergencyContactPhone', 'emergencyContactName2', 'emergencyContactPhone2'];
-      if (required.some(k => !formData[k])) {
-        toast.error('Please fill all fields in Documents');
-        return false;
+      required.forEach(k => {
+        if (!formData[k]) { newErrors[k] = 'This field is required'; isValid = false; }
+      });
+      if (formData.aadhar && !/^\d{12}$/.test(formData.aadhar)) {
+        newErrors['aadhar'] = 'Aadhaar must be exactly 12 digits';
+        isValid = false;
       }
-      if (!/^\d{12}$/.test(formData.aadhar)) {
-        toast.error('Aadhaar must be exactly 12 digits');
-        return false;
-      }
-      if (!/^[A-Z0-9]{10}$/.test(formData.pan)) {
-        toast.error('PAN must be exactly 10 alphanumeric characters');
-        return false;
+      if (formData.pan && !/^[A-Z0-9]{10}$/.test(formData.pan)) {
+        newErrors['pan'] = 'PAN must be exactly 10 alphanumeric characters';
+        isValid = false;
       }
     }
-    return true;
+    
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleNextTab = () => {
@@ -798,6 +803,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
   useEffect(() => {
     if (open) {
       setFormData(initialFormState);
+      setErrors({});
       setCurrentTab(0);
     }
   }, [open]);
@@ -835,21 +841,21 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         {currentTab === 0 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input label="First Name *" value={formData.firstName} onChange={(e) => handleChange('firstName', e.target.value)} required />
-              <Input label="Last Name *" value={formData.lastName} onChange={(e) => handleChange('lastName', e.target.value)} required />
-              <Input label="Email *" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} required />
-              <Input label="Phone *" type="tel" value={formData.phone} onChange={(e) => {
+              <Input label="First Name *" error={errors.firstName} value={formData.firstName} onChange={(e) => handleChange('firstName', e.target.value)} required />
+              <Input label="Last Name *" error={errors.lastName} value={formData.lastName} onChange={(e) => handleChange('lastName', e.target.value)} required />
+              <Input label="Email *" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} required />
+              <Input label="Phone *" type="tel" error={errors.phone} value={formData.phone} onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                 handleChange('phone', val);
               }} pattern="[0-9]{10}" title="Please enter exactly 10 digits" />
-              <Input label="Date of Birth *" type="date" value={formData.dob} max={new Date().toISOString().split('T')[0]} onChange={(e) => handleChange('dob', e.target.value)} />
-              <Select label="Gender *" value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)}>
+              <Input label="Date of Birth *" type="date" error={errors.dob} value={formData.dob} max={new Date().toISOString().split('T')[0]} onChange={(e) => handleChange('dob', e.target.value)} />
+              <Select label="Gender *" error={errors.gender} value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)}>
                 <option value="">Select Gender</option>
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
                 <option value="Other">Other</option>
               </Select>
-              <Select label="Blood Group *" value={formData.bloodGroup} onChange={(e) => handleChange('bloodGroup', e.target.value)}>
+              <Select label="Blood Group *" error={errors.bloodGroup} value={formData.bloodGroup} onChange={(e) => handleChange('bloodGroup', e.target.value)}>
                 <option value="">Select</option>
                 {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
               </Select>
@@ -859,12 +865,12 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
               <h5 className="text-sm font-semibold text-slate-700 mb-4">Address</h5>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <Input label="Address Line *" value={formData.address.line1} onChange={(e) => handleAddressChange('line1', e.target.value)} />
+                  <Input label="Address Line *" error={errors['address.line1']} value={formData.address.line1} onChange={(e) => handleAddressChange('line1', e.target.value)} />
                 </div>
-                <Input label="City *" value={formData.address.city} onChange={(e) => handleAddressChange('city', e.target.value)} />
+                <Input label="City *" error={errors['address.city']} value={formData.address.city} onChange={(e) => handleAddressChange('city', e.target.value)} />
                 <div className="grid grid-cols-2 gap-4">
-                  <Input label="State *" value={formData.address.state} onChange={(e) => handleAddressChange('state', e.target.value)} />
-                  <Input label="Pincode *" value={formData.address.pincode} onChange={(e) => {
+                  <Input label="State *" error={errors['address.state']} value={formData.address.state} onChange={(e) => handleAddressChange('state', e.target.value)} />
+                  <Input label="Pincode *" error={errors['address.pincode']} value={formData.address.pincode} onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, '').slice(0, 6);
                     handleAddressChange('pincode', val);
                   }} pattern="[0-9]{6}" title="Please enter exactly 6 digits" />
@@ -878,12 +884,12 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         {currentTab === 1 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Select label="Role *" value={formData.role} onChange={(e) => handleChange('role', e.target.value)}>
+              <Select label="Role *" error={errors.role} value={formData.role} onChange={(e) => handleChange('role', e.target.value)}>
                 <option value="employee">Employee</option>
                 <option value="manager">Manager</option>
               </Select>
-              <Input label="Employee ID *" value={formData.employeeId} onChange={(e) => handleChange('employeeId', e.target.value)} />
-              <Select label="Department *" value={formData.departmentId} onChange={(e) => {
+              <Input label="Employee ID *" error={errors.employeeId} value={formData.employeeId} onChange={(e) => handleChange('employeeId', e.target.value)} />
+              <Select label="Department *" error={errors.departmentId} value={formData.departmentId} onChange={(e) => {
                 const deptId = e.target.value;
                 const dept = departments.find((d) => d.id === deptId);
                 const matchedManager = managers.find((m) => m.uid === dept?.managerId || m.id === dept?.managerId);
@@ -896,9 +902,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
                 <option value="">Select Department</option>
                 {departments.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
               </Select>
-              <Input label="Designation *" value={formData.designation} onChange={(e) => handleChange('designation', e.target.value)} />
+              <Input label="Designation *" error={errors.designation} value={formData.designation} onChange={(e) => handleChange('designation', e.target.value)} />
               <Select
                 label="Manager *"
+                error={errors.managerId}
                 value={formData.managerId}
                 onChange={(e) => handleChange('managerId', e.target.value)}
                 disabled={formData.role === 'manager'}
@@ -912,12 +919,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
                   </>
                 )}
               </Select>
-              <Input label="Join Date *" type="date" value={formData.joinDate} onChange={(e) => handleChange('joinDate', e.target.value)} />
-              <Select label="Status *" value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>
+              <Input label="Join Date *" type="date" error={errors.joinDate} value={formData.joinDate} onChange={(e) => handleChange('joinDate', e.target.value)} />
+              <Select label="Status *" error={errors.status} value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-                <option value="on leave">On Leave</option>
-                <option value="terminated">Terminated</option>
               </Select>
             </div>
           </div>
@@ -927,10 +932,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         {currentTab === 2 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input label="Basic Salary (₹) *" type="number" value={formData.basicSalary} onChange={(e) => handleChange('basicSalary', e.target.value)} />
-              <Input label="HRA (₹) *" type="number" value={formData.hra} onChange={(e) => handleChange('hra', e.target.value)} />
-              <Input label="DA (₹) *" type="number" value={formData.da} onChange={(e) => handleChange('da', e.target.value)} />
-              <Input label="Travel Allowance (₹) *" type="number" value={formData.travelAllowance} onChange={(e) => handleChange('travelAllowance', e.target.value)} />
+              <Input label="Basic Salary (₹) *" type="number" error={errors.basicSalary} value={formData.basicSalary} onChange={(e) => handleChange('basicSalary', e.target.value)} />
+              <Input label="HRA (₹) *" type="number" error={errors.hra} value={formData.hra} onChange={(e) => handleChange('hra', e.target.value)} />
+              <Input label="DA (₹) *" type="number" error={errors.da} value={formData.da} onChange={(e) => handleChange('da', e.target.value)} />
+              <Input label="Travel Allowance (₹) *" type="number" error={errors.travelAllowance} value={formData.travelAllowance} onChange={(e) => handleChange('travelAllowance', e.target.value)} />
               <div className="flex items-center gap-3 mt-6 sm:col-span-2">
                 <input
                   type="checkbox"
@@ -948,17 +953,17 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
             <div className="mt-6 border-t border-slate-100 pt-6">
               <h5 className="text-sm font-semibold text-slate-700 mb-4">Bank Details</h5>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Input label="Bank Name *" value={formData.bankName} onChange={(e) => handleChange('bankName', e.target.value)} />
-                <Input label="Account Number *" value={formData.bankAccount} onChange={(e) => handleChange('bankAccount', e.target.value)} />
-                <Input label="IFSC Code *" value={formData.ifsc} onChange={(e) => handleChange('ifsc', e.target.value)} />
+                <Input label="Bank Name *" error={errors.bankName} value={formData.bankName} onChange={(e) => handleChange('bankName', e.target.value)} />
+                <Input label="Account Number *" error={errors.bankAccount} value={formData.bankAccount} onChange={(e) => handleChange('bankAccount', e.target.value)} />
+                <Input label="IFSC Code *" error={errors.ifsc} value={formData.ifsc} onChange={(e) => handleChange('ifsc', e.target.value)} />
               </div>
             </div>
             <div className="mt-6 border-t border-slate-100 pt-6">
               <h5 className="text-sm font-semibold text-slate-700 mb-4">Leaves Allocation</h5>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Input label="Casual Leaves *" type="number" min="0" value={formData.casualLeaves} onChange={(e) => handleChange('casualLeaves', e.target.value)} />
-                <Input label="Paid Leaves *" type="number" min="0" value={formData.paidLeaves} onChange={(e) => handleChange('paidLeaves', e.target.value)} />
-                <Input label="Sick Leaves *" type="number" min="0" value={formData.sickLeaves} onChange={(e) => handleChange('sickLeaves', e.target.value)} />
+                <Input label="Casual Leaves *" type="number" min="0" error={errors.casualLeaves} value={formData.casualLeaves} onChange={(e) => handleChange('casualLeaves', e.target.value)} />
+                <Input label="Paid Leaves *" type="number" min="0" error={errors.paidLeaves} value={formData.paidLeaves} onChange={(e) => handleChange('paidLeaves', e.target.value)} />
+                <Input label="Sick Leaves *" type="number" min="0" error={errors.sickLeaves} value={formData.sickLeaves} onChange={(e) => handleChange('sickLeaves', e.target.value)} />
               </div>
             </div>
           </div>
@@ -968,11 +973,11 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         {currentTab === 3 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input label="Aadhar Number *" value={formData.aadhar} onChange={(e) => {
+              <Input label="Aadhar Number *" error={errors.aadhar} value={formData.aadhar} onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, '').slice(0, 12);
                 handleChange('aadhar', val);
               }} placeholder="12-digit number" pattern="[0-9]{12}" title="12-digit Aadhaar Number" />
-              <Input label="PAN Number *" value={formData.pan} onChange={(e) => {
+              <Input label="PAN Number *" error={errors.pan} value={formData.pan} onChange={(e) => {
                 const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase();
                 handleChange('pan', val);
               }} placeholder="10-character alphanumeric" pattern="[A-Z0-9]{10}" title="10-character alphanumeric PAN" />
@@ -980,8 +985,8 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
               <div className="sm:col-span-2 border-t border-slate-100 pt-6 mt-2">
                 <h5 className="text-sm font-semibold text-slate-700 mb-4">Emergency Contact 1</h5>
               </div>
-              <Input label="Contact Name *" value={formData.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} />
-              <Input label="Contact Phone *" type="tel" value={formData.emergencyContactPhone} onChange={(e) => {
+              <Input label="Contact Name *" error={errors.emergencyContactName} value={formData.emergencyContactName} onChange={(e) => handleChange('emergencyContactName', e.target.value)} />
+              <Input label="Contact Phone *" type="tel" error={errors.emergencyContactPhone} value={formData.emergencyContactPhone} onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                 handleChange('emergencyContactPhone', val);
               }} />
@@ -989,8 +994,8 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
               <div className="sm:col-span-2 mt-2">
                 <h5 className="text-sm font-semibold text-slate-700 mb-4">Emergency Contact 2</h5>
               </div>
-              <Input label="Contact Name *" value={formData.emergencyContactName2} onChange={(e) => handleChange('emergencyContactName2', e.target.value)} />
-              <Input label="Contact Phone *" type="tel" value={formData.emergencyContactPhone2} onChange={(e) => {
+              <Input label="Contact Name *" error={errors.emergencyContactName2} value={formData.emergencyContactName2} onChange={(e) => handleChange('emergencyContactName2', e.target.value)} />
+              <Input label="Contact Phone *" type="tel" error={errors.emergencyContactPhone2} value={formData.emergencyContactPhone2} onChange={(e) => {
                 const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                 handleChange('emergencyContactPhone2', val);
               }} />
@@ -1341,86 +1346,86 @@ export default function EmployeeList() {
         {viewMode === 'grid' || !isAdminLike(user?.role) ? (
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {paginatedEmp.map((employee) => {
-                const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
-                return (
-                  <Card key={employee.id} className="flex flex-col p-5 hover:shadow-md transition-shadow relative overflow-hidden group border border-slate-200 bg-white rounded-3xl">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-bold text-white shadow-sm">
-                          {employee.photoURL ? (
-                            <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" />
-                          ) : (
-                            `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-slate-900 leading-tight">{employee.firstName} {employee.lastName}</h4>
-                          <p className="text-xs text-slate-500 mt-0.5">{employee.designation || 'Employee'}</p>
-                        </div>
-                      </div>
-                      {isAdminLike(user?.role) && (
-                        <div className="flex items-center gap-1">
-                          <button type="button" onClick={() => openEditModal(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit">
-                            <PencilSquareIcon className="h-4 w-4" />
-                          </button>
-                          <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-  
-                    <div className="mt-5 grid grid-cols-2 gap-3 text-sm flex-1">
-                      <div>
-                        <p className="text-xs text-slate-400 font-medium">Department</p>
-                        <p className="font-medium text-slate-700 mt-0.5">{employee.department}</p>
+              const attendanceStatus = attendanceLookup[employee.uid] || attendanceLookup[employee.id];
+              return (
+                <Card key={employee.id} className="flex flex-col p-5 hover:shadow-md transition-shadow relative overflow-hidden group border border-slate-200 bg-white rounded-3xl">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 text-sm font-bold text-white shadow-sm">
+                        {employee.photoURL ? (
+                          <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" />
+                        ) : (
+                          `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`.toUpperCase()
+                        )}
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400 font-medium">Status</p>
-                        <div className="mt-0.5"><StatusBadge status={employee.status} /></div>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-xs text-slate-400 font-medium">Email</p>
-                        <p className="font-medium text-slate-700 mt-0.5 truncate" title={employee.email}>{employee.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400 font-medium">Join Date</p>
-                        <p className="font-medium text-slate-700 mt-0.5">{formatDate(employee.joinDate, 'dd MMM yy')}</p>
+                        <h4 className="font-semibold text-slate-900 leading-tight">{employee.firstName} {employee.lastName}</h4>
+                        <p className="text-xs text-slate-500 mt-0.5">{employee.designation || 'Employee'}</p>
                       </div>
                     </div>
-  
-                    <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                    {isAdminLike(user?.role) && (
+                      <div className="flex items-center gap-1">
+                        <button type="button" onClick={() => openEditModal(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit">
+                          <PencilSquareIcon className="h-4 w-4" />
+                        </button>
+                        <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm flex-1">
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium">Department</p>
+                      <p className="font-medium text-slate-700 mt-0.5">{employee.department}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium">Status</p>
+                      <div className="mt-0.5"><StatusBadge status={employee.status} /></div>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-400 font-medium">Email</p>
+                      <p className="font-medium text-slate-700 mt-0.5 truncate" title={employee.email}>{employee.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium">Join Date</p>
+                      <p className="font-medium text-slate-700 mt-0.5">{formatDate(employee.joinDate, 'dd MMM yy')}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => openViewModal(employee)}
+                      className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
+                      title="View Profile"
+                    >
+                      <EyeIcon className="h-3.5 w-3.5" />
+                    </Button>
+                    {isAdminLike(user?.role) && (
                       <Button
                         variant="secondary"
-                        onClick={() => openViewModal(employee)}
+                        onClick={() => {
+                          setSelectedEmployee(employee);
+                          setLeaveHistoryModalOpen(true);
+                        }}
                         className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
-                        title="View Profile"
+                        title="Leave History"
                       >
-                        <EyeIcon className="h-3.5 w-3.5" />
+                        <CalendarDaysIcon className="h-3.5 w-3.5" />
                       </Button>
-                      {isAdminLike(user?.role) && (
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setSelectedEmployee(employee);
-                            setLeaveHistoryModalOpen(true);
-                          }}
-                          className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
-                          title="Leave History"
-                        >
-                          <CalendarDaysIcon className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-  
-                      {isAdminLike(user?.role) && (
-                        <div className="flex items-center" title="Attendance">
-                          <AttendanceBadge status={attendanceStatus} />
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
+                    )}
+
+                    {isAdminLike(user?.role) && (
+                      <div className="flex items-center" title="Attendance">
+                        <AttendanceBadge status={attendanceStatus} />
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         ) : (
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">

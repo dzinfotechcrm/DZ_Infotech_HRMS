@@ -18,7 +18,7 @@ export default function DepartmentForm({ mode = 'create' }) {
   const { item: department, loading } = useFirestoreDocument('departments', id);
   const { items: employees } = useFirestoreCollection('employees', (base) => query(base, orderBy('firstName')));
   const { items: departments } = useFirestoreCollection('departments', (base) => query(base, orderBy('name')));
-  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm({ defaultValues: { employeeCount: 0 } });
+  const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm();
 
   // Get list of already assigned manager IDs (except current department)
   const assignedManagerIds = useMemo(() => {
@@ -30,6 +30,11 @@ export default function DepartmentForm({ mode = 'create' }) {
     );
   }, [departments, id]);
 
+  const currentCount = useMemo(() => {
+    if (mode === 'create' || !id || !employees) return 0;
+    return employees.filter(e => e.departmentId === id && e.designation !== 'Admin').length;
+  }, [id, employees, mode]);
+
   useEffect(() => {
     if (department) {
       reset(department);
@@ -39,7 +44,7 @@ export default function DepartmentForm({ mode = 'create' }) {
   async function onSubmit(values) {
     const payload = {
       ...values,
-      employeeCount: Number(values.employeeCount || 0),
+      employeeCount: mode === 'edit' ? currentCount : 0,
     };
     try {
       if (mode === 'edit' && id) {
@@ -84,7 +89,16 @@ export default function DepartmentForm({ mode = 'create' }) {
               .map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</option>)}
           </Select>
           <Input label="Description" className="md:col-span-2" {...register('description', { required: 'Description is required' })} error={errors.description?.message} />
-          <Input label="Employee Count" type="number" {...register('employeeCount', { valueAsNumber: true, min: 0 })} />
+          
+          <Input 
+            label="Employee Count" 
+            type="number" 
+            value={mode === 'edit' ? currentCount : 0} 
+            readOnly 
+            className="bg-slate-50 text-slate-500 cursor-not-allowed"
+            title="Automatically calculated based on assigned employees"
+          />
+
           <div className="md:col-span-2 flex gap-3">
             <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Department'}</Button>
           </div>

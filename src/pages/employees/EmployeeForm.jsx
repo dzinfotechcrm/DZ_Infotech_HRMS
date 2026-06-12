@@ -77,7 +77,7 @@ export default function EmployeeForm({ mode = 'create' }) {
     if (field === 'phone') {
       value = String(value || '').replace(/\D/g, '').slice(0, 10);
     }
-    
+
     if (field === 'email' && typeof value === 'string') {
       value = value.toLowerCase();
     }

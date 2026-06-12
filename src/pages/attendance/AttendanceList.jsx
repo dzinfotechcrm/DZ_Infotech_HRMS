@@ -22,8 +22,8 @@ export default function AttendanceList() {
   const isEmployee = !isAdminLike(user?.role);
 
   const [search, setSearch] = useState('');
-  const [month, setMonth] = useState(formatDate(new Date(), 'yyyy-MM'));
-  const [date, setDate] = useState('');
+  const [month, setMonth] = useState('');
+  const [date, setDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportScope, setExportScope] = useState('monthly');
@@ -40,6 +40,7 @@ export default function AttendanceList() {
 
   const { items: employees } = useFirestoreCollection('employees');
   const { items: departments } = useFirestoreCollection('departments');
+  const { items: leaveRequests } = useFirestoreCollection('leaveRequests');
 
   const currentEmployee = useMemo(() => {
     return employees.find(e => e.uid === user?.uid || e.email === user?.email);
@@ -125,15 +126,47 @@ export default function AttendanceList() {
     URL.revokeObjectURL(link.href);
   }
 
-  const filtered = sortedAttendance.filter((item) => {
-    const empName = getEmpName(item);
-    const employeeMatches = isEmployee ? true : String(empName || item.employeeId || '').toLowerCase().includes(search.toLowerCase());
-    const itemDate = item.date || '';
-    const itemMonth = item.month || (itemDate ? itemDate.substring(0, 7) : '');
-    const matchesDate = date ? itemDate === date : true;
-    const matchesMonth = (!date && month) ? itemMonth === month : true;
-    return employeeMatches && matchesDate && matchesMonth;
-  });
+  const filtered = useMemo(() => {
+    let baseList = sortedAttendance;
+
+    if (!isEmployee && date) {
+      baseList = employees
+        .filter(emp => emp.role !== 'admin')
+        .map(emp => {
+        const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === date);
+        if (att) return att;
+        
+        const onLeave = leaveRequests.find(lr => {
+          const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
+          const isApproved = lr.status === 'approved';
+          const overlaps = lr.fromDate <= date && lr.toDate >= date;
+          return isMatch && isApproved && overlaps;
+        });
+        
+        return {
+          id: `virtual-${emp.id || emp.uid}-${date}`,
+          employeeId: emp.id || emp.uid,
+          date: date,
+          status: onLeave ? 'On Leave' : (date > today ? '—' : 'absent'),
+          checkIn: '',
+          checkOut: '',
+          notes: ''
+        };
+      });
+    }
+
+    return baseList.filter((item) => {
+      const empRole = getEmpRole(item.employeeId);
+      if (empRole.toLowerCase() === 'admin') return false;
+      const empName = getEmpName(item);
+      const employeeMatches = isEmployee ? true : String(empName || item.employeeId || '').toLowerCase().includes(search.toLowerCase());
+      const itemDate = item.date || '';
+      const itemMonth = item.month || (itemDate ? itemDate.substring(0, 7) : '');
+      const matchesDate = date ? itemDate === date : true;
+      const matchesMonth = (!date && month) ? itemMonth === month : true;
+      return employeeMatches && matchesDate && matchesMonth;
+    });
+  }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, search, today]);
 
   const getExportRows = () => {
     return sortedAttendance.filter((item) => {
@@ -275,12 +308,12 @@ export default function AttendanceList() {
           ]}
           data={filtered}
           renderRow={(item) => (
-            <tr key={item.id} className={item.status === 'present' ? 'bg-success-100/30' : item.status === 'late' ? 'bg-warning-100/40' : item.status === 'absent' ? 'bg-danger-100/30' : ''}>
+            <tr key={item.id} className={item.status === 'present' ? 'bg-success-100/30' : item.status === 'late' ? 'bg-warning-100/40' : item.status === 'absent' ? 'bg-danger-100/30' : item.status === 'On Leave' ? 'bg-primary-50/50' : ''}>
               <td className="px-4 py-3">{formatDate(item.date)}</td>
               {!isEmployee && <td className="px-4 py-3">{getEmpName(item)}</td>}
               {!isEmployee && <td className="px-4 py-3">{getEmpDept(item.employeeId)}</td>}
               {!isEmployee && <td className="px-4 py-3">{getEmpRole(item.employeeId)}</td>}
-              <td className="px-4 py-3"><Badge tone={item.status === 'present' ? 'success' : item.status === 'late' ? 'warning' : item.status === 'absent' ? 'danger' : 'neutral'}>{item.status}</Badge></td>
+              <td className="px-4 py-3"><Badge tone={item.status === 'present' ? 'success' : item.status === 'late' ? 'warning' : item.status === 'absent' ? 'danger' : item.status === 'On Leave' ? 'primary' : 'neutral'}>{item.status}</Badge></td>
               <td className="px-4 py-3 whitespace-nowrap">{item.checkIn || '—'}</td>
               <td className="px-4 py-3 whitespace-nowrap">{item.checkOut || '—'}</td>
               <td className="px-4 py-3 min-w-[120px]">
