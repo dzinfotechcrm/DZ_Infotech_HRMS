@@ -58,9 +58,9 @@ export default function LeaveForm({ mode = 'create' }) {
 
   async function onSubmit(values) {
     try {
-      // Check for overlapping approved leaves
-      const approvedLeaves = await fetchCollection('leaveRequests', (base) => 
-        query(base, where('employeeId', '==', user.uid), where('status', '==', 'approved'))
+      // Check for overlapping approved or pending leaves
+      const existingLeaves = await fetchCollection('leaveRequests', (base) => 
+        query(base, where('employeeId', '==', user.uid), where('status', 'in', ['approved', 'pending']))
       );
 
       const newStart = new Date(values.fromDate);
@@ -68,7 +68,7 @@ export default function LeaveForm({ mode = 'create' }) {
       const newEnd = new Date(values.toDate);
       newEnd.setHours(0, 0, 0, 0);
 
-      const hasOverlap = approvedLeaves.some(leave => {
+      const hasOverlap = existingLeaves.some(leave => {
         if (mode === 'edit' && leave.id === id) return false;
         const existStart = new Date(leave.fromDate);
         existStart.setHours(0, 0, 0, 0);
@@ -78,7 +78,7 @@ export default function LeaveForm({ mode = 'create' }) {
       });
 
       if (hasOverlap) {
-        toast.error('You already have an approved leave during these dates');
+        toast.error('You already have a pending or approved leave during these dates');
         return;
       }
 

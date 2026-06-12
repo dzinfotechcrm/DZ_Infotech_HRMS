@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
+import Select from '../../components/ui/Select';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirestoreCollection } from '../../hooks/useFirestore';
 import { removeDocument } from '../../firebase/firestore';
@@ -54,8 +55,8 @@ export default function LeaveList() {
       })
     : [];
 
-  const approvedByMeLeaves = leaveRequests.filter(item => item.status === 'approved' && item.approvedBy === user?.uid);
-  const approvedByManagerLeaves = leaveRequests.filter(item => item.status === 'approved' && item.approvedBy && item.approvedBy !== user?.uid);
+  const reviewedByMeLeaves = leaveRequests.filter(item => (item.status === 'approved' || item.status === 'rejected') && item.approvedBy === user?.uid);
+  const reviewedByManagerLeaves = leaveRequests.filter(item => (item.status === 'approved' || item.status === 'rejected') && item.approvedBy && item.approvedBy !== user?.uid);
 
   const visibleBalances = isAdminLike(user?.role) 
     ? leaveBalance 
@@ -130,7 +131,7 @@ export default function LeaveList() {
           </Link>
         )}
         {canSeeWhy && (
-          <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => { setReasonItem(item); setReasonOpen(true); }}>Why</Button>
+          <Button variant="secondary" className="px-3 py-1 text-xs" onClick={() => { setReasonItem(item); setReasonOpen(true); }}>Click to see reason</Button>
         )}
         {canDelete && (
           <Button
@@ -149,7 +150,8 @@ export default function LeaveList() {
     );
   };
 
-  const [activeTab, setActiveTab] = useState(isAdmin ? 'approvedByMe' : 'my');
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'reviewedByMe' : 'my');
+  const [adminStatusFilter, setAdminStatusFilter] = useState('all');
   const pendingLeavesCount = isAdmin
     ? leaveRequests.filter(req => String(req.status || '').toLowerCase().trim() === 'pending' && req.employeeId !== user?.uid).length
     : isManager
@@ -180,21 +182,30 @@ export default function LeaveList() {
       />
 
       {isAdmin && (
-        <div className="flex gap-4 border-b border-neutral-200">
-          <button
-            type="button"
-            className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'approvedByMe' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
-            onClick={() => setActiveTab('approvedByMe')}
-          >
-            Approved By Me
-          </button>
-          <button
-            type="button"
-            className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'approvedByManager' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
-            onClick={() => setActiveTab('approvedByManager')}
-          >
-            Approved By Manager
-          </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'reviewedByMe' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+              onClick={() => setActiveTab('reviewedByMe')}
+            >
+              Reviewed By Me
+            </button>
+            <button
+              type="button"
+              className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'reviewedByManager' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+              onClick={() => setActiveTab('reviewedByManager')}
+            >
+              Reviewed By Manager
+            </button>
+          </div>
+          <div className="pb-2 w-full sm:w-48">
+            <Select value={adminStatusFilter} onChange={(e) => setAdminStatusFilter(e.target.value)}>
+              <option value="all">All Statuses</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </Select>
+          </div>
         </div>
       )}
 
@@ -295,13 +306,13 @@ export default function LeaveList() {
         </div>
       )}
 
-      {/* Admin: Approved By Me */}
-      {isAdmin && activeTab === 'approvedByMe' && (
+      {/* Admin: Reviewed By Me */}
+      {isAdmin && activeTab === 'reviewedByMe' && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Card className="p-5">
             <Table
               columns={adminColumns}
-              data={approvedByMeLeaves}
+              data={reviewedByMeLeaves.filter(l => adminStatusFilter === 'all' || l.status === adminStatusFilter)}
               renderRow={(item) => {
                 const empInfo = getEmpDetails(item.employeeId);
                 return (
@@ -327,20 +338,20 @@ export default function LeaveList() {
                 </tr>
               )}}
             />
-            {approvedByMeLeaves.length === 0 && (
-              <div className="text-center py-6 text-neutral-500 text-sm">No leaves approved by you yet.</div>
+            {reviewedByMeLeaves.filter(l => adminStatusFilter === 'all' || l.status === adminStatusFilter).length === 0 && (
+              <div className="text-center py-6 text-neutral-500 text-sm">No leaves found matching the selected filter.</div>
             )}
           </Card>
         </div>
       )}
 
-      {/* Admin: Approved By Manager */}
-      {isAdmin && activeTab === 'approvedByManager' && (
+      {/* Admin: Reviewed By Manager */}
+      {isAdmin && activeTab === 'reviewedByManager' && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Card className="p-5">
             <Table
               columns={adminColumns}
-              data={approvedByManagerLeaves}
+              data={reviewedByManagerLeaves.filter(l => adminStatusFilter === 'all' || l.status === adminStatusFilter)}
               renderRow={(item) => {
                 const empInfo = getEmpDetails(item.employeeId);
                 return (
@@ -366,8 +377,8 @@ export default function LeaveList() {
                 </tr>
               )}}
             />
-            {approvedByManagerLeaves.length === 0 && (
-              <div className="text-center py-6 text-neutral-500 text-sm">No leaves approved by managers yet.</div>
+            {reviewedByManagerLeaves.filter(l => adminStatusFilter === 'all' || l.status === adminStatusFilter).length === 0 && (
+              <div className="text-center py-6 text-neutral-500 text-sm">No leaves found matching the selected filter.</div>
             )}
           </Card>
         </div>

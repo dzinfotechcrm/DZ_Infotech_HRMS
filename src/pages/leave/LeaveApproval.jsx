@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { query, orderBy, increment } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
@@ -16,6 +17,7 @@ import { updateDocument, upsertDocument } from '../../firebase/firestore';
 
 export default function LeaveApproval() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [comments, setComments] = useState({});
   const [confirmApprove, setConfirmApprove] = useState(null);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
@@ -122,6 +124,11 @@ export default function LeaveApproval() {
         eyebrow="Leave Approval"
         title="Approval queue"
         description="Review pending leave requests and approve or reject with comments."
+        actions={
+          <Button variant="secondary" onClick={() => navigate('/leave')}>
+            Return to Leave
+          </Button>
+        }
       />
       <Card className="p-6">
         <div className="mb-6">
