@@ -99,35 +99,23 @@ export default function AdminDashboard() {
   };
 
   const recentLeaves = leaveRequests.slice(0, 5);
-  const upcomingBirthdays = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const upcoming = employees
-      .filter((emp) => emp.dob && emp.status !== 'inactive')
-      .map((emp) => {
-        const dobDate = new Date(emp.dob);
-        const bMonth = dobDate.getMonth();
-        const bDate = dobDate.getDate();
-
-        let nextBday = new Date(today.getFullYear(), bMonth, bDate);
-        if (nextBday < today) {
-          nextBday = new Date(today.getFullYear() + 1, bMonth, bDate);
-        }
-        
-        const daysUntil = Math.round((nextBday - today) / (1000 * 60 * 60 * 24));
-        return {
-          ...emp,
-          daysUntil,
-          nextBday
-        };
-      })
-      .filter((emp) => emp.daysUntil <= 30)
-      .sort((a, b) => a.daysUntil - b.daysUntil)
-      .slice(0, 5);
-
-    return upcoming;
-  }, [employees]);
+  const recentActivity = [
+    ...employees.map((emp) => ({
+      label: `New employee ${emp.firstName} onboarded`,
+      time: formatDate(emp.createdAt, 'dd MMM, hh:mm a'),
+      ts: getTimestamp(emp.createdAt)
+    })),
+    ...attendance.filter((a) => a.status === 'present').map((a) => ({
+      label: `${getEmpName(a.employeeId)} checked in`,
+      time: formatDate(a.createdAt, 'dd MMM, hh:mm a'),
+      ts: getTimestamp(a.createdAt)
+    })),
+    ...leaveRequests.map((leaveRequest) => ({
+      label: `${getEmpName(leaveRequest.employeeId)} applied for ${leaveRequest.leaveTypeName || 'leave'}`,
+      time: formatDate(leaveRequest.createdAt, 'dd MMM, hh:mm a'),
+      ts: getTimestamp(leaveRequest.createdAt)
+    })),
+  ].sort((a, b) => b.ts - a.ts).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -234,27 +222,20 @@ export default function AdminDashboard() {
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="section-title">Employee Birthdays</h2>
-              <p className="muted-text">Upcoming celebrations</p>
+              <h2 className="section-title">Recent Activity</h2>
+              <p className="muted-text">Cross-module live feed</p>
             </div>
-            <GiftIcon className="h-5 w-5 text-primary-600" />
+            <ArrowTrendingUpIcon className="h-5 w-5 text-primary-600" />
           </div>
           <div className="space-y-3">
-            {upcomingBirthdays.map((emp) => (
-              <div key={emp.id} className="flex items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                <div>
-                  <div className="text-sm font-semibold text-neutral-900">{emp.firstName} {emp.lastName}</div>
-                  <div className="mt-1 text-xs text-neutral-500">{formatDate(emp.dob, 'dd MMM')}</div>
-                </div>
-                {emp.daysUntil === 0 ? (
-                  <Badge tone="success">Today!</Badge>
-                ) : (
-                  <span className="text-xs font-medium text-neutral-500">In {emp.daysUntil} day{emp.daysUntil !== 1 ? 's' : ''}</span>
-                )}
+            {recentActivity.map((activity, index) => (
+              <div key={`${activity.label}-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                <div className="text-sm font-semibold text-neutral-900">{activity.label}</div>
+                <div className="mt-1 text-xs text-neutral-500">{activity.time}</div>
               </div>
             ))}
-            {upcomingBirthdays.length === 0 && !loadingEmployees && (
-              <div className="p-4 text-center text-sm text-neutral-500 border border-dashed border-neutral-200 rounded-xl bg-neutral-50">No upcoming birthdays</div>
+            {recentActivity.length === 0 && !loadingEmployees && (
+              <div className="p-4 text-center text-sm text-neutral-500 border border-dashed border-neutral-200 rounded-xl bg-neutral-50">No recent activity</div>
             )}
             {loadingEmployees && <Skeleton className="h-20 w-full" />}
           </div>
