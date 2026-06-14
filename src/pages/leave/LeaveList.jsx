@@ -181,6 +181,33 @@ export default function LeaveList() {
         )}
       />
 
+      {currentEmployee && !isAdmin && (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Card className="p-5">
+            <h3 className="text-sm font-semibold text-slate-700 mb-4">My Leave Balance</h3>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                { label: 'Casual Leave', total: Number(currentEmployee.casual_leaves_total || 0), used: Number(currentEmployee.casual_leaves_used || 0) },
+                { label: 'Paid Leave', total: Number(currentEmployee.paid_leaves_total || 0), used: Number(currentEmployee.paid_leaves_used || 0) },
+                { label: 'Sick / Medical Leave', total: Number(currentEmployee.sick_leaves_total || 0), used: Number(currentEmployee.sick_leaves_used || 0) }
+              ].map((leave) => {
+                const remaining = leave.total - leave.used;
+                const isExhausted = remaining <= 0;
+                return (
+                  <div key={leave.label} className="p-4 rounded-lg bg-slate-50 border border-slate-100 flex flex-col items-center">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 text-center">{leave.label}</span>
+                    <div className={`text-2xl font-bold ${isExhausted ? 'text-red-600' : 'text-slate-800'}`}>
+                      {remaining} <span className="text-sm font-normal text-slate-400">/ {leave.total}</span>
+                    </div>
+                    <span className="text-xs text-slate-400 mt-1">remaining</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      )}
+
       {isAdmin && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200">
           <div className="flex gap-4">

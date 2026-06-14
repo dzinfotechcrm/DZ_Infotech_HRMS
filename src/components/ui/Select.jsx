@@ -11,7 +11,7 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
     React.Children.forEach(nodes, (child) => {
       if (!child) return;
       if (child.type === 'option') {
-        opts.push({ value: child.props.value, label: child.props.children });
+        opts.push({ value: child.props.value, label: child.props.children, disabled: child.props.disabled });
       } else if (child.props && child.props.children) {
         opts.push(...getOptions(child.props.children));
       }
@@ -68,8 +68,10 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
             {options.map((option, idx) => (
               <li
                 key={idx}
-                onClick={() => handleSelect(option.value)}
-                className={`cursor-pointer select-none px-4 py-2.5 text-sm transition-colors hover:bg-primary-50 hover:text-primary-700 ${String(internalValue) === String(option.value) ? 'bg-primary-50 font-semibold text-primary-700' : 'text-neutral-900'}`}
+                onClick={() => {
+                  if (!option.disabled) handleSelect(option.value);
+                }}
+                className={`select-none px-4 py-2.5 text-sm transition-colors ${option.disabled ? 'cursor-not-allowed text-neutral-400 bg-neutral-50' : 'cursor-pointer hover:bg-primary-50 hover:text-primary-700'} ${!option.disabled && String(internalValue) === String(option.value) ? 'bg-primary-50 font-semibold text-primary-700' : (!option.disabled ? 'text-neutral-900' : '')}`}
               >
                 {option.label}
               </li>

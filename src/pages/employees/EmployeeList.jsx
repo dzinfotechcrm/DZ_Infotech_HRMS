@@ -405,7 +405,16 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setFormData(employee || {});
+    if (employee) {
+      setFormData({
+        ...employee,
+        casualLeaves: employee.casual_leaves_total ?? '0',
+        paidLeaves: employee.paid_leaves_total ?? '0',
+        sickLeaves: employee.sick_leaves_total ?? '0',
+      });
+    } else {
+      setFormData({});
+    }
   }, [employee]);
 
   const handleChange = (field, value) => {
@@ -579,19 +588,19 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
             <Input
               label="Casual Leaves"
               type="number"
-              value={formData.casualLeaves || '0'}
+              value={formData.casualLeaves ?? ''}
               onChange={(e) => handleChange('casualLeaves', e.target.value)}
             />
             <Input
               label="Paid Leaves"
               type="number"
-              value={formData.paidLeaves || '0'}
+              value={formData.paidLeaves ?? ''}
               onChange={(e) => handleChange('paidLeaves', e.target.value)}
             />
             <Input
               label="Sick Leaves"
               type="number"
-              value={formData.sickLeaves || '0'}
+              value={formData.sickLeaves ?? ''}
               onChange={(e) => handleChange('sickLeaves', e.target.value)}
             />
           </div>
@@ -1337,8 +1346,15 @@ export default function EmployeeList() {
     try {
       const payload = {
         ...formData,
-        email: formData.email ? formData.email.toLowerCase().trim() : formData.email
+        email: formData.email ? formData.email.toLowerCase().trim() : formData.email,
+        casual_leaves_total: Number(formData.casualLeaves || 0),
+        paid_leaves_total: Number(formData.paidLeaves || 0),
+        sick_leaves_total: Number(formData.sickLeaves || 0),
       };
+      // Clean up UI-only fields
+      delete payload.casualLeaves;
+      delete payload.paidLeaves;
+      delete payload.sickLeaves;
       await upsertDocument('employees', selectedEmployee.id, payload);
 
       // Auto-assign as department manager if applicable
@@ -1372,7 +1388,17 @@ export default function EmployeeList() {
         ...formData,
         email: formData.email ? formData.email.toLowerCase().trim() : formData.email,
         createdAt: serverTimestamp(),
+        casual_leaves_total: Number(formData.casualLeaves || 0),
+        casual_leaves_used: 0,
+        paid_leaves_total: Number(formData.paidLeaves || 0),
+        paid_leaves_used: 0,
+        sick_leaves_total: Number(formData.sickLeaves || 0),
+        sick_leaves_used: 0,
       };
+      // Clean up UI-only fields
+      delete payload.casualLeaves;
+      delete payload.paidLeaves;
+      delete payload.sickLeaves;
       const docRef = await createDocument('employees', payload);
 
       // Auto-assign as department manager if applicable

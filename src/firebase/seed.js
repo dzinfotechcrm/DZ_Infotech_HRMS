@@ -29,10 +29,10 @@ export async function initializeSeedData() {
   const leaveTypes = [
     { name: 'Casual Leave', maxDaysPerYear: 12, isPaid: true, carryForward: false, color: '#3B82F6' },
     { name: 'Medical Leave', maxDaysPerYear: 12, isPaid: true, carryForward: false, color: '#10B981' },
-    { name: 'Annual Leave', maxDaysPerYear: 15, isPaid: true, carryForward: true, color: '#8B5CF6' },
     { name: 'Maternity Leave', maxDaysPerYear: 90, isPaid: true, carryForward: false, color: '#EC4899' },
     { name: 'Paternity Leave', maxDaysPerYear: 15, isPaid: true, carryForward: false, color: '#06B6D4' },
     { name: 'Unpaid Leave', maxDaysPerYear: 30, isPaid: false, carryForward: false, color: '#F59E0B' },
+    { name: 'Paid Leave', maxDaysPerYear: 15, isPaid: true, carryForward: true, color: '#8B5CF6' },
   ];
 
   if (!data?.seedCompleted) {

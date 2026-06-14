@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -22,6 +22,10 @@ export default function LeaveForm({ mode = 'create' }) {
   const [loadingDoc, setLoadingDoc] = useState(mode === 'edit');
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
   const { items: leaveTypes } = useFirestoreCollection('leaveTypes');
+
+  const employeeQuery = useMemo(() => (base) => query(base, where('uid', '==', user?.uid || '')), [user]);
+  const { items: currentEmployees } = useFirestoreCollection('employees', employeeQuery);
+  const currentEmployee = currentEmployees[0];
 
   useEffect(() => {
     if (mode === 'edit' && id) {
@@ -95,6 +99,39 @@ export default function LeaveForm({ mode = 'create' }) {
       const leaveTypeName = typeDoc ? typeDoc.name : '';
       const totalDays = daysBetween(values.fromDate, values.toDate);
 
+      // Quota validation
+      if (currentEmployee) {
+        let remaining = null;
+        let quotaKey = null;
+        if (leaveTypeName === 'Casual Leave') quotaKey = 'casual_leaves';
+        else if (leaveTypeName === 'Paid Leave') quotaKey = 'paid_leaves';
+        else if (leaveTypeName === 'Medical Leave' || leaveTypeName === 'Sick Leave') quotaKey = 'sick_leaves';
+
+        if (quotaKey) {
+          const total = Number(currentEmployee[`${quotaKey}_total`] || 0);
+          const used = Number(currentEmployee[`${quotaKey}_used`] || 0);
+          remaining = total - used;
+
+          let requestedDays = totalDays;
+          let oldDays = 0;
+          if (mode === 'edit' && id) {
+            const oldDoc = await fetchDocument('leaveRequests', id);
+            if (oldDoc.exists()) {
+              oldDays = oldDoc.data().totalDays || 0;
+            }
+          }
+
+          if (requestedDays - oldDays > remaining) {
+            toast.error(`You have only ${remaining} days remaining for ${leaveTypeName}.`);
+            return;
+          }
+          
+          await updateDocument('employees', currentEmployee.id, {
+            [`${quotaKey}_used`]: used + (requestedDays - oldDays)
+          });
+        }
+      }
+
       const payload = {
         leaveTypeId: values.leaveTypeId,
         leaveTypeName,
@@ -155,7 +192,23 @@ export default function LeaveForm({ mode = 'create' }) {
       <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
         <Select label="Leave Type" {...register('leaveTypeId', { required: 'Leave type is required' })} error={errors.leaveTypeId?.message}>
           <option value="">Select leave type</option>
-          {leaveTypes.filter(type => type.name !== 'Annual Leave').map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}
+          {leaveTypes.map((type) => {
+            let exhausted = false;
+            let remaining = null;
+            if (currentEmployee) {
+              if (type.name === 'Casual Leave') remaining = (currentEmployee.casual_leaves_total || 0) - (currentEmployee.casual_leaves_used || 0);
+              else if (type.name === 'Paid Leave') remaining = (currentEmployee.paid_leaves_total || 0) - (currentEmployee.paid_leaves_used || 0);
+              else if (type.name === 'Medical Leave' || type.name === 'Sick Leave') remaining = (currentEmployee.sick_leaves_total || 0) - (currentEmployee.sick_leaves_used || 0);
+              
+              if (remaining !== null && remaining <= 0) exhausted = true;
+            }
+            
+            return (
+              <option key={type.id} value={type.id} disabled={exhausted}>
+                {type.name} {exhausted ? '(Exhausted)' : ''}
+              </option>
+            );
+          })}
         </Select>
         <Input type="file" label="Attachment (optional)" accept="application/pdf,image/*" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
         <Input 
