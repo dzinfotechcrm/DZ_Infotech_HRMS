@@ -1,5 +1,3 @@
-//To show activities of employees and leave requests
-
 import { useMemo, useState } from 'react';
 import { query, orderBy } from 'firebase/firestore';
 import { useFirestoreCollection } from '../../hooks/useFirestore';
