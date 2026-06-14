@@ -287,9 +287,7 @@ export default function LeaveList() {
                 </tr>
               )}
             />
-            {myLeaves.length === 0 && (
-              <div className="text-center py-6 text-neutral-500 text-sm">You have not applied for any leaves yet.</div>
-            )}
+
           </Card>
         </div>
       )}
@@ -326,9 +324,7 @@ export default function LeaveList() {
                 </tr>
               )}}
             />
-            {othersLeaves.length === 0 && (
-              <div className="text-center py-6 text-neutral-500 text-sm">No leave requests found for your team.</div>
-            )}
+
           </Card>
         </div>
       )}
@@ -365,9 +361,7 @@ export default function LeaveList() {
                 </tr>
               )}}
             />
-            {reviewedByMeLeaves.filter(l => adminStatusFilter === 'all' || l.status === adminStatusFilter).length === 0 && (
-              <div className="text-center py-6 text-neutral-500 text-sm">No leaves found matching the selected filter.</div>
-            )}
+
           </Card>
         </div>
       )}
@@ -404,9 +398,7 @@ export default function LeaveList() {
                 </tr>
               )}}
             />
-            {reviewedByManagerLeaves.filter(l => adminStatusFilter === 'all' || l.status === adminStatusFilter).length === 0 && (
-              <div className="text-center py-6 text-neutral-500 text-sm">No leaves found matching the selected filter.</div>
-            )}
+
           </Card>
         </div>
       )}
