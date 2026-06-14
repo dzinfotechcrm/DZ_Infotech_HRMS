@@ -31,13 +31,15 @@ export default function Activities() {
 
   const activities = useMemo(() => {
     const combined = [
-      ...employees.map((employee) => ({
-        id: `emp-${employee.id}`,
-        type: 'employee',
-        label: `New employee onboarded: ${employee.firstName} ${employee.lastName}`,
-        time: formatDate(employee.createdAt, 'dd MMM yyyy, hh:mm a'),
-        ts: getTimestamp(employee.createdAt)
-      })),
+      ...employees
+        .filter((employee) => employee.role !== 'admin')
+        .map((employee) => ({
+          id: `emp-${employee.id}`,
+          type: 'employee',
+          label: `New employee onboarded: ${employee.firstName} ${employee.lastName}`,
+          time: formatDate(employee.createdAt, 'dd MMM yyyy, hh:mm a'),
+          ts: getTimestamp(employee.createdAt)
+        })),
       ...leaveRequests.map((leaveRequest) => ({
         id: `leave-${leaveRequest.id}`,
         type: 'leave',
