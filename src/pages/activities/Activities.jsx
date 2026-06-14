@@ -1,3 +1,5 @@
+//To show activities of employees and leave requests
+
 import { useMemo, useState } from 'react';
 import { query, orderBy } from 'firebase/firestore';
 import { useFirestoreCollection } from '../../hooks/useFirestore';
@@ -69,7 +71,7 @@ export default function Activities() {
             <ClockIcon className="h-5 w-5 text-primary-600" /> All Activities
           </h3>
         </div>
-        
+
         <div className="divide-y divide-neutral-100">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-neutral-500">Loading activities...</div>
