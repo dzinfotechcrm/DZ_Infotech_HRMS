@@ -20,7 +20,7 @@ const LeaveApproval = lazy(() => import('./pages/leave/LeaveApproval'));
 const PayrollList = lazy(() => import('./pages/payroll/PayrollList'));
 const Payslip = lazy(() => import('./pages/payroll/Payslip'));
 const Profile = lazy(() => import('./pages/profile/Profile'));
-const Settings = lazy(() => import('./pages/settings/Settings'));
+
 const Activities = lazy(() => import('./pages/activities/Activities'));
 
 function ProtectedLayout() {
@@ -68,7 +68,7 @@ export default function App() {
           <Route path="payroll" element={<ProtectedRoute allowedRoles={PERMISSIONS.payroll}><PayrollList /></ProtectedRoute>} />
           <Route path="payroll/payslip/:id" element={<ProtectedRoute allowedRoles={PERMISSIONS.payroll}><Payslip /></ProtectedRoute>} />
           <Route path="profile" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><Profile /></ProtectedRoute>} />
-          <Route path="settings" element={<ProtectedRoute allowedRoles={PERMISSIONS.settings}><Settings /></ProtectedRoute>} />
+
           <Route path="activities" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Activities /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

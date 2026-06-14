@@ -20,7 +20,7 @@ const titleMap = [
   ['/reports', 'Reports & Analytics'],
   ['/activities', 'Activity Log'],
   ['/profile', 'Profile Management'],
-  ['/settings', 'Settings'],
+
 ];
 
 function getTitle(pathname) {
