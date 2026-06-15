@@ -1,8 +1,22 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function AccessDenied() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleReturnToLogin = async () => {
+    try {
+      await logout();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <Card className="max-w-xl p-8 text-center">
@@ -11,12 +25,10 @@ export default function AccessDenied() {
         </div>
         <h1 className="text-3xl font-bold text-neutral-900">Access Denied</h1>
         <p className="mt-3 text-sm leading-6 text-neutral-600">
-          Your Google account is authenticated, but it is not registered with an approved HRMS role in Firestore. Contact an administrator to be added to the <span className="font-semibold">users</span> collection.
+          Your Google account is authenticated, but your profile is either not registered with an approved role or has been marked as inactive. Contact an administrator to regain access.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <Link to="/login">
-            <Button>Return to Login</Button>
-          </Link>
+          <Button onClick={handleReturnToLogin}>Return to Login</Button>
         </div>
       </Card>
     </div>

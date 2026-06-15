@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../hooks/useAuth';
@@ -6,32 +6,30 @@ import toast from 'react-hot-toast';
 import { syncAuthenticatedUser } from '../../supabase/auth';
 
 export default function Login() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, accessDenied, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
 
+  // If AuthContext determines access is denied after a redirect, go to access-denied
+  useEffect(() => {
+    if (accessDenied) {
+      navigate('/access-denied', { replace: true });
+    } else if (user) {
+      const destination = location.state?.from?.pathname || '/dashboard';
+      navigate(destination, { replace: true });
+    }
+  }, [accessDenied, user, navigate, location]);
+
   async function handleLogin() {
     setLoading(true);
     try {
-      const firebaseUser = await signInWithGoogle();
-      const profile = await syncAuthenticatedUser(firebaseUser);
-      if (!profile) {
-        toast.error('Access denied. Your account is not registered in HRMS.');
-        navigate('/access-denied', { replace: true });
-        return;
-      }
-      if (!profile.isActive || profile.status !== 'active') {
-        toast.error('Your account is inactive. Please contact your administrator.');
-        navigate('/access-denied', { replace: true });
-        return;
-      }
-      toast.success('Welcome back');
-      const destination = location.state?.from?.pathname || '/dashboard';
-      navigate(destination, { replace: true });
+      // For Supabase, this initiates a browser redirect.
+      // We don't need to manually check the user here because the page will unload.
+      // When it redirects back, AuthContext will handle the session and sync.
+      await signInWithGoogle();
     } catch (error) {
       toast.error(error?.message || 'Unable to sign in');
-    } finally {
       setLoading(false);
     }
   }

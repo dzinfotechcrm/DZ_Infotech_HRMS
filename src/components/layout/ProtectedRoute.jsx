@@ -15,12 +15,12 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
-
   if (accessDenied) {
     return <Navigate to="/access-denied" replace />;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   if (allowedRoles.length && !canAccess(user.role, allowedRoles)) {

@@ -400,24 +400,29 @@ function LeaveHistoryModal({ employee, open, onClose }) {
 }
 
 // Component: Edit Employee Modal
-function EditEmployeeModal({ employee, departments, managers, open, onClose, onSave }) {
+function EditEmployeeModal({ employee, departments, managers, existingEmails = [], existingPhones = [], open, onClose, onSave }) {
   const [formData, setFormData] = useState(employee || {});
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (employee) {
       setFormData({
         ...employee,
+        address: employee.address || { line1: '', city: '', state: '', pincode: '' },
         casualLeaves: employee.casual_leaves_total ?? '0',
         paidLeaves: employee.paid_leaves_total ?? '0',
         sickLeaves: employee.sick_leaves_total ?? '0',
       });
+      setErrors({});
     } else {
-      setFormData({});
+      setFormData({ address: { line1: '', city: '', state: '', pincode: '' } });
+      setErrors({});
     }
   }, [employee]);
 
   const handleChange = (field, value) => {
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
     setFormData((prev) => {
       const val = field === 'email' ? value.toLowerCase() : value;
       const nextData = { ...prev, [field]: val };
@@ -434,17 +439,95 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
   };
 
   const handleAddressChange = (field, value) => {
+    setErrors((prev) => ({ ...prev, [`address.${field}`]: undefined }));
     setFormData((prev) => ({
       ...prev,
       address: { ...prev.address, [field]: value },
     }));
   };
 
+  const validate = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    const required = ['firstName', 'lastName', 'email', 'phone', 'dob', 'gender', 'bloodGroup', 'employeeId', 'departmentId', 'designation', 'role', 'joinDate', 'status', 'basicSalary', 'hra', 'da', 'travelAllowance', 'bankAccount', 'ifsc', 'bankName', 'casualLeaves', 'paidLeaves', 'sickLeaves', 'aadhar', 'pan', 'emergencyContactName', 'emergencyContactPhone', 'emergencyContactName2', 'emergencyContactPhone2'];
+    if (formData.role !== 'manager') required.push('managerId');
+
+    required.forEach(k => {
+      if (formData[k] === undefined || formData[k] === null || String(formData[k]).trim() === '') {
+        newErrors[k] = 'This field is required';
+        isValid = false;
+      }
+    });
+
+    const addrRequired = ['line1', 'city', 'state', 'pincode'];
+    addrRequired.forEach(k => {
+      if (!formData.address || !formData.address[k] || String(formData.address[k]).trim() === '') {
+        newErrors[`address.${k}`] = 'This field is required';
+        isValid = false;
+      }
+    });
+
+    if (formData.address?.pincode && !/^\d{6}$/.test(formData.address.pincode)) {
+      newErrors['address.pincode'] = 'Pincode must be exactly 6 digits';
+      isValid = false;
+    }
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors['email'] = 'Please enter a valid email address';
+      isValid = false;
+    }
+
+    const otherEmails = existingEmails.filter(e => e !== (employee?.email || '').toLowerCase());
+    if (formData.email && otherEmails.includes(formData.email.trim().toLowerCase())) {
+      newErrors['email'] = 'This email is already in use by another employee';
+      isValid = false;
+    }
+
+    const otherPhones = existingPhones.filter(p => p !== (employee?.phone || ''));
+    if (formData.phone && otherPhones.includes(formData.phone.trim())) {
+      newErrors['phone'] = 'This phone number is already in use by another employee';
+      isValid = false;
+    }
+
+    if (formData.dob) {
+      const [year, month, day] = formData.dob.split('-');
+      const parsedDob = new Date(year, month - 1, day);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (parsedDob >= today) {
+        newErrors['dob'] = 'Date of birth cannot be today or in the future';
+        isValid = false;
+      }
+    }
+
+    if (formData.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifsc)) {
+      newErrors['ifsc'] = 'Invalid IFSC format';
+      isValid = false;
+    }
+    if (formData.bankAccount && !/^\d{9,18}$/.test(formData.bankAccount)) {
+      newErrors['bankAccount'] = 'Account number must be 9-18 digits';
+      isValid = false;
+    }
+    if (formData.aadhar && !/^\d{12}$/.test(formData.aadhar)) {
+      newErrors['aadhar'] = 'Aadhaar must be exactly 12 digits';
+      isValid = false;
+    }
+    if (formData.pan && !/^[A-Z0-9]{10}$/.test(formData.pan)) {
+      newErrors['pan'] = 'PAN must be exactly 10 alphanumeric characters';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    if (!isValid) {
+      toast.error('Please fix the errors in the form before saving.');
+    }
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (formData.role !== 'manager' && !formData.managerId) {
-      toast.error('Please select a manager for this employee.');
+
+    if (!validate()) {
       return;
     }
 
@@ -463,155 +546,121 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
   if (!employee) return null;
 
   return (
-    <Modal open={open} title="Edit Employee" onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <Modal open={open} title="Edit Employee" onClose={onClose} size="max-w-3xl">
+      <form onSubmit={handleSubmit} className="space-y-8 h-[65vh] overflow-y-auto px-2 pb-4">
         {/* Personal Info */}
         <div>
-          <h4 className="mb-4 text-sm font-semibold text-slate-900">Personal Information</h4>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Personal Information</h4>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              label="First Name"
-              value={formData.firstName || ''}
-              onChange={(e) => handleChange('firstName', e.target.value)}
-              required
-            />
-            <Input
-              label="Last Name"
-              value={formData.lastName || ''}
-              onChange={(e) => handleChange('lastName', e.target.value)}
-              required
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email || ''}
-              onChange={(e) => handleChange('email', e.target.value)}
-              required
-            />
-            <Input
-              label="Phone"
-              type="tel"
-              value={formData.phone || ''}
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                handleChange('phone', val);
-              }}
-              pattern="[0-9]{10}"
-              title="Please enter exactly 10 digits"
-            />
+            <Input label="First Name" error={errors.firstName} value={formData.firstName || ''} onChange={(e) => handleChange('firstName', e.target.value)} required />
+            <Input label="Last Name" error={errors.lastName} value={formData.lastName || ''} onChange={(e) => handleChange('lastName', e.target.value)} required />
+            <Input label="Email" type="email" error={errors.email} value={formData.email || ''} onChange={(e) => handleChange('email', e.target.value)} required />
+            <Input label="Phone" type="tel" error={errors.phone} value={formData.phone || ''} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} pattern="[0-9]{10}" />
+            <Input label="Date of Birth" type="date" error={errors.dob} value={formData.dob || ''} onChange={(e) => handleChange('dob', e.target.value)} />
+            <Select label="Gender" error={errors.gender} value={formData.gender || ''} onChange={(e) => handleChange('gender', e.target.value)}>
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </Select>
+            <Select label="Blood Group" error={errors.bloodGroup} value={formData.bloodGroup || ''} onChange={(e) => handleChange('bloodGroup', e.target.value)}>
+              <option value="">Select Blood Group</option>
+              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+            </Select>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Input label="Address Line 1" error={errors['address.line1']} value={formData.address?.line1 || ''} onChange={(e) => handleAddressChange('line1', e.target.value)} />
+            </div>
+            <Input label="City" error={errors['address.city']} value={formData.address?.city || ''} onChange={(e) => handleAddressChange('city', e.target.value)} />
+            <Input label="State" error={errors['address.state']} value={formData.address?.state || ''} onChange={(e) => handleAddressChange('state', e.target.value)} />
+            <Input label="Pincode" error={errors['address.pincode']} value={formData.address?.pincode || ''} onChange={(e) => handleAddressChange('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))} pattern="[0-9]{6}" />
           </div>
         </div>
 
         {/* Job Info */}
         <div>
-          <h4 className="mb-4 text-sm font-semibold text-slate-900">Job Information</h4>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Job Information</h4>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Select
-              label="Role"
-              value={formData.role || 'employee'}
-              onChange={(e) => handleChange('role', e.target.value)}
-            >
+            <Select label="Role" error={errors.role} value={formData.role || 'employee'} onChange={(e) => handleChange('role', e.target.value)}>
               <option value="employee">Employee</option>
               <option value="manager">Manager</option>
             </Select>
-            <Input
-              label="Employee ID"
-              value={formData.employeeId || ''}
-              onChange={(e) => handleChange('employeeId', e.target.value)}
-              required
-            />
-            <Select
-              label="Department"
-              value={formData.departmentId || ''}
-              onChange={(e) => {
-                const deptId = e.target.value;
-                const dept = departments.find((d) => d.id === deptId);
-                const matchedManager = managers.find((m) => m.uid === dept?.managerId || m.id === dept?.managerId);
-                setFormData((prev) => ({
-                  ...prev,
-                  departmentId: deptId,
-                  managerId: prev.role === 'manager' ? '' : (matchedManager ? matchedManager.id : '')
-                }));
-              }}
-            >
+            <Input label="Employee ID" error={errors.employeeId} value={formData.employeeId || ''} onChange={(e) => handleChange('employeeId', e.target.value)} required />
+            <Select label="Department" error={errors.departmentId} value={formData.departmentId || ''} onChange={(e) => {
+              const deptId = e.target.value;
+              const dept = departments.find((d) => d.id === deptId);
+              const matchedManager = managers.find((m) => m.uid === dept?.managerId || m.id === dept?.managerId);
+              setFormData((prev) => ({ ...prev, departmentId: deptId, managerId: prev.role === 'manager' ? '' : (matchedManager ? matchedManager.id : '') }));
+            }}>
               <option value="">Select Department</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
+              {departments.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
             </Select>
-            <Input
-              label="Designation"
-              value={formData.designation || ''}
-              onChange={(e) => handleChange('designation', e.target.value)}
-            />
-            <Select
-              label="Manager"
-              value={formData.managerId || ''}
-              onChange={(e) => handleChange('managerId', e.target.value)}
-              disabled={formData.role === 'manager'}
-            >
-              {formData.role === 'manager' ? (
-                <option value="">Not applicable for Manager</option>
-              ) : (
-                <>
-                  <option value="">Select Manager</option>
-                  {managers.map((mgr) => (
-                    <option key={mgr.id} value={mgr.id}>{mgr.firstName} {mgr.lastName}</option>
-                  ))}
-                </>
-              )}
+            <Input label="Designation" error={errors.designation} value={formData.designation || ''} onChange={(e) => handleChange('designation', e.target.value)} />
+            <Select label="Manager" error={errors.managerId} value={formData.managerId || ''} onChange={(e) => handleChange('managerId', e.target.value)} disabled={formData.role === 'manager'}>
+              {formData.role === 'manager' ? <option value="">Not applicable</option> : <>
+                <option value="">Select Manager</option>
+                {managers.map((mgr) => <option key={mgr.id} value={mgr.id}>{mgr.firstName} {mgr.lastName}</option>)}
+              </>}
             </Select>
-            <Input
-              label="Join Date"
-              type="date"
-              value={formData.joinDate || ''}
-              onChange={(e) => handleChange('joinDate', e.target.value)}
-            />
-            <Input
-              label="Basic Salary"
-              type="number"
-              value={formData.basicSalary || ''}
-              onChange={(e) => handleChange('basicSalary', e.target.value)}
-            />
-            <Select
-              label="Status"
-              value={formData.status || 'active'}
-              onChange={(e) => handleChange('status', e.target.value)}
-            >
+            <Input label="Join Date" type="date" error={errors.joinDate} value={formData.joinDate || ''} onChange={(e) => handleChange('joinDate', e.target.value)} />
+            <Select label="Status" error={errors.status} value={formData.status || 'active'} onChange={(e) => handleChange('status', e.target.value)}>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
-              <option value="on leave">On Leave</option>
-              <option value="terminated">Terminated</option>
             </Select>
+          </div>
+        </div>
+
+        {/* Salary Info */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Compensation & Bank Details</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Basic Salary" type="number" error={errors.basicSalary} value={formData.basicSalary || ''} onChange={(e) => handleChange('basicSalary', e.target.value)} />
+            <Input label="HRA" type="number" error={errors.hra} value={formData.hra || ''} onChange={(e) => handleChange('hra', e.target.value)} />
+            <Input label="DA" type="number" error={errors.da} value={formData.da || ''} onChange={(e) => handleChange('da', e.target.value)} />
+            <Input label="Travel Allowance" type="number" error={errors.travelAllowance} value={formData.travelAllowance || ''} onChange={(e) => handleChange('travelAllowance', e.target.value)} />
+            <Select label="PF Applicable" error={errors.pfApplicable} value={formData.pfApplicable ? 'true' : 'false'} onChange={(e) => handleChange('pfApplicable', e.target.value === 'true')}>
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </Select>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Input label="Bank Name" error={errors.bankName} value={formData.bankName || ''} onChange={(e) => handleChange('bankName', e.target.value)} />
+            <Input label="Account Number" error={errors.bankAccount} value={formData.bankAccount || ''} onChange={(e) => handleChange('bankAccount', e.target.value)} />
+            <Input label="IFSC Code" error={errors.ifsc} value={formData.ifsc || ''} onChange={(e) => handleChange('ifsc', e.target.value)} />
+          </div>
+        </div>
+
+        {/* Documents & Emergency Contacts */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Documents & Emergency Contacts</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Aadhaar Number" error={errors.aadhar} value={formData.aadhar || ''} onChange={(e) => handleChange('aadhar', e.target.value.replace(/\D/g, '').slice(0, 12))} maxLength={12} pattern="\d{12}" title="12-digit Aadhaar Number" />
+            <Input label="PAN Number" error={errors.pan} value={formData.pan || ''} onChange={(e) => handleChange('pan', e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10))} maxLength={10} pattern="[A-Z0-9]{10}" title="10-character alphanumeric PAN" />
+            <div className="sm:col-span-2 mt-2">
+              <h5 className="text-xs font-semibold text-slate-700">Emergency Contact 1</h5>
+            </div>
+            <Input label="Name" error={errors.emergencyContactName} value={formData.emergencyContactName || ''} onChange={(e) => handleChange('emergencyContactName', e.target.value)} />
+            <Input label="Phone" error={errors.emergencyContactPhone} value={formData.emergencyContactPhone || ''} onChange={(e) => handleChange('emergencyContactPhone', e.target.value)} />
+            <div className="sm:col-span-2 mt-2">
+              <h5 className="text-xs font-semibold text-slate-700">Emergency Contact 2</h5>
+            </div>
+            <Input label="Name" error={errors.emergencyContactName2} value={formData.emergencyContactName2 || ''} onChange={(e) => handleChange('emergencyContactName2', e.target.value)} />
+            <Input label="Phone" error={errors.emergencyContactPhone2} value={formData.emergencyContactPhone2 || ''} onChange={(e) => handleChange('emergencyContactPhone2', e.target.value)} />
           </div>
         </div>
 
         {/* Leaves Info */}
         <div>
-          <h4 className="mb-4 text-sm font-semibold text-slate-900">Leave Balances</h4>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              label="Casual Leaves"
-              type="number"
-              value={formData.casualLeaves ?? ''}
-              onChange={(e) => handleChange('casualLeaves', e.target.value)}
-            />
-            <Input
-              label="Paid Leaves"
-              type="number"
-              value={formData.paidLeaves ?? ''}
-              onChange={(e) => handleChange('paidLeaves', e.target.value)}
-            />
-            <Input
-              label="Sick Leaves"
-              type="number"
-              value={formData.sickLeaves ?? ''}
-              onChange={(e) => handleChange('sickLeaves', e.target.value)}
-            />
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Leave Balances</h4>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Input label="Casual Leaves" type="number" error={errors.casualLeaves} value={formData.casualLeaves ?? ''} onChange={(e) => handleChange('casualLeaves', e.target.value)} />
+            <Input label="Paid Leaves" type="number" error={errors.paidLeaves} value={formData.paidLeaves ?? ''} onChange={(e) => handleChange('paidLeaves', e.target.value)} />
+            <Input label="Sick Leaves" type="number" error={errors.sickLeaves} value={formData.sickLeaves ?? ''} onChange={(e) => handleChange('sickLeaves', e.target.value)} />
           </div>
         </div>
 
-        <div className="flex gap-3 border-t border-slate-200 pt-6">
+        <div className="flex gap-3 border-t border-slate-200 pt-4 mt-6">
           <Button variant="secondary" className="flex-1" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
@@ -1380,7 +1429,7 @@ export default function EmployeeList() {
 
       // Auto-assign as department manager if applicable
       const isManager = payload.role?.toLowerCase() === 'manager' || formData.designation?.toLowerCase() === 'manager';
-      
+
       // Remove this employee as manager from any other departments they might have managed previously
       const oldDepartments = allDepartments.filter(d => d.managerId === selectedEmployee.id);
       for (const oldDept of oldDepartments) {
@@ -1868,6 +1917,8 @@ export default function EmployeeList() {
         employee={selectedEmployee}
         departments={allDepartments}
         managers={managers}
+        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean)}
+        existingPhones={employees.map(e => e.phone).filter(Boolean)}
         open={editModalOpen}
         onClose={() => {
           setEditModalOpen(false);

@@ -43,7 +43,9 @@ export default function Activities() {
       ...leaveRequests.map((leaveRequest) => ({
         id: `leave-${leaveRequest.id}`,
         type: 'leave',
-        label: `Leave request ${leaveRequest.status} for ${leaveRequest.employeeName || getEmpName(leaveRequest.employeeId)}`,
+        label: leaveRequest.status === 'pending'
+          ? `New leave request submitted by ${leaveRequest.employeeName || getEmpName(leaveRequest.employeeId)}`
+          : `Leave request ${leaveRequest.status} for ${leaveRequest.employeeName || getEmpName(leaveRequest.employeeId)}`,
         time: formatDate(leaveRequest.createdAt, 'dd MMM yyyy, hh:mm a'),
         ts: getTimestamp(leaveRequest.createdAt)
       })),

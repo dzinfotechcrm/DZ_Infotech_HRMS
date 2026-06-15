@@ -28,7 +28,7 @@ export function AuthProvider({ children }) {
       try {
         const syncedProfile = await syncAuthenticatedUser(sessionUser);
         if (isMounted) {
-          if (!syncedProfile) {
+          if (!syncedProfile || !syncedProfile.isActive || syncedProfile.status !== 'active') {
             setUser(null);
             setAccessDenied(true);
             loadedUserId.current = null;
