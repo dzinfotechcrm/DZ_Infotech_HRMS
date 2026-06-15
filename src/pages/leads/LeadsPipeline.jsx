@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { createDocument, updateDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
-import { FunnelIcon, PlusIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon, PlusIcon, CalendarIcon, ListBulletIcon, ViewColumnsIcon } from '@heroicons/react/24/outline';
 import LeadFormModal from './LeadFormModal';
 import { toast } from 'react-hot-toast';
 import { formatDate } from '../../utils/dateHelpers';
@@ -41,11 +41,59 @@ const SOURCE_COLORS = {
 };
 
 export default function LeadsPipeline() {
+  const [viewMode, setViewMode] = useState('kanban');
   const { items: leads, refetch } = useSupabaseCollection('leads');
   const { items: employees } = useSupabaseCollection('employees');
+  const { items: clients, refetch: refetchClients } = useSupabaseCollection('clients');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
+
+  const createClientFromLead = async (lead, initialStatus = 'Active') => {
+    try {
+      const existing = clients.find(c => c.companyName === lead.companyName);
+      if (existing) {
+        await updateDocument('clients', existing.id, { status: initialStatus });
+        refetchClients();
+        toast.success(`Client ${lead.companyName} updated to ${initialStatus}`);
+        return;
+      }
+
+      let maxId = 0;
+      clients.forEach(c => {
+        if (c.clientId && c.clientId.startsWith('CL-')) {
+          const num = parseInt(c.clientId.replace('CL-', ''), 10);
+          if (!isNaN(num) && num > maxId) {
+            maxId = num;
+          }
+        }
+      });
+      const nextId = `CL-${String(maxId + 1).padStart(4, '0')}`;
+
+      const clientData = {
+        clientId: nextId,
+        companyName: lead.companyName,
+        contactPerson: lead.contactPerson,
+        phone: lead.phone || '',
+        email: lead.email || '',
+        address: lead.address || '',
+        industry: lead.industry || '',
+        projects: 0,
+        ltv: lead.expectedValue || 0,
+        owner: lead.assignedTo || '',
+        status: initialStatus,
+        since: new Date().toISOString().split('T')[0],
+        notes: `Converted from lead ${lead.leadId || ''}`
+      };
+
+      await createDocument('clients', clientData);
+      refetchClients();
+      toast.success('Client auto-created successfully!');
+    } catch (error) {
+      console.error('Failed to create client', error);
+      toast.error('Failed to auto-create client: ' + error.message);
+    }
+  };
 
   const handleOpenModal = (lead = null) => {
     setSelectedLead(lead);
@@ -54,14 +102,26 @@ export default function LeadsPipeline() {
 
   const handleSaveLead = async (formData) => {
     try {
+      const isNewWon = formData.stage === 'Won' && (!selectedLead || selectedLead.stage !== 'Won');
+      const isNewLead = !selectedLead;
+
       if (selectedLead) {
         await updateDocument('leads', selectedLead.id, formData);
       } else {
         await createDocument('leads', formData);
       }
+
+      if (isNewLead) {
+        const initialStatus = formData.stage === 'Won' ? 'Onboarding' : 'Active';
+        await createClientFromLead(formData, initialStatus);
+      } else if (isNewWon) {
+        await createClientFromLead(formData, 'Onboarding');
+      }
+
       refetch();
     } catch (err) {
       console.error(err);
+      toast.error('Database operation failed: ' + err.message);
       throw new Error('Database operation failed');
     }
   };
@@ -81,9 +141,12 @@ export default function LeadsPipeline() {
       try {
         await updateDocument('leads', lead.id, { stage });
         toast.success(`Moved to ${stage}`);
+        if (stage === 'Won') {
+          await createClientFromLead({ ...lead, stage }, 'Onboarding');
+        }
         refetch();
       } catch (err) {
-        toast.error('Failed to move lead');
+        toast.error('Failed to move lead: ' + err.message);
       }
     }
   };
@@ -119,6 +182,20 @@ export default function LeadsPipeline() {
           <p className="text-sm text-neutral-500">Pipeline · scoring · follow-ups · forecast</p>
         </div>
         <div className="flex gap-3">
+          <div className="flex bg-neutral-100 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${viewMode === 'kanban' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+            >
+              <ViewColumnsIcon className="h-4 w-4" /> Board
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${viewMode === 'list' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+            >
+              <ListBulletIcon className="h-4 w-4" /> List
+            </button>
+          </div>
           <Button variant="secondary" className="bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 gap-2">
             <FunnelIcon className="h-4 w-4" /> Filter
           </Button>
@@ -163,9 +240,10 @@ export default function LeadsPipeline() {
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-max h-full items-start">
+      {/* Kanban Board vs List View */}
+      {viewMode === 'kanban' ? (
+        <div className="flex-1 overflow-x-auto pb-4">
+          <div className="flex gap-4 min-w-max h-full items-start">
           {STAGES.map((stage) => {
             const stageLeads = leads.filter(l => l.stage === stage);
             const stageValue = stageLeads.reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
@@ -242,6 +320,80 @@ export default function LeadsPipeline() {
           })}
         </div>
       </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col mb-4">
+          <div className="overflow-x-auto flex-1">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-neutral-200 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-white">
+                  <th className="px-6 py-4 font-semibold">Lead</th>
+                  <th className="px-6 py-4 font-semibold">Contact</th>
+                  <th className="px-6 py-4 font-semibold text-center">Stage</th>
+                  <th className="px-6 py-4 font-semibold text-right">Value</th>
+                  <th className="px-6 py-4 font-semibold text-right">Probability</th>
+                  <th className="px-6 py-4 font-semibold text-center">Assigned To</th>
+                  <th className="px-6 py-4 font-semibold text-center">Next Follow-Up</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {leads.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-12 text-center text-neutral-500">
+                      No leads found. Create your first lead to get started.
+                    </td>
+                  </tr>
+                ) : (
+                  leads.map((lead) => {
+                    const assignee = employees.find(e => e.uid === lead.assignedTo || e.id === lead.assignedTo);
+                    const assigneeInitials = assignee ? `${assignee.firstName?.[0] || ''}${assignee.lastName?.[0] || ''}`.toUpperCase() : 'UN';
+                    return (
+                      <tr 
+                        key={lead.id} 
+                        className="hover:bg-neutral-50 cursor-pointer transition-colors"
+                        onClick={() => handleOpenModal(lead)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-semibold text-neutral-900">{lead.companyName}</div>
+                          <div className="text-xs text-neutral-500">{lead.leadSource || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                          <div>{lead.contactPerson}</div>
+                          <div className="text-xs">{lead.phone}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STAGE_COLORS[lead.stage] || 'bg-slate-500'} text-white`}>
+                            {lead.stage}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-900 text-right">
+                          {formatCurrency(lead.expectedValue || 0)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 text-right">
+                          {lead.probability ? `${lead.probability}%` : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex justify-center">
+                            {lead.assignedTo ? (
+                              <div className="h-7 w-7 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-xs font-bold ring-2 ring-white" title={assignee ? `${assignee.firstName} ${assignee.lastName}` : ''}>
+                                {assigneeInitials}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-neutral-400">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 text-center">
+                          {lead.nextFollowUp ? formatDate(lead.nextFollowUp, 'dd MMM yyyy') : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <LeadFormModal
         open={isModalOpen}

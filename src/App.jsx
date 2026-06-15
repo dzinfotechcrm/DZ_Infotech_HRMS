@@ -23,6 +23,11 @@ const Profile = lazy(() => import('./pages/profile/Profile'));
 
 const Activities = lazy(() => import('./pages/activities/Activities'));
 const LeadsPipeline = lazy(() => import('./pages/leads/LeadsPipeline'));
+const ClientsList = lazy(() => import('./pages/clients/ClientsList'));
+const ProjectsList = lazy(() => import('./pages/projects/ProjectsList'));
+const AmcList = lazy(() => import('./pages/amc/AmcList'));
+const ConTrackLeadsPipeline = lazy(() => import('./pages/contrack/ConTrackLeadsPipeline'));
+const ConTrackRevenueDashboard = lazy(() => import('./pages/contrack/ConTrackRevenueDashboard'));
 
 function ProtectedLayout() {
   return (
@@ -72,6 +77,11 @@ export default function App() {
 
           <Route path="activities" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Activities /></ProtectedRoute>} />
           <Route path="leads" element={<ProtectedRoute><LeadsPipeline /></ProtectedRoute>} />
+          <Route path="clients" element={<ProtectedRoute><ClientsList /></ProtectedRoute>} />
+          <Route path="projects" element={<ProtectedRoute><ProjectsList /></ProtectedRoute>} />
+          <Route path="amc" element={<ProtectedRoute><AmcList /></ProtectedRoute>} />
+          <Route path="contrack-leads" element={<ProtectedRoute><ConTrackLeadsPipeline /></ProtectedRoute>} />
+          <Route path="contrack-revenue" element={<ProtectedRoute><ConTrackRevenueDashboard /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

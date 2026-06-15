@@ -13,6 +13,11 @@ import {
   XMarkIcon,
   ClockIcon,
   FunnelIcon,
+  BriefcaseIcon,
+  FolderIcon,
+  ShieldCheckIcon,
+  TruckIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -27,6 +32,11 @@ const navigation = [
   { to: '/leave', label: 'Leave', icon: ClipboardDocumentListIcon },
   { to: '/payroll', label: 'Payroll', icon: BanknotesIcon },
   { to: '/leads', label: 'Leads', icon: FunnelIcon },
+  { to: '/contrack-leads', label: 'ConTrack Leads', icon: TruckIcon },
+  { to: '/contrack-revenue', label: 'ConTrack MRR', icon: ChartBarIcon },
+  { to: '/clients', label: 'Clients', icon: BriefcaseIcon },
+  { to: '/projects', label: 'Projects', icon: FolderIcon },
+  { to: '/amc', label: 'AMC', icon: ShieldCheckIcon },
   { to: '/activities', label: 'Activities', icon: ClockIcon, adminOnly: true },
   { to: '/profile', label: 'Profile', icon: UserCircleIcon },
 ];

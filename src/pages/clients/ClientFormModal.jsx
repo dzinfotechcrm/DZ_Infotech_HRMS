@@ -5,63 +5,57 @@ import Select from '../../components/ui/Select';
 import Button from '../../components/ui/Button';
 import { toast } from 'react-hot-toast';
 
-const STAGES = [
-  'New Lead',
-  'Contacted',
-  'Demo Scheduled',
-  'Meeting Scheduled',
-  'Proposal Sent',
-  'Negotiation',
-  'Won',
-  'Lost'
+const STATUSES = [
+  'Active',
+  'Onboarding',
+  'Inactive',
+  'Churned'
 ];
 
 const INITIAL_STATE = {
-  leadId: '',
+  clientId: '',
   companyName: '',
   contactPerson: '',
   phone: '',
-  whatsapp: '',
   email: '',
   address: '',
   industry: '',
-  serviceInterested: '',
-  expectedValue: '',
-  leadSource: 'Website',
-  assignedTo: '',
-  stage: 'New Lead',
-  nextFollowUp: '',
-  probability: '',
+  projects: 1,
+  ltv: 0,
+  owner: '',
+  status: 'Active',
+  since: new Date().toISOString().split('T')[0],
   notes: ''
 };
 
-export default function LeadFormModal({ lead, leads = [], employees, open, onClose, onSave }) {
+export default function ClientFormModal({ client, clients = [], employees, open, onClose, onSave }) {
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    if (lead) {
-      setFormData(lead);
+    if (client) {
+      setFormData(client);
     } else {
       let maxId = 0;
-      leads.forEach(l => {
-        if (l.leadId && l.leadId.startsWith('LD-')) {
-          const num = parseInt(l.leadId.replace('LD-', ''), 10);
+      clients.forEach(c => {
+        if (c.clientId && c.clientId.startsWith('CL-')) {
+          const num = parseInt(c.clientId.replace('CL-', ''), 10);
           if (!isNaN(num) && num > maxId) {
             maxId = num;
           }
         }
       });
-      const nextId = `LD-${String(maxId + 1).padStart(4, '0')}`;
+      const nextId = `CL-${String(maxId + 1).padStart(4, '0')}`;
 
       setFormData({
         ...INITIAL_STATE,
-        leadId: nextId
+        clientId: nextId,
+        status: 'Active' // Default when manually adding
       });
     }
     setErrors({});
-  }, [lead, open, leads]);
+  }, [client, open, clients]);
 
   const handleChange = (field, value) => {
     setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -72,7 +66,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
     const newErrors = {};
     let isValid = true;
 
-    const required = ['companyName', 'contactPerson', 'phone', 'stage', 'assignedTo', 'nextFollowUp'];
+    const required = ['companyName', 'contactPerson', 'status'];
     required.forEach((k) => {
       if (!formData[k] || String(formData[k]).trim() === '') {
         newErrors[k] = 'This field is required';
@@ -92,8 +86,8 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
     try {
       const payload = {
         ...formData,
-        expectedValue: parseFloat(formData.expectedValue) || 0,
-        probability: parseInt(formData.probability) || 0,
+        projects: parseInt(formData.projects) || 0,
+        ltv: parseFloat(formData.ltv) || 0,
       };
 
       // Strip virtual fields added by the data mapper
@@ -107,7 +101,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
       await onSave(payload);
       onClose();
     } catch (error) {
-      toast.error(error.message || 'Failed to save lead');
+      toast.error(error.message || 'Failed to save client');
     } finally {
       setSaving(false);
     }
@@ -116,19 +110,19 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
   if (!open) return null;
 
   return (
-    <Modal open={open} title={lead ? "Edit Lead" : "Add New Lead"} onClose={onClose} size="max-w-4xl">
+    <Modal open={open} title={client ? "Edit Client" : "Add New Client"} onClose={onClose} size="max-w-4xl">
       <form onSubmit={handleSubmit} className="space-y-8 h-[65vh] overflow-y-auto px-2 pb-4 text-slate-900">
         
         {/* Basic Info */}
         <div>
-          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Basic Information</h4>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Client Information</h4>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Input label="Lead ID" value={formData.leadId} disabled />
+            <Input label="Client ID" value={formData.clientId} disabled />
             <Input label="Company Name *" error={errors.companyName} value={formData.companyName} onChange={(e) => handleChange('companyName', e.target.value)} />
             <Input label="Contact Person *" error={errors.contactPerson} value={formData.contactPerson} onChange={(e) => handleChange('contactPerson', e.target.value)} />
-            <Input label="Phone *" error={errors.phone} value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
-            <Input label="WhatsApp" value={formData.whatsapp} onChange={(e) => handleChange('whatsapp', e.target.value.replace(/\D/g, '').slice(0, 10))} />
+            <Input label="Phone" value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
             <Input label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
+            <Input label="Industry" value={formData.industry} onChange={(e) => handleChange('industry', e.target.value)} />
             <div className="sm:col-span-2 lg:col-span-3">
               <Input label="Address" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} />
             </div>
@@ -137,39 +131,20 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
 
         {/* Business Info */}
         <div>
-          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Business Details</h4>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Industry" value={formData.industry} onChange={(e) => handleChange('industry', e.target.value)} />
-            <Input label="Service Interested" value={formData.serviceInterested} onChange={(e) => handleChange('serviceInterested', e.target.value)} />
-            <Input label="Expected Project Value (₹)" type="number" min="0" value={formData.expectedValue} onChange={(e) => handleChange('expectedValue', e.target.value)} />
-            <Select label="Lead Source" value={formData.leadSource} onChange={(e) => handleChange('leadSource', e.target.value)}>
-              {['Website', 'LinkedIn', 'Referral', 'Cold Outreach', 'Ads', 'Inbound', 'Outbound', 'Other'].map(s => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </div>
-        </div>
-
-        {/* Sales Info */}
-        <div>
-          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Sales Pipeline Info</h4>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Account Details</h4>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Select label="Current Stage *" error={errors.stage} value={formData.stage} onChange={(e) => handleChange('stage', e.target.value)}>
-              {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+            <Select label="Status *" error={errors.status} value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>
+              {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
-            <Select label="Assigned To *" error={errors.assignedTo} value={formData.assignedTo} onChange={(e) => handleChange('assignedTo', e.target.value)}>
-              <option value="">Select Assignee</option>
+            <Select label="Account Owner" value={formData.owner} onChange={(e) => handleChange('owner', e.target.value)}>
+              <option value="">Unassigned</option>
               {employees?.map(emp => (
                 <option key={emp.id} value={emp.uid || emp.id}>{emp.firstName} {emp.lastName}</option>
               ))}
             </Select>
-            <Input 
-              label="Next Follow-Up Date *" 
-              error={errors.nextFollowUp}
-              type="date" 
-              min={new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0]} 
-              value={formData.nextFollowUp} 
-              onChange={(e) => handleChange('nextFollowUp', e.target.value)} 
-            />
-            <Input label="Probability (%)" type="number" min="0" max="100" value={formData.probability} onChange={(e) => handleChange('probability', e.target.value)} />
+            <Input label="Client Since" type="date" value={formData.since} onChange={(e) => handleChange('since', e.target.value)} />
+            <Input label="Projects" type="number" min="0" value={formData.projects} onChange={(e) => handleChange('projects', e.target.value)} />
+            <Input label="Lifetime Value (LTV ₹)" type="number" min="0" value={formData.ltv} onChange={(e) => handleChange('ltv', e.target.value)} />
             <div className="sm:col-span-2 lg:col-span-3 mt-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
               <textarea
@@ -187,7 +162,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
             Cancel
           </Button>
           <Button type="submit" className="flex-1" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Lead'}
+            {saving ? 'Saving...' : 'Save Client'}
           </Button>
         </div>
       </form>
