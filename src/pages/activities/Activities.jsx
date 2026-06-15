@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { query, orderBy } from 'firebase/firestore';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { query, orderBy } from '../../supabase/db';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -13,8 +13,8 @@ export default function Activities() {
   const employeesQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
 
-  const { items: employees, loading: loadingEmployees } = useFirestoreCollection('employees', employeesQuery);
-  const { items: leaveRequests, loading: loadingLeaves } = useFirestoreCollection('leaveRequests', leaveQuery);
+  const { items: employees, loading: loadingEmployees } = useSupabaseCollection('employees', employeesQuery);
+  const { items: leaveRequests, loading: loadingLeaves } = useSupabaseCollection('leaveRequests', leaveQuery);
 
   const [page, setPage] = useState(1);
 

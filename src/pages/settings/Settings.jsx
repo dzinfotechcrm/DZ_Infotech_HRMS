@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { query, orderBy } from 'firebase/firestore';
+import { query, orderBy } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -8,18 +8,18 @@ import PageHeader from '../../components/ui/PageHeader';
 import Select from '../../components/ui/Select';
 import Table from '../../components/ui/Table';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
-import { createDocument, removeDocument, updateDocument, upsertDocument } from '../../firebase/firestore';
-import { uploadFile } from '../../firebase/storage';
+import { createDocument, removeDocument, updateDocument, upsertDocument } from '../../supabase/db';
+import { uploadFile } from '../../supabase/storage';
 
 export default function Settings() {
   const { user } = useAuth();
   const companyQuery = (base) => query(base, orderBy('updatedAt', 'desc'));
-  const { items: settingsData } = useFirestoreCollection('settings', companyQuery);
-  const { items: leaveTypes } = useFirestoreCollection('leaveTypes', (base) => query(base, orderBy('name')));
-  const { items: holidays } = useFirestoreCollection('holidays', (base) => query(base, orderBy('date')));
-  const { items: users } = useFirestoreCollection('users', (base) => query(base, orderBy('displayName')));
+  const { items: settingsData } = useSupabaseCollection('settings', companyQuery);
+  const { items: leaveTypes } = useSupabaseCollection('leaveTypes', (base) => query(base, orderBy('name')));
+  const { items: holidays } = useSupabaseCollection('holidays', (base) => query(base, orderBy('date')));
+  const { items: users } = useSupabaseCollection('users', (base) => query(base, orderBy('displayName')));
   const [logo, setLogo] = useState(null);
 
   const company = settingsData.find(s => s.id === 'company') || { companyName: 'DZ Infotech', address: 'Bhavnagar', phone: '', email: '', logoURL: '', workingHours: { start: '09:00', end: '18:00' }, payrollSettings: { pfPercent: 12, esicPercent: 0.75, taxSlab: 'old' } };

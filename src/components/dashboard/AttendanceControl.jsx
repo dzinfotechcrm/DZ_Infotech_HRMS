@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
-import { query, where } from 'firebase/firestore';
-import { serverTimestamp } from 'firebase/firestore';
+import { query, where } from '../../supabase/db';
+import { serverTimestamp } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import { PlayIcon, StopIcon } from '@heroicons/react/24/outline';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
 import Card from '../ui/Card';
-import { upsertDocument } from '../../firebase/firestore';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { upsertDocument, updateDocument } from '../../supabase/db';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 
 export default function AttendanceControl({ user }) {
@@ -17,7 +17,7 @@ export default function AttendanceControl({ user }) {
   const [loading, setLoading] = useState(false);
 
   const todayStr = formatDate(new Date(), 'yyyy-MM-dd');
-  
+
   const q = useMemo(() => {
     if (!user?.uid) return undefined;
     return (base) => query(base, where('employeeId', '==', user.uid), where('date', '==', todayStr));
@@ -28,8 +28,8 @@ export default function AttendanceControl({ user }) {
     return (base) => query(base, where('employeeId', '==', user.uid), where('status', '==', 'approved'));
   }, [user?.uid]);
 
-  const { items: attendanceRecords } = useFirestoreCollection('attendance', q);
-  const { items: approvedLeaves } = useFirestoreCollection('leaveRequests', leaveQuery);
+  const { items: attendanceRecords, refetch: refetchAttendance } = useSupabaseCollection('attendance', q);
+  const { items: approvedLeaves } = useSupabaseCollection('leaveRequests', leaveQuery);
   const todayRecord = attendanceRecords[0];
 
   const hasCheckedIn = !!todayRecord?.checkIn;
@@ -46,25 +46,31 @@ export default function AttendanceControl({ user }) {
       const docId = `${user.uid}_${todayStr}`;
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
-      
+
       await upsertDocument('attendance', docId, {
         date: todayStr,
-        month: todayStr.substring(0, 7),
-        year: todayStr.substring(0, 4),
-        employeeId: user.uid,
-        employeeName: user.displayName || user.email,
+        employee_id: user.uid,
         status: 'present',
-        checkIn: timeStr,
-        checkOut: '',
-        notes: '',
-        markedBy: user.uid,
-        markedByName: user.displayName,
-        timestamp: serverTimestamp(),
+        check_in: now.toISOString(),
+        data: {
+          month: todayStr.substring(0, 7),
+          year: todayStr.substring(0, 4),
+          employeeId: user.uid,
+          employeeName: user.displayName || user.email,
+          checkIn: timeStr,
+          checkOut: '',
+          notes: '',
+          markedBy: user.uid,
+          markedByName: user.displayName,
+          timestamp: serverTimestamp(),
+        }
       });
-      
+
       toast.success('Checked in successfully!');
       setCheckInModalOpen(false);
+      refetchAttendance();
     } catch (error) {
+      console.error(error);
       toast.error('Failed to check in');
     } finally {
       setLoading(false);
@@ -81,15 +87,20 @@ export default function AttendanceControl({ user }) {
     try {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
-      
-      await upsertDocument('attendance', todayRecord.id, {
-        checkOut: timeStr,
-        notes: workNotes.trim(),
-        timestamp: serverTimestamp(),
+
+      await updateDocument('attendance', todayRecord.id, {
+        check_out: now.toISOString(),
+        data: {
+          ...(todayRecord.data || {}),
+          checkOut: timeStr,
+          notes: workNotes.trim(),
+          timestamp: serverTimestamp(),
+        }
       });
-      
+
       toast.success('Checked out successfully!');
       setCheckOutModalOpen(false);
+      refetchAttendance();
     } catch (error) {
       toast.error('Failed to check out');
     } finally {

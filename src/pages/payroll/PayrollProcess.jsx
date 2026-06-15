@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
-import { query, where } from 'firebase/firestore';
+import { query, where } from '../../supabase/db';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Table from '../../components/ui/Table';
 import toast from 'react-hot-toast';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
-import { createDocument, upsertDocument } from '../../firebase/firestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
+import { createDocument, upsertDocument } from '../../supabase/db';
 import { useAuth } from '../../hooks/useAuth';
 import { isAdminLike } from '../../utils/rbac';
 
@@ -38,8 +38,8 @@ export default function PayrollProcess() {
   const [status, setStatus] = useState('draft');
   const employeesQuery = useMemo(() => (base) => query(base, where('status', '==', 'active')), []);
   const attendanceQuery = useMemo(() => (base) => query(base), []);
-  const { items: employees } = useFirestoreCollection('employees', employeesQuery);
-  const { items: attendance } = useFirestoreCollection('attendance', attendanceQuery);
+  const { items: employees } = useSupabaseCollection('employees', employeesQuery);
+  const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
   const [processing, setProcessing] = useState(false);
 
   if (!isAdminLike(user?.role)) {
@@ -56,20 +56,23 @@ export default function PayrollProcess() {
         const payrollId = `${employee.uid}_${year}_${month}`;
 
         await upsertDocument('payroll', payrollId, {
-          employeeId: employee.uid,
+          employee_id: employee.uid,
           month,
           year,
-          basicSalary: Number(employee.basicSalary || 0),
-          hra: totals.hra,
-          allowances: totals.allowances,
-          deductions: totals.deductions,
-          tax: totals.tax,
-          netSalary: totals.netSalary,
-          workingDays: totals.workingDays,
-          presentDays: totals.presentDays,
           status,
-          processedBy: user.uid,
-          processedAt: new Date().toISOString(),
+          data: {
+            employeeId: employee.uid,
+            basicSalary: Number(employee.basicSalary || 0),
+            netSalary: totals.netSalary,
+            hra: totals.hra,
+            allowances: totals.allowances,
+            deductions: totals.deductions,
+            tax: totals.tax,
+            workingDays: totals.workingDays,
+            presentDays: totals.presentDays,
+            processedBy: user.uid,
+            processedAt: new Date().toISOString(),
+          },
         });
 
         if (status === 'paid') {

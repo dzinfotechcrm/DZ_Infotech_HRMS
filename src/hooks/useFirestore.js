@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, doc, onSnapshot, query } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { collection, doc, onSnapshot, query } from '../supabase/db';
+import { db } from '../supabase/config';
 
-export function useFirestoreCollection(collectionName, buildQuery) {
+export function useSupabaseCollection(collectionName, buildQuery) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,7 +29,7 @@ export function useFirestoreCollection(collectionName, buildQuery) {
   return { items, loading, error };
 }
 
-export function useFirestoreDocument(collectionName, id) {
+export function useSupabaseDocument(collectionName, id) {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState(null);

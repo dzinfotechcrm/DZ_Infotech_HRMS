@@ -8,16 +8,16 @@ import PageHeader from '../../components/ui/PageHeader';
 import Spinner from '../../components/ui/Spinner';
 import Badge from '../../components/ui/Badge';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
-import { query, where } from 'firebase/firestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
+import { query, where } from '../../supabase/db';
 import { isAdminLike } from '../../utils/rbac';
-import { updateDocument } from '../../firebase/firestore';
-import { uploadFile } from '../../firebase/storage';
+import { updateDocument } from '../../supabase/db';
+import { uploadFile } from '../../supabase/storage';
 
 export default function Profile() {
   const { user } = useAuth();
   const employeeQuery = useMemo(() => (base) => query(base, where('uid', '==', user?.uid)), [user?.uid]);
-  const { items: employees } = useFirestoreCollection('employees', employeeQuery);
+  const { items: employees } = useSupabaseCollection('employees', employeeQuery);
   const employee = employees[0];
   const editableAll = isAdminLike(user?.role);
   const [preview, setPreview] = useState('');
@@ -35,12 +35,20 @@ export default function Profile() {
       if (preview) {
         photoURL = await uploadFile(`profile-photos/${user.uid}/${Date.now()}.png`, await (await fetch(preview)).blob(), { contentType: 'image/png' });
       }
-      await updateDocument('employees', employee.id, {
-        ...employee,
-        ...values,
-        photoURL,
-        phone: values.phone,
-      });
+      
+      // Do not spread `...employee` here because it contains flattened fields
+      // (like 'aadhar') which are not valid top-level columns in Supabase.
+      // phone and photoURL are also NOT top-level columns, so they must 
+      // ONLY go inside the `data` JSONB column.
+      const payload = {
+        data: {
+          ...(employee.data || {}),
+          phone: values.phone,
+          photoURL: photoURL
+        }
+      };
+
+      await updateDocument('employees', employee.id, payload);
       toast.success('Profile updated');
     } catch (error) {
       toast.error(error?.message || 'Unable to update profile');

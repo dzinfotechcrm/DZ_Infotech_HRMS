@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { query, orderBy, limit } from 'firebase/firestore';
+import { query, orderBy, limit } from '../../supabase/db';
 import {
   UsersIcon,
   CalendarDaysIcon,
@@ -11,7 +11,7 @@ import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import AttendanceControl from '../../components/dashboard/AttendanceControl';
 
@@ -42,23 +42,38 @@ function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
 export default function ManagerDashboard() {
   const { user } = useAuth();
 
-  // Fetch all employees to find the team members
-  const { items: employees, loading: loadingEmployees } = useFirestoreCollection('employees');
+  // Fetch all employees and departments to find the team members
+  const { items: employees, loading: loadingEmployees } = useSupabaseCollection('employees');
+  const { items: departments } = useSupabaseCollection('departments');
 
   // Find manager's employee document ID
   const myEmpDoc = employees.find(emp => emp.uid === user?.uid);
   const myEmpDocId = myEmpDoc?.id;
 
   // Find team members
-  const teamMembers = employees.filter(emp => emp.managerId === myEmpDocId);
+  const teamMembers = useMemo(() => {
+    if (!myEmpDocId) return [];
+    return employees.filter(emp => {
+      // Exclude self
+      if (emp.id === myEmpDocId) return false;
+      
+      // Include direct reports (explicitly assigned)
+      if (emp.managerId === myEmpDocId) return true;
+      
+      // Include anyone in a department where I am the manager
+      const dept = departments.find(d => d.id === emp.departmentId || d.name === emp.departmentId);
+      return dept && dept.managerId === myEmpDocId;
+    });
+  }, [employees, departments, myEmpDocId]);
+
   const teamUids = teamMembers.map(emp => emp.uid).filter(Boolean);
 
   // Fetch all attendance and leave, filter in memory
   const attendanceQuery = useMemo(() => (base) => query(base, orderBy('date', 'desc'), limit(100)), []);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc'), limit(50)), []);
 
-  const { items: allAttendance } = useFirestoreCollection('attendance', attendanceQuery);
-  const { items: allLeaveRequests } = useFirestoreCollection('leaveRequests', leaveQuery);
+  const { items: allAttendance } = useSupabaseCollection('attendance', attendanceQuery);
+  const { items: allLeaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
 
   const teamAttendance = allAttendance.filter(a => teamUids.includes(a.employeeId));
   const teamLeaveRequests = allLeaveRequests.filter(lr => teamUids.includes(lr.employeeId));
@@ -147,9 +162,6 @@ export default function ManagerDashboard() {
               </tr>
             )}
           />
-          {recentTeamLeaves.length === 0 && (
-            <div className="text-sm text-neutral-500 py-4 text-center border-t border-neutral-100">No recent team leaves found.</div>
-          )}
         </Card>
       </div>
     </div>

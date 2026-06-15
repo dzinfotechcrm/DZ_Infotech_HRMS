@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { query, orderBy, where, serverTimestamp } from 'firebase/firestore';
+import { query, orderBy, where, serverTimestamp } from '../../supabase/db';
 import {
   ArrowDownTrayIcon,
   CalendarDaysIcon,
@@ -18,7 +18,7 @@ import {
   ListBulletIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -28,7 +28,7 @@ import Select from '../../components/ui/Select';
 import SearchableSelect from '../../components/ui/SearchableSelect';
 import Modal from '../../components/ui/Modal';
 import { formatDate, safeDate, daysBetween } from '../../utils/dateHelpers';
-import { removeDocument, upsertDocument, createDocument } from '../../firebase/firestore';
+import { removeDocument, upsertDocument, createDocument, updateDocument } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import { getBankOptions } from '../../data/banks';
 
@@ -343,7 +343,7 @@ function LeaveHistoryModal({ employee, open, onClose }) {
     return (base) => query(base, where('employeeId', 'in', ids.length > 0 ? ids : ['INVALID']));
   }, [employee, open]);
 
-  const { items: leaves } = useFirestoreCollection('leaveRequests', leaveQuery);
+  const { items: leaves } = useSupabaseCollection('leaveRequests', leaveQuery);
 
   if (!employee) return null;
 
@@ -442,6 +442,12 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (formData.role !== 'manager' && !formData.managerId) {
+      toast.error('Please select a manager for this employee.');
+      return;
+    }
+
     setSaving(true);
     try {
       await onSave(formData);
@@ -543,7 +549,6 @@ function EditEmployeeModal({ employee, departments, managers, open, onClose, onS
               value={formData.managerId || ''}
               onChange={(e) => handleChange('managerId', e.target.value)}
               disabled={formData.role === 'manager'}
-              required={formData.role !== 'manager'}
             >
               {formData.role === 'manager' ? (
                 <option value="">Not applicable for Manager</option>
@@ -669,7 +674,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
   const [errors, setErrors] = useState({});
   const [isIfscLoading, setIsIfscLoading] = useState(false);
   const [branchDetails, setBranchDetails] = useState('');
-  
+
   const bankOptions = useMemo(() => getBankOptions(), []);
 
   const TABS = ['Personal Info', 'Job Info', 'Salary Info', 'Documents'];
@@ -711,7 +716,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
     handleChange('ifsc', formattedVal);
     handleChange('bankAccount', '');
     setBranchDetails('');
-    
+
     if (/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formattedVal)) {
       setIsIfscLoading(true);
       try {
@@ -720,10 +725,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
           const data = await res.json();
           // Ensure it roughly matches the selected bank
           if (formData.bankName && !data.BANK.toLowerCase().includes(formData.bankName.split(' ')[0].toLowerCase())) {
-             setErrors(prev => ({ ...prev, ifsc: 'IFSC belongs to a different bank' }));
+            setErrors(prev => ({ ...prev, ifsc: 'IFSC belongs to a different bank' }));
           } else {
-             setBranchDetails(`${data.BRANCH}, ${data.CITY}`);
-             setErrors(prev => ({ ...prev, ifsc: undefined }));
+            setBranchDetails(`${data.BRANCH}, ${data.CITY}`);
+            setErrors(prev => ({ ...prev, ifsc: undefined }));
           }
         } else {
           setErrors(prev => ({ ...prev, ifsc: 'Invalid IFSC Code' }));
@@ -1023,50 +1028,50 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
             <div className="mt-6 border-t border-slate-100 pt-6">
               <h5 className="text-sm font-semibold text-slate-700 mb-4">Bank Details</h5>
               <div className="grid gap-4 sm:grid-cols-2">
-                <SearchableSelect 
-                  label="Bank Name *" 
-                  error={errors.bankName} 
+                <SearchableSelect
+                  label="Bank Name *"
+                  error={errors.bankName}
                   options={bankOptions}
-                  value={formData.bankName} 
-                  onChange={(e) => handleBankNameChange(e.target.value)} 
+                  value={formData.bankName}
+                  onChange={(e) => handleBankNameChange(e.target.value)}
                 />
-                
+
                 <div className="flex flex-col relative">
-                  <Input 
-                    label="IFSC Code *" 
-                    error={errors.ifsc} 
-                    value={formData.ifsc} 
-                    onChange={(e) => handleIfscChange(e.target.value)} 
+                  <Input
+                    label="IFSC Code *"
+                    error={errors.ifsc}
+                    value={formData.ifsc}
+                    onChange={(e) => handleIfscChange(e.target.value)}
                     disabled={!formData.bankName}
                     placeholder={formData.bankName ? "e.g. SBIN0001234" : "Select a bank first"}
                     className={!formData.bankName ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}
                     maxLength={11}
                   />
                   {isIfscLoading && (
-                     <div className="absolute right-3 top-9">
-                        <svg className="animate-spin h-4 w-4 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                     </div>
+                    <div className="absolute right-3 top-9">
+                      <svg className="animate-spin h-4 w-4 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
                   )}
                   {branchDetails && !errors.ifsc && (
-                     <span className="text-xs font-medium text-emerald-600 mt-1">{branchDetails}</span>
+                    <span className="text-xs font-medium text-emerald-600 mt-1">{branchDetails}</span>
                   )}
                 </div>
 
-                <Input 
-                  label="Account Number *" 
-                  error={errors.bankAccount} 
-                  value={formData.bankAccount} 
+                <Input
+                  label="Account Number *"
+                  error={errors.bankAccount}
+                  value={formData.bankAccount}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, '').slice(0, 18);
                     handleChange('bankAccount', val);
-                  }} 
+                  }}
                   disabled={!branchDetails}
                   placeholder={!branchDetails ? "Select a valid IFSC first" : ""}
                   className={!branchDetails ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}
-                  pattern="[0-9]{9,18}" 
+                  pattern="[0-9]{9,18}"
                   title="9 to 18 digit account number"
                 />
               </div>
@@ -1179,10 +1184,10 @@ export default function EmployeeList() {
     return (base) => query(base, orderBy('createdAt', 'desc'));
   }, [user?.uid]);
 
-  const { items: employees, loading: employeesLoading } = useFirestoreCollection('employees', employeesQuery);
-  const { items: allDepartments, loading: departmentsLoading } = useFirestoreCollection('departments', useMemo(() => (base) => query(base, orderBy('name')), []));
+  const { items: employees, loading: employeesLoading, refetch: refetchEmployees } = useSupabaseCollection('employees', employeesQuery);
+  const { items: allDepartments, loading: departmentsLoading } = useSupabaseCollection('departments', useMemo(() => (base) => query(base, orderBy('name')), []));
   const attendanceQuery = useMemo(() => (base) => query(base, where('date', '==', attendanceDate)), [attendanceDate]);
-  const { items: attendanceRecords } = useFirestoreCollection('attendance', attendanceQuery);
+  const { items: attendanceRecords } = useSupabaseCollection('attendance', attendanceQuery);
 
   // Enrich employees with department names
   const enrichedEmployees = useMemo(
@@ -1314,18 +1319,25 @@ export default function EmployeeList() {
       await removeDocument('employees', employee.id);
 
       // Audit log
-      await createDocument('auditLogs', {
-        action: 'Delete Employee',
-        employeeId: employee.id,
-        employeeName: `${employee.firstName} ${employee.lastName}`,
-        performedBy: user?.uid,
-        performedByName: user?.displayName,
-        timestamp: serverTimestamp(),
-      });
+      try {
+        await createDocument('auditLogs', {
+          action: 'Delete Employee',
+          data: {
+            employeeId: employee.id,
+            employeeName: `${employee.firstName} ${employee.lastName}`,
+            performedBy: user?.uid,
+            performedByName: user?.displayName,
+            timestamp: new Date().toISOString(),
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to create audit log', err);
+      }
 
       toast.success(`${employee.firstName} ${employee.lastName} deleted.`);
       setDeleteModalOpen(false);
       setSelectedEmployee(null);
+      refetchEmployees();
     } catch (error) {
       toast.error(error.message || 'Unable to delete employee.');
     }
@@ -1344,39 +1356,64 @@ export default function EmployeeList() {
 
   const handleSaveEdit = async (formData) => {
     try {
+      const payloadData = { ...formData };
+      delete payloadData.casualLeaves;
+      delete payloadData.paidLeaves;
+      delete payloadData.sickLeaves;
+
       const payload = {
-        ...formData,
         email: formData.email ? formData.email.toLowerCase().trim() : formData.email,
-        casual_leaves_total: Number(formData.casualLeaves || 0),
-        paid_leaves_total: Number(formData.paidLeaves || 0),
-        sick_leaves_total: Number(formData.sickLeaves || 0),
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        role: formData.role,
+        department_id: formData.departmentId,
+        status: formData.status,
+        data: {
+          ...payloadData,
+          casual_leaves_total: Number(formData.casualLeaves || 0),
+          paid_leaves_total: Number(formData.paidLeaves || 0),
+          sick_leaves_total: Number(formData.sickLeaves || 0),
+        }
       };
-      // Clean up UI-only fields
-      delete payload.casualLeaves;
-      delete payload.paidLeaves;
-      delete payload.sickLeaves;
+
       await upsertDocument('employees', selectedEmployee.id, payload);
 
       // Auto-assign as department manager if applicable
-      const isManager = payload.role?.toLowerCase() === 'manager' || payload.designation?.toLowerCase() === 'manager';
-      if (isManager && payload.departmentId) {
+      const isManager = payload.role?.toLowerCase() === 'manager' || formData.designation?.toLowerCase() === 'manager';
+      
+      // Remove this employee as manager from any other departments they might have managed previously
+      const oldDepartments = allDepartments.filter(d => d.managerId === selectedEmployee.id);
+      for (const oldDept of oldDepartments) {
+        if (!isManager || oldDept.id !== formData.departmentId) {
+          await updateDocument('departments', oldDept.id, { data: { ...(oldDept.data || {}), managerId: '' } });
+        }
+      }
+
+      if (isManager && formData.departmentId) {
         const dept = allDepartments.find((d) => d.id === formData.departmentId);
         if (dept) {
-          await upsertDocument('departments', dept.id, { managerId: selectedEmployee.id });
+          await updateDocument('departments', dept.id, { data: { ...(dept.data || {}), managerId: selectedEmployee.id } });
         }
       }
 
       // Audit log
-      await createDocument('auditLogs', {
-        action: 'Edit Employee',
-        employeeId: selectedEmployee.id,
-        employeeName: `${formData.firstName} ${formData.lastName}`,
-        performedBy: user?.uid,
-        performedByName: user?.displayName,
-        timestamp: serverTimestamp(),
-      });
+      try {
+        await createDocument('auditLogs', {
+          action: 'Edit Employee',
+          data: {
+            employeeId: selectedEmployee.id,
+            employeeName: `${formData.firstName} ${formData.lastName}`,
+            performedBy: user?.uid,
+            performedByName: user?.displayName,
+            timestamp: new Date().toISOString(),
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to create audit log', err);
+      }
 
       setEditModalOpen(false);
+      refetchEmployees();
     } catch (error) {
       throw error;
     }
@@ -1384,43 +1421,58 @@ export default function EmployeeList() {
 
   const handleAddEmployee = async (formData) => {
     try {
+      const payloadData = { ...formData };
+      delete payloadData.casualLeaves;
+      delete payloadData.paidLeaves;
+      delete payloadData.sickLeaves;
+
       const payload = {
-        ...formData,
         email: formData.email ? formData.email.toLowerCase().trim() : formData.email,
-        createdAt: serverTimestamp(),
-        casual_leaves_total: Number(formData.casualLeaves || 0),
-        casual_leaves_used: 0,
-        paid_leaves_total: Number(formData.paidLeaves || 0),
-        paid_leaves_used: 0,
-        sick_leaves_total: Number(formData.sickLeaves || 0),
-        sick_leaves_used: 0,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        role: formData.role,
+        department_id: formData.departmentId,
+        status: formData.status,
+        data: {
+          ...payloadData,
+          casual_leaves_total: Number(formData.casualLeaves || 0),
+          casual_leaves_used: 0,
+          paid_leaves_total: Number(formData.paidLeaves || 0),
+          paid_leaves_used: 0,
+          sick_leaves_total: Number(formData.sickLeaves || 0),
+          sick_leaves_used: 0,
+        }
       };
-      // Clean up UI-only fields
-      delete payload.casualLeaves;
-      delete payload.paidLeaves;
-      delete payload.sickLeaves;
+
       const docRef = await createDocument('employees', payload);
 
       // Auto-assign as department manager if applicable
-      const isManager = payload.role?.toLowerCase() === 'manager' || payload.designation?.toLowerCase() === 'manager';
-      if (isManager && payload.departmentId) {
+      const isManager = payload.role?.toLowerCase() === 'manager' || formData.designation?.toLowerCase() === 'manager';
+      if (isManager && formData.departmentId) {
         const dept = allDepartments.find((d) => d.id === formData.departmentId);
         if (dept) {
-          await upsertDocument('departments', dept.id, { managerId: docRef.id });
+          await updateDocument('departments', dept.id, { data: { ...(dept.data || {}), managerId: docRef.id } });
         }
       }
 
       // Audit log
-      await createDocument('auditLogs', {
-        action: 'Add Employee',
-        employeeId: docRef.id,
-        employeeName: `${formData.firstName} ${formData.lastName}`,
-        performedBy: user?.uid,
-        performedByName: user?.displayName,
-        timestamp: serverTimestamp(),
-      });
+      try {
+        await createDocument('auditLogs', {
+          action: 'Add Employee',
+          data: {
+            employeeId: docRef.id,
+            employeeName: `${formData.firstName} ${formData.lastName}`,
+            performedBy: user?.uid,
+            performedByName: user?.displayName,
+            timestamp: new Date().toISOString(),
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to create audit log', err);
+      }
 
       setAddModalOpen(false);
+      refetchEmployees();
     } catch (error) {
       throw error;
     }

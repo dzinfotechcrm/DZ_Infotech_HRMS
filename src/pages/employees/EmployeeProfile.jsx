@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { query, where, orderBy, limit } from 'firebase/firestore';
+import { query, where, orderBy, limit } from '../../supabase/db';
 import { CalendarDaysIcon, DocumentTextIcon, PencilSquareIcon, UserGroupIcon } from '@heroicons/react/24/outline';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -8,7 +8,7 @@ import Badge from '../../components/ui/Badge';
 import PageHeader from '../../components/ui/PageHeader';
 import Table from '../../components/ui/Table';
 import Spinner from '../../components/ui/Spinner';
-import { useFirestoreCollection, useFirestoreDocument } from '../../hooks/useFirestore';
+import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import { useAuth } from '../../hooks/useAuth';
 import { isAdminLike } from '../../utils/rbac';
@@ -19,7 +19,7 @@ export default function EmployeeProfile() {
   const { id } = useParams();
   const { user } = useAuth();
   const [tab, setTab] = useState('Overview');
-  const { item: employee, loading } = useFirestoreDocument('employees', id);
+  const { item: employee, loading } = useSupabaseDocument('employees', id);
   const employeeKey = employee?.uid || id;
 
   const attendanceQuery = useMemo(() => (base) => query(base, where('employeeId', '==', employeeKey), orderBy('date', 'desc'), limit(20)), [employeeKey]);
@@ -27,10 +27,10 @@ export default function EmployeeProfile() {
   const payrollQuery = useMemo(() => (base) => query(base, where('employeeId', '==', employeeKey), orderBy('processedAt', 'desc'), limit(20)), [employeeKey]);
   const documentQuery = useMemo(() => (base) => query(base, where('employeeId', '==', employeeKey), orderBy('createdAt', 'desc'), limit(20)), [employeeKey]);
 
-  const { items: attendance } = useFirestoreCollection('attendance', attendanceQuery);
-  const { items: leaves } = useFirestoreCollection('leaveRequests', leaveQuery);
-  const { items: payroll } = useFirestoreCollection('payroll', payrollQuery);
-  const { items: documents } = useFirestoreCollection('documents', documentQuery);
+  const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
+  const { items: leaves } = useSupabaseCollection('leaveRequests', leaveQuery);
+  const { items: payroll } = useSupabaseCollection('payroll', payrollQuery);
+  const { items: documents } = useSupabaseCollection('documents', documentQuery);
 
   if (loading) {
     return <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div>;

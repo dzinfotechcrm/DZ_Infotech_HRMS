@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { query, orderBy } from 'firebase/firestore';
+import { query, orderBy } from '../../supabase/db';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -9,8 +9,8 @@ import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
 import Select from '../../components/ui/Select';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
-import { removeDocument } from '../../firebase/firestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
+import { removeDocument } from '../../supabase/db';
 import { isAdminLike } from '../../utils/rbac';
 import { daysBetween, formatDate, formatDateTime } from '../../utils/dateHelpers';
 
@@ -18,11 +18,11 @@ export default function LeaveList() {
   const { user } = useAuth();
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
   const balanceQuery = useMemo(() => (base) => query(base, orderBy('updatedAt', 'desc')), []);
-  const { items: leaveRequests } = useFirestoreCollection('leaveRequests', leaveQuery);
-  const { items: leaveBalance } = useFirestoreCollection('leaveBalance', balanceQuery);
-  const { items: leaveTypes } = useFirestoreCollection('leaveTypes');
-  const { items: employees } = useFirestoreCollection('employees');
-  const { items: departments } = useFirestoreCollection('departments');
+  const { items: leaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
+  const { items: leaveBalance } = useSupabaseCollection('leaveBalance', balanceQuery);
+  const { items: leaveTypes } = useSupabaseCollection('leaveTypes');
+  const { items: employees } = useSupabaseCollection('employees');
+  const { items: departments } = useSupabaseCollection('departments');
 
   function getEmpName(id) {
     const emp = employees.find(e => e.uid === id || e.id === id);
@@ -43,13 +43,12 @@ export default function LeaveList() {
   const isAdmin = isAdminLike(user?.role);
   const isManager = user?.role === 'manager';
 
-  const myLeaves = leaveRequests.filter((item) => item.employeeId === user?.uid);
-  
   const currentEmployee = employees.find(e => e.uid === user?.uid || e.email === user?.email);
-
+  const myLeaves = leaveRequests.filter((item) => item.employeeId === user?.uid || item.employeeId === currentEmployee?.id);
+  
   const othersLeaves = isManager 
     ? leaveRequests.filter(item => {
-        if (item.employeeId === user?.uid) return false;
+        if (item.employeeId === user?.uid || item.employeeId === currentEmployee?.id) return false;
         const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
         return requestEmp?.departmentId === currentEmployee?.departmentId;
       })

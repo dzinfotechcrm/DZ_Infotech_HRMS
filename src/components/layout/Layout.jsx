@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { query, where } from 'firebase/firestore';
+import { query, where } from '../../supabase/db';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
-import { logout } from '../../firebase/auth';
+import { logout } from '../../supabase/auth';
 import toast from 'react-hot-toast';
 
 const titleMap = [

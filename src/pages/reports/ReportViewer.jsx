@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { query, orderBy } from 'firebase/firestore';
+import { query, orderBy } from '../../supabase/db';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import PageHeader from '../../components/ui/PageHeader';
 import Table from '../../components/ui/Table';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate, formatDateTime } from '../../utils/dateHelpers';
 import { exportTableToPdf } from '../../utils/pdfExport';
 
@@ -20,7 +20,7 @@ export default function ReportViewer() {
     employee: 'employees',
   };
   const reportQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
-  const { items } = useFirestoreCollection(collections[type] || 'employees', reportQuery);
+  const { items } = useSupabaseCollection(collections[type] || 'employees', reportQuery);
 
   const columns = {
     attendance: ['Date', 'Employee', 'Status'],

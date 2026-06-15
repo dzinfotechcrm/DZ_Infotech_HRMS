@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { query, orderBy } from 'firebase/firestore';
+import { query, orderBy } from '../../supabase/db';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
-import { createDocument, updateDocument, upsertDocument } from '../../firebase/firestore';
-import { useFirestoreCollection, useFirestoreDocument } from '../../hooks/useFirestore';
+import { createDocument, updateDocument, upsertDocument } from '../../supabase/db';
+import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -19,9 +19,9 @@ export default function EmployeeForm({ mode = 'create' }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
-  const { item: employee, loading } = useFirestoreDocument('employees', id);
-  const { items: departments } = useFirestoreCollection('departments', useMemo(() => (base) => query(base, orderBy('name')), []));
-  const { items: managers } = useFirestoreCollection('employees', useMemo(() => (base) => query(base, orderBy('firstName')), []));
+  const { item: employee, loading } = useSupabaseDocument('employees', id);
+  const { items: departments } = useSupabaseCollection('departments', useMemo(() => (base) => query(base, orderBy('name')), []));
+  const { items: managers } = useSupabaseCollection('employees', useMemo(() => (base) => query(base, orderBy('firstName')), []));
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -219,10 +219,19 @@ export default function EmployeeForm({ mode = 'create' }) {
         }
 
         const isManager = payload.role?.toLowerCase() === 'manager' || payload.designation?.toLowerCase() === 'manager';
+        
+        // Remove this employee as manager from any other departments they might have managed previously
+        const oldDepartments = departments.filter(d => d.managerId === id);
+        for (const oldDept of oldDepartments) {
+          if (!isManager || oldDept.id !== payload.departmentId) {
+            await updateDocument('departments', oldDept.id, { data: { ...(oldDept.data || {}), managerId: '' } });
+          }
+        }
+
         if (isManager && payload.departmentId) {
           const dept = departments.find((d) => d.id === payload.departmentId);
           if (dept) {
-            await upsertDocument('departments', dept.id, { managerId: id });
+            await updateDocument('departments', dept.id, { data: { ...(dept.data || {}), managerId: id } });
           }
         }
 
@@ -242,7 +251,7 @@ export default function EmployeeForm({ mode = 'create' }) {
         if (isManager && payload.departmentId) {
           const dept = departments.find((d) => d.id === payload.departmentId);
           if (dept) {
-            await upsertDocument('departments', dept.id, { managerId: docRef.id });
+            await updateDocument('departments', dept.id, { data: { ...(dept.data || {}), managerId: docRef.id } });
           }
         }
 

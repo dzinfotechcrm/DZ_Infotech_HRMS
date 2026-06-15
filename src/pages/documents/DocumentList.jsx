@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { query, orderBy } from 'firebase/firestore';
+import { query, orderBy } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -8,15 +8,15 @@ import Button from '../../components/ui/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import Table from '../../components/ui/Table';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
 import { formatDateTime } from '../../utils/dateHelpers';
-import { removeDocument } from '../../firebase/firestore';
+import { removeDocument } from '../../supabase/db';
 
 export default function DocumentList() {
   const { user } = useAuth();
   const documentQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
-  const { items: documents } = useFirestoreCollection('documents', documentQuery);
+  const { items: documents } = useSupabaseCollection('documents', documentQuery);
   const visible = isAdminLike(user?.role) ? documents : documents.filter((item) => item.employeeId === user?.uid);
 
   async function handleDelete(id) {

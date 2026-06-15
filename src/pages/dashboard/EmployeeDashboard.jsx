@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { query, orderBy, limit, where } from 'firebase/firestore';
+import { query, orderBy, limit, where } from '../../supabase/db';
 import {
   CalendarDaysIcon,
   CheckCircleIcon,
@@ -10,7 +10,7 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import AttendanceControl from '../../components/dashboard/AttendanceControl';
 
@@ -43,8 +43,8 @@ export default function EmployeeDashboard() {
   const attendanceQuery = useMemo(() => (base) => query(base, orderBy('date', 'desc')), []);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
 
-  const { items: allAttendance } = useFirestoreCollection('attendance', attendanceQuery);
-  const { items: allLeaveRequests } = useFirestoreCollection('leaveRequests', leaveQuery);
+  const { items: allAttendance } = useSupabaseCollection('attendance', attendanceQuery);
+  const { items: allLeaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
 
   const attendance = allAttendance.filter((a) => a.employeeId === user?.uid).slice(0, 10);
   const userLeaves = allLeaveRequests.filter((lr) => lr.employeeId === user?.uid);

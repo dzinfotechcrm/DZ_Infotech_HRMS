@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { query, orderBy, where } from 'firebase/firestore';
+import { query, orderBy, where } from '../../supabase/db';
 import {
   ArrowDownTrayIcon,
   BanknotesIcon,
@@ -18,10 +18,10 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import PageHeader from '../../components/ui/PageHeader';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
 import { formatDateTime, safeDate } from '../../utils/dateHelpers';
-import { upsertDocument, updateDocument } from '../../firebase/firestore';
+import { upsertDocument, updateDocument } from '../../supabase/db';
 import { exportPayslipPdf } from '../../utils/pdfExport';
 import toast from 'react-hot-toast';
 import { isWeekend, isSameMonth, isSameDay, startOfDay, isBefore, isAfter, eachDayOfInterval, endOfMonth } from 'date-fns';
@@ -59,7 +59,23 @@ const STATUS = {
 
 function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, month, year) {
   const base = Number(employee.basicSalary || 0);
-  const empId = employee.uid || employee.id;
+  // An employee can be identified by auth UID or by their employee table PK.
+  // We collect all possible IDs so we can match against leave requests no matter
+  // which ID was stored (the schema evolved over time).
+  const empUid = employee.uid;   // auth UID
+  const empDbId = employee.id;   // employee table PK
+
+  function matchesEmployee(leave) {
+    // leave.employeeId is set by mapRow from the employee_id DB column (table PK)
+    // leave.data?.employeeId holds the auth UID stored for backward compat
+    return (
+      leave.employeeId === empUid ||
+      leave.employeeId === empDbId ||
+      leave.employee_id === empUid ||
+      leave.employee_id === empDbId ||
+      (leave.data?.employeeId && leave.data.employeeId === empUid)
+    );
+  }
 
   // 1. Working Days Calculation
   const monthStart = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -79,30 +95,59 @@ function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, 
 
   // 2. Present & Half Days from Attendance
   const monthAtt = attendance.filter(
-    (a) => a.employeeId === empId && a.date?.startsWith(`${year}-${month}`)
+    (a) => (a.employeeId === empUid || a.employeeId === empDbId) &&
+            a.date?.startsWith(`${year}-${month}`)
   );
 
   const exactPresentDays = monthAtt.filter((a) => a.status?.toLowerCase() === 'present').length;
   const halfDayCount = monthAtt.filter((a) => a.status?.toLowerCase() === 'half day' || a.status?.toLowerCase() === 'half-day').length;
 
-  // 3. Paid Leave Days Calculation
-  const paidLeaveTypeIds = leaveTypes.filter(t => t.isPaid).map(t => t.id);
-  const employeeLeaves = leaveRequests.filter(l =>
-    l.employeeId === empId &&
-    l.status === 'approved' &&
-    (paidLeaveTypeIds.includes(l.leaveTypeId) || paidLeaveTypeIds.includes(l.leaveType))
+  // 3. Approved Leave Days that count as PRESENT (no salary deduction)
+  //    Rule: Paid Leave, Casual Leave, Medical/Sick Leave → counted as present.
+  //          Unpaid Leave → counted as absent (salary deducted).
+  //    Detection is by leave type name (reliable) with isPaid flag as fallback.
+  function isNonUnpaidLeave(leave) {
+    // Read name from wherever it was stored
+    const name = (
+      leave.leaveTypeName ||
+      leave.data?.leaveTypeName ||
+      leave.leaveType ||
+      ''
+    ).toLowerCase();
+
+    if (name.includes('unpaid')) return false;
+
+    if (
+      name.includes('paid') ||
+      name.includes('casual') ||
+      name.includes('sick') ||
+      name.includes('medical')
+    ) return true;
+
+    // Fallback: look up the leave type record's isPaid flag
+    const leaveTypeRecord = leaveTypes.find(
+      (t) => t.id === (leave.leaveTypeId || leave.data?.leaveTypeId)
+    );
+    return leaveTypeRecord?.isPaid === true;
+  }
+
+  const creditableLeaves = leaveRequests.filter(
+    (l) => matchesEmployee(l) && l.status === 'approved' && isNonUnpaidLeave(l)
   );
 
   let paidLeaveDays = 0;
-  employeeLeaves.forEach(leave => {
-    const lStart = safeDate(leave.fromDate);
-    const lEnd = safeDate(leave.toDate);
+  creditableLeaves.forEach((leave) => {
+    // Dates may be at top level (after mapRow spreads data) or inside data JSONB
+    const fromStr = leave.fromDate || leave.data?.fromDate;
+    const toStr   = leave.toDate   || leave.data?.toDate;
+    const lStart = safeDate(fromStr);
+    const lEnd   = safeDate(toStr);
     if (!lStart || !lEnd) return;
 
-    daysInMonth.forEach(d => {
+    daysInMonth.forEach((d) => {
       if (!isBefore(d, startOfDay(lStart)) && !isAfter(d, startOfDay(lEnd))) {
         const isWknd = isWeekend(d);
-        const isHol = monthHolidays.some(h => isSameDay(safeDate(h.date), d));
+        const isHol = monthHolidays.some((h) => isSameDay(safeDate(h.date), d));
         if (!isWknd && !isHol) {
           paidLeaveDays++;
         }
@@ -111,6 +156,8 @@ function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, 
   });
 
   // 4. Absent Days & Deductions
+  //    Only days that are neither attendance-present nor covered by approved
+  //    non-unpaid leave are counted as absent.
   const absentDays = Math.max(0, workingDays - exactPresentDays - paidLeaveDays - halfDayCount);
 
   const perDaySalary = workingDays > 0 ? base / workingDays : 0;
@@ -134,17 +181,16 @@ function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, 
     requiresReview = true;
   }
 
-  // Calculate generic present days for display (full + half + paid leave) if desired, 
-  // but let's strictly return exact metrics for the modal.
   return {
     hra, da, allowances, deductions, tax, netSalary,
     workingDays,
-    presentDays: exactPresentDays + halfDayCount * 0.5, // Used in summary cards if needed
+    // presentDays includes attendance + leave days for display in payslip
+    presentDays: exactPresentDays + halfDayCount * 0.5 + paidLeaveDays,
     exactPresentDays,
     absentDays,
     paidLeaveDays,
     halfDayCount,
-    requiresReview
+    requiresReview,
   };
 }
 
@@ -555,17 +601,17 @@ export default function PayrollList() {
   const [warningContext, setWarningContext] = useState(null);
 
   // ── Data ────────────────────────────────────────────────────────────────────
-  const payrollQuery = useMemo(() => (base) => query(base, orderBy('processedAt', 'desc')), []);
+  const payrollQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
   const activeEmpQuery = useMemo(() => (base) => query(base, where('status', '==', 'active')), []);
   const attendanceQuery = useMemo(() => (base) => query(base), []);
 
-  const { items: payroll } = useFirestoreCollection('payroll', payrollQuery);
-  const { items: activeEmployees } = useFirestoreCollection('employees', activeEmpQuery);
-  const { items: attendance } = useFirestoreCollection('attendance', attendanceQuery);
-  const { items: departments } = useFirestoreCollection('departments');
-  const { items: leaveRequests } = useFirestoreCollection('leaveRequests');
-  const { items: leaveTypes } = useFirestoreCollection('leaveTypes');
-  const { items: holidays } = useFirestoreCollection('holidays');
+  const { items: payroll } = useSupabaseCollection('payroll', payrollQuery);
+  const { items: activeEmployees } = useSupabaseCollection('employees', activeEmpQuery);
+  const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
+  const { items: departments } = useSupabaseCollection('departments');
+  const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
+  const { items: leaveTypes } = useSupabaseCollection('leaveTypes');
+  const { items: holidays } = useSupabaseCollection('holidays');
 
   // Resolve departmentId → department name (mirrors EmployeeList enrichment logic)
   function deptName(emp) {
@@ -663,28 +709,36 @@ export default function PayrollList() {
 
     setProcessingId(row.id);
     try {
-      const pid = `${row.employeeId}_${row.year}_${row.month}`;
+      // upsertDocument passes payload directly to Supabase — no camelCase mapping.
+      // Confirmed payroll table columns: id, employee_id, month, year, status, data, created_at, updated_at.
+      // processed_at does NOT exist as a column — store it in data JSONB.
+      // mapRow() in useSupabase spreads data back onto the row so the UI reads normally.
+      const empDbId = row.employeeId;
+      const pid = `${empDbId}_${row.year}_${row.month}`;
       await upsertDocument('payroll', pid, {
-        employeeId: row.employeeId,
+        employee_id: empDbId,
         month: row.month,
         year: row.year,
-        basicSalary: Number(emp.basicSalary || 0),
-        hra: totals.hra,
-        da: totals.da,
-        allowances: totals.allowances,
-        deductions: totals.deductions,
-        tax: totals.tax,
-        netSalary: totals.netSalary,
-        workingDays: totals.workingDays,
-        presentDays: totals.presentDays,
-        exactPresentDays: totals.exactPresentDays,
-        absentDays: totals.absentDays,
-        paidLeaveDays: totals.paidLeaveDays,
-        halfDayCount: totals.halfDayCount,
-        requiresReview: totals.requiresReview,
         status: 'draft',
-        processedBy: user.uid,
-        processedAt: new Date().toISOString(),
+        data: {
+          employeeId: empDbId,
+          basicSalary: Number(emp.basicSalary || 0),
+          netSalary: totals.netSalary,
+          hra: totals.hra,
+          da: totals.da,
+          allowances: totals.allowances,
+          deductions: totals.deductions,
+          tax: totals.tax,
+          workingDays: totals.workingDays,
+          presentDays: totals.presentDays,
+          exactPresentDays: totals.exactPresentDays,
+          absentDays: totals.absentDays,
+          paidLeaveDays: totals.paidLeaveDays,
+          halfDayCount: totals.halfDayCount,
+          requiresReview: totals.requiresReview,
+          processedBy: user.uid,
+          processedAt: new Date().toISOString(),
+        },
       });
       toast.success(`Payroll processed for ${emp.firstName} ${emp.lastName}`);
     } catch (err) {
@@ -739,7 +793,7 @@ export default function PayrollList() {
     try {
       await Promise.all(targets.map((r) => updateDocument('payroll', r.id, {
         status: newStatus,
-        ...(newStatus === 'paid' ? { paymentDate: new Date().toISOString() } : {}),
+        ...(newStatus === 'paid' ? { data: { ...(r.data || {}), paymentDate: new Date().toISOString() } } : {}),
       })));
       toast.success(`${targets.length} record(s) marked as ${STATUS[newStatus]?.label}`);
       setSelectedIds([]);

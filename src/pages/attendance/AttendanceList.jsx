@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { query, orderBy, where } from 'firebase/firestore';
+import { query, orderBy, where } from '../../supabase/db';
 import { Link } from 'react-router-dom';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import Card from '../../components/ui/Card';
@@ -11,11 +11,11 @@ import Select from '../../components/ui/Select';
 import PageHeader from '../../components/ui/PageHeader';
 import Table from '../../components/ui/Table';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
 import { formatDate } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
-import { createDocument } from '../../firebase/firestore';
+import { createDocument } from '../../supabase/db';
 
 export default function AttendanceList() {
   const { user } = useAuth();
@@ -39,9 +39,9 @@ export default function AttendanceList() {
   const today = formatDate(new Date(), 'yyyy-MM-dd');
   const thisMonth = formatDate(new Date(), 'yyyy-MM');
 
-  const { items: employees } = useFirestoreCollection('employees');
-  const { items: departments } = useFirestoreCollection('departments');
-  const { items: leaveRequests } = useFirestoreCollection('leaveRequests');
+  const { items: employees } = useSupabaseCollection('employees');
+  const { items: departments } = useSupabaseCollection('departments');
+  const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
 
   const currentEmployee = useMemo(() => {
     return employees.find(e => e.uid === user?.uid || e.email === user?.email);
@@ -68,7 +68,7 @@ export default function AttendanceList() {
     };
   }, [user, isEmployee, possibleIds]);
 
-  const { items: attendance } = useFirestoreCollection('attendance', attendanceQuery);
+  const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
 
   const sortedAttendance = useMemo(() => {
     return [...attendance].sort((a, b) => {

@@ -34,3 +34,9 @@ dist-ssr
 coverage/
 .eslintcache
 .stylelintcache
+
+# Firebase & Supabase (local dev files)
+.firebase/
+firebase-debug.log*
+firebase-debug.err*
+supabase/.temp/

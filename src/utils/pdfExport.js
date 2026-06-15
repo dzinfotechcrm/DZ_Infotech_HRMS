@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatDate } from './dateHelpers';
-import { fetchDocument, fetchCollection } from '../firebase/firestore';
+import { fetchDocument, fetchCollection } from '../supabase/db';
 
 export function exportTableToPdf({ title, subtitle, columns, rows, fileName = 'report.pdf' }) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });

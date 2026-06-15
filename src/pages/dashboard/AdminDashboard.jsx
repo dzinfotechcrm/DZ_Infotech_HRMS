@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { query, orderBy, limit, where } from 'firebase/firestore';
+import { query, orderBy, limit, where } from '../../supabase/db';
 import {
   ArrowTrendingUpIcon,
   CalendarDaysIcon,
@@ -15,7 +15,7 @@ import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Skeleton from '../../components/ui/Skeleton';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
@@ -49,10 +49,10 @@ export default function AdminDashboard() {
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc'), limit(5)), []);
   const departmentQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
 
-  const { items: employees, loading: loadingEmployees } = useFirestoreCollection('employees', employeesQuery);
-  const { items: attendance } = useFirestoreCollection('attendance', attendanceQuery);
-  const { items: leaveRequests } = useFirestoreCollection('leaveRequests', leaveQuery);
-  const { items: departments } = useFirestoreCollection('departments', departmentQuery);
+  const { items: employees, loading: loadingEmployees } = useSupabaseCollection('employees', employeesQuery);
+  const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
+  const { items: leaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
+  const { items: departments } = useSupabaseCollection('departments', departmentQuery);
 
   const getEmpName = (id) => {
     const emp = employees.find((e) => e.uid === id || e.id === id);

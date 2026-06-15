@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
-import { syncAuthenticatedUser } from '../../firebase/auth';
+import { syncAuthenticatedUser } from '../../supabase/auth';
 
 export default function Login() {
   const { signInWithGoogle } = useAuth();

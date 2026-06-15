@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { query, orderBy } from 'firebase/firestore';
+import { query, orderBy } from '../../supabase/db';
 import { BuildingOffice2Icon, PencilSquareIcon, TrashIcon, UsersIcon } from '@heroicons/react/24/outline';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import Modal from '../../components/ui/Modal';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
-import { removeDocument } from '../../firebase/firestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
+import { removeDocument } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { isAdminLike } from '../../utils/rbac';
@@ -17,25 +17,63 @@ export default function DepartmentList() {
   const { user } = useAuth();
   const departmentsQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
   const employeesQuery = useMemo(() => (base) => query(base, orderBy('firstName')), []);
-  const { items: departments } = useFirestoreCollection('departments', departmentsQuery);
-  const { items: employees } = useFirestoreCollection('employees', employeesQuery);
+  const { items: departments } = useSupabaseCollection('departments', departmentsQuery);
+  const { items: employees } = useSupabaseCollection('employees', employeesQuery);
 
-  const managerById = useMemo(() => Object.fromEntries(employees.map((employee) => [employee.id, `${employee.firstName} ${employee.lastName}`])), [employees]);
+  // Calculate employee count and manager per department dynamically
+  const { employeeCountByDepartment, managerByDepartment } = useMemo(() => {
+    const counts = {};
+    const managers = {};
+    
+    employees.forEach((employee) => {
+      // Find the department to get its true ID, matching by ID or Name
+      const dept = departments.find(d => d.id === employee.departmentId || d.name === employee.departmentId);
+      
+      if (dept) {
+        // Count all employees (exclude only Admin)
+        if (employee.designation !== 'Admin') {
+          counts[dept.id] = (counts[dept.id] || 0) + 1;
+        }
+
+        // Identify manager
+        const isManager = employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager';
+        if (isManager) {
+          managers[dept.id] = `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
+        }
+      }
+    });
+    
+    return { employeeCountByDepartment: counts, managerByDepartment: managers };
+  }, [employees, departments]);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
 
-  // Calculate employee count per department (includes Manager, HR, and regular Employees)
-  const employeeCountByDepartment = useMemo(() => {
-    const counts = {};
-    employees.forEach((employee) => {
-      // Count all employees (Manager, HR, Employee) assigned to a department, exclude only Admin
-      if (employee.designation !== 'Admin' && employee.departmentId) {
-        counts[employee.departmentId] = (counts[employee.departmentId] || 0) + 1;
+  // Self-healing: Automatically fix database inconsistencies in department manager assignments
+  useEffect(() => {
+    if (!employees.length || !departments.length) return;
+
+    departments.forEach(async (dept) => {
+      // Find the true manager from the employees table
+      const trueManager = employees.find(e => 
+        (e.departmentId === dept.id || e.departmentId === dept.name) && 
+        (e.role?.toLowerCase() === 'manager' || e.designation?.toLowerCase() === 'manager')
+      );
+      
+      const trueManagerId = trueManager ? trueManager.id : '';
+      
+      // If the database has a stale or incorrect manager assigned, fix it automatically
+      if (dept.managerId !== trueManagerId) {
+        try {
+          // Dynamically import updateDocument to avoid cyclic dependency issues
+          const { updateDocument } = await import('../../supabase/db');
+          await updateDocument('departments', dept.id, { data: { ...(dept.data || {}), managerId: trueManagerId } });
+        } catch (e) {
+          console.error("Failed to auto-heal department manager", e);
+        }
       }
     });
-    return counts;
-  }, [employees]);
+  }, [employees, departments]);
 
   function confirmDelete(id) {
     setDepartmentToDelete(id);
@@ -98,7 +136,7 @@ export default function DepartmentList() {
                 </div>
               </div>
               <div className="mt-4 space-y-2 text-sm text-neutral-600">
-                <div><span className="font-semibold text-neutral-900">Manager:</span> {managerById[department.managerId] || 'Not assigned'}</div>
+                <div><span className="font-semibold text-neutral-900">Manager:</span> {managerByDepartment[department.id] || 'Not assigned'}</div>
                 <div><span className="font-semibold text-neutral-900">Employees:</span> {empCount}</div>
               </div>
               <div className="mt-5 flex gap-2">

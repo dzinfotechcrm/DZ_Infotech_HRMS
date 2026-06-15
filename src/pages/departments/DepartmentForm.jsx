@@ -1,23 +1,23 @@
 import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { query, orderBy } from 'firebase/firestore';
+import { query, orderBy } from '../../supabase/db';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
-import { createDocument, updateDocument } from '../../firebase/firestore';
-import { useFirestoreCollection, useFirestoreDocument } from '../../hooks/useFirestore';
+import { createDocument, updateDocument } from '../../supabase/db';
+import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import toast from 'react-hot-toast';
 
 export default function DepartmentForm({ mode = 'create' }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { item: department, loading } = useFirestoreDocument('departments', id);
-  const { items: employees } = useFirestoreCollection('employees', (base) => query(base, orderBy('firstName')));
-  const { items: departments } = useFirestoreCollection('departments', (base) => query(base, orderBy('name')));
+  const { item: department, loading } = useSupabaseDocument('departments', id);
+  const { items: employees } = useSupabaseCollection('employees', (base) => query(base, orderBy('firstName')));
+  const { items: departments } = useSupabaseCollection('departments', (base) => query(base, orderBy('name')));
   const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm();
 
   // Get list of already assigned manager IDs (except current department)

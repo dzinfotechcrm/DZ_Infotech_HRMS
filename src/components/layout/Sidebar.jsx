@@ -16,7 +16,7 @@ import {
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import { roleLabel } from '../../utils/rbac';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 
 const navigation = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
@@ -30,8 +30,8 @@ const navigation = [
 ];
 
 export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
-  const { items: employees } = useFirestoreCollection('employees');
-  const { items: leaveRequests } = useFirestoreCollection('leaveRequests');
+  const { items: employees } = useSupabaseCollection('employees');
+  const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
   
   let pendingCount = 0;
   if (isAdminLikeRole) {

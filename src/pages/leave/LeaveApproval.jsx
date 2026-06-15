@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { query, orderBy, increment } from 'firebase/firestore';
+import { query, orderBy } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -10,10 +10,10 @@ import Input from '../../components/ui/Input';
 import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
 import { useAuth } from '../../hooks/useAuth';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
 import { daysBetween, formatDate } from '../../utils/dateHelpers';
-import { updateDocument, upsertDocument } from '../../firebase/firestore';
+import { updateDocument, upsertDocument, fetchDocument } from '../../supabase/db';
 
 export default function LeaveApproval() {
   const { user } = useAuth();
@@ -21,9 +21,9 @@ export default function LeaveApproval() {
   const [comments, setComments] = useState({});
   const [confirmApprove, setConfirmApprove] = useState(null);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
-  const { items: requests, error } = useFirestoreCollection('leaveRequests', leaveQuery);
-  const { items: employees } = useFirestoreCollection('employees');
-  const { items: departments } = useFirestoreCollection('departments');
+  const { items: requests, error } = useSupabaseCollection('leaveRequests', leaveQuery);
+  const { items: employees } = useSupabaseCollection('employees');
+  const { items: departments } = useSupabaseCollection('departments');
 
   function getEmpName(id) {
     const emp = employees.find(e => e.uid === id || e.id === id);
@@ -54,45 +54,54 @@ export default function LeaveApproval() {
 
   const pendingRequests = requests.filter((request) => {
     if (String(request.status || '').toLowerCase().trim() !== 'pending') return false;
-    
+
     // Prevent ANY user from approving their own leave
-    if (request.employeeId === user?.uid) return false;
-    
+    if (request.employeeId === user?.uid || request.employeeId === currentEmployee?.id) return false;
+
     if (isManager && !isAdminLike(user?.role)) {
       const requestEmp = employees.find(e => e.uid === request.employeeId || e.id === request.employeeId);
       // Make it visible to manager if the employee is in the same department
       if (requestEmp?.departmentId !== currentEmployee?.departmentId) return false;
     }
-    
+
     return true;
   });
 
   async function updateStatus(request, status) {
     try {
       const approverComment = comments[request.id] || '';
-      
+
       if (status === 'rejected' && !approverComment.trim()) {
         toast.error('A comment is required when rejecting a leave request.');
         return;
       }
 
-      const updateData = { status, approverComment, approvedBy: user.uid };
+      const updateData = {
+        status,
+        data: {
+          ...(request.data || {}),
+          approverComment,
+          approvedBy: user.uid
+        }
+      };
       if (status === 'rejected') {
-        updateData.rejectedAt = new Date().toISOString();
+        updateData.data.rejectedAt = new Date().toISOString();
       } else if (status === 'approved') {
-        updateData.approvedAt = new Date().toISOString();
+        updateData.data.approvedAt = new Date().toISOString();
       }
 
       await updateDocument('leaveRequests', request.id, updateData);
-      
+
       // Auto notification
       await upsertDocument('notifications', Date.now().toString(), {
-        userId: request.employeeId,
         type: status === 'approved' ? 'leave_approved' : 'leave_rejected',
         title: `Leave ${status}`,
         message: `Your leave request for ${request.leaveTypeName || 'Leave'} has been ${status}.`,
-        isRead: false,
-        relatedId: request.id,
+        data: {
+          userId: request.employeeId,
+          isRead: false,
+          relatedId: request.id,
+        }
       });
 
       if (status === 'approved') {
@@ -100,19 +109,54 @@ export default function LeaveApproval() {
         const year = new Date(request.fromDate).getFullYear().toString();
         const balanceId = `${employeeId}_${year}`;
         const days = request.totalDays || daysBetween(request.fromDate, request.toDate);
-        
+
+        let existingBalance = { balances: {} };
+        try {
+          const doc = await fetchDocument('leaveBalance', balanceId);
+          if (doc) {
+            existingBalance = doc;
+          }
+        } catch (err) {
+          // It's okay if it doesn't exist yet
+        }
+
+        const currentTypeBalance = existingBalance.balances?.[request.leaveTypeId] || { used: 0, remaining: 0 };
+
         await upsertDocument('leaveBalance', balanceId, {
-          employeeId,
-          year,
+          employee_id: employeeId,
           balances: {
+            ...existingBalance.balances,
             [request.leaveTypeId]: {
-              used: increment(days),
-              remaining: increment(-days),
+              used: (currentTypeBalance.used || 0) + days,
+              remaining: (currentTypeBalance.remaining || 0) - days,
             },
           },
         });
+      } else if (status === 'rejected') {
+        // Restore the days to the employee's balance
+        const employeeId = request.employeeId;
+        const days = request.totalDays || daysBetween(request.fromDate, request.toDate);
+        
+        let quotaKey = '';
+        const leaveTypeName = (request.leaveTypeName || request.leaveType || request.leaveTypeId || '').toLowerCase();
+        if (leaveTypeName.includes('paid')) quotaKey = 'paid_leaves';
+        else if (leaveTypeName.includes('casual')) quotaKey = 'casual_leaves';
+        else if (leaveTypeName.includes('sick') || leaveTypeName.includes('medical')) quotaKey = 'sick_leaves';
+
+        if (quotaKey) {
+          const requestEmp = employees.find(e => e.uid === employeeId || e.id === employeeId);
+          if (requestEmp) {
+            const currentUsed = Number(requestEmp[quotaKey + '_used'] || requestEmp.data?.[quotaKey + '_used'] || 0);
+            await updateDocument('employees', requestEmp.id, {
+              data: {
+                ...(requestEmp.data || {}),
+                [`${quotaKey}_used`]: Math.max(0, currentUsed - days)
+              }
+            });
+          }
+        }
       }
-      toast.success(`Leave ${status}`);
+      toast.success(`Leave Request is ${status}`);
     } catch (error) {
       toast.error(error?.message || 'Unable to update leave');
     }
@@ -135,49 +179,52 @@ export default function LeaveApproval() {
           <div className="section-title">Approval Queue</div>
           <p className="muted-text">Approve or reject leave with comments and automatic balance updates.</p>
         </div>
-      <Table
-        columns={[
-          { key: 'employee', label: 'Employee' }, 
-          { key: 'department', label: 'Department' },
-          { key: 'designation', label: 'Designation' },
-          { key: 'type', label: 'Type' }, 
-          { key: 'range', label: 'Range' }, 
-          { key: 'attachment', label: 'Attachment' }, 
-          { key: 'status', label: 'Status' }, 
-          { key: 'comment', label: 'Comment' }, 
-          { key: 'actions', label: 'Actions' }
-        ]}
-        data={pendingRequests}
-        renderRow={(request) => {
-          const empInfo = getEmpDetails(request.employeeId);
-          return (
-          <tr key={request.id}>
-            <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
-            <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
-            <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
-            <td className="px-4 py-3">{request.leaveTypeName || request.leaveType || request.leaveTypeId}</td>
-            <td className="px-4 py-3">{formatDate(request.fromDate)} - {formatDate(request.toDate)}</td>
-            <td className="px-4 py-3">
-              {request.attachmentURL ? (
-                <a href={request.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
-                  View File
-                </a>
-              ) : (
-                <span className="text-neutral-400 text-sm">—</span>
-              )}
-            </td>
-            <td className="px-4 py-3"><Badge tone="warning">{request.status}</Badge></td>
-            <td className="px-4 py-3"><Input value={comments[request.id] || ''} onChange={(event) => setComments((current) => ({ ...current, [request.id]: event.target.value }))} placeholder="Add a comment" /></td>
-            <td className="px-4 py-3">
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => setConfirmApprove(request)}>Approve</Button>
-                <Button variant="danger" onClick={() => updateStatus(request, 'rejected')}>Reject</Button>
-              </div>
-            </td>
-          </tr>
-        )}}
-      />
-    </Card>
+        <Table
+          columns={[
+            { key: 'employee', label: 'Employee' },
+            { key: 'department', label: 'Department' },
+            { key: 'designation', label: 'Designation' },
+            { key: 'type', label: 'Type' },
+            { key: 'range', label: 'Range' },
+            { key: 'days', label: 'Days' },
+            { key: 'attachment', label: 'Attachment' },
+            { key: 'status', label: 'Status' },
+            { key: 'comment', label: 'Comment' },
+            { key: 'actions', label: 'Actions' }
+          ]}
+          data={pendingRequests}
+          renderRow={(request) => {
+            const empInfo = getEmpDetails(request.employeeId);
+            return (
+              <tr key={request.id}>
+                <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
+                <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
+                <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
+                <td className="px-4 py-3">{request.leaveTypeName || request.leaveType || request.leaveTypeId}</td>
+                <td className="px-4 py-3">{formatDate(request.fromDate)} - {formatDate(request.toDate)}</td>
+                <td className="px-4 py-3">{request.totalDays || daysBetween(request.fromDate, request.toDate)}</td>
+                <td className="px-4 py-3">
+                  {request.attachmentURL ? (
+                    <a href={request.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
+                      View File
+                    </a>
+                  ) : (
+                    <span className="text-neutral-400 text-sm">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3"><Badge tone="warning">{request.status}</Badge></td>
+                <td className="px-4 py-3"><Input value={comments[request.id] || ''} onChange={(event) => setComments((current) => ({ ...current, [request.id]: event.target.value }))} placeholder="Add a comment" /></td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-2">
+                    <Button variant="secondary" onClick={() => setConfirmApprove(request)}>Approve</Button>
+                    <Button variant="danger" onClick={() => updateStatus(request, 'rejected')}>Reject</Button>
+                  </div>
+                </td>
+              </tr>
+            )
+          }}
+        />
+      </Card>
 
       <Modal
         open={!!confirmApprove}

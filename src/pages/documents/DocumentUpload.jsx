@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { query, where, orderBy } from 'firebase/firestore';
+import { query, where, orderBy } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -11,9 +11,9 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { useAuth } from '../../hooks/useAuth';
 import { isAdminLike } from '../../utils/rbac';
-import { uploadFile } from '../../firebase/storage';
-import { createDocument } from '../../firebase/firestore';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { uploadFile } from '../../supabase/storage';
+import { createDocument } from '../../supabase/db';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 
 const docTypes = ['Offer Letter', 'ID Proof', 'Address Proof', 'Certificates', 'Other'];
 
@@ -24,7 +24,7 @@ export default function DocumentUpload() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   
   const employeesQuery = useMemo(() => (base) => query(base, where('status', '==', 'active'), orderBy('firstName')), []);
-  const { items: employees } = useFirestoreCollection('employees', employeesQuery);
+  const { items: employees } = useSupabaseCollection('employees', employeesQuery);
 
   async function onSubmit(values) {
     try {

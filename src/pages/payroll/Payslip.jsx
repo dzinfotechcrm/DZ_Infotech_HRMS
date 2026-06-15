@@ -1,18 +1,18 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { query, where } from 'firebase/firestore';
+import { query, where } from '../../supabase/db';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/ui/Spinner';
-import { useFirestoreCollection } from '../../hooks/useFirestore';
+import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { exportPayslipPdf } from '../../utils/pdfExport';
 
 export default function Payslip() {
   const { id } = useParams();
   const payrollQuery = useMemo(() => (base) => query(base, where('employeeId', '==', id)), [id]);
   const employeeQuery = useMemo(() => (base) => query(base, where('uid', '==', id)), [id]);
-  const { items: payroll } = useFirestoreCollection('payroll', payrollQuery);
-  const { items: employees } = useFirestoreCollection('employees', employeeQuery);
+  const { items: payroll } = useSupabaseCollection('payroll', payrollQuery);
+  const { items: employees } = useSupabaseCollection('employees', employeeQuery);
 
   if (!payroll.length || !employees.length) {
     return <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div>;
