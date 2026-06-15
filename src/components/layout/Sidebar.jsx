@@ -12,6 +12,7 @@ import {
   UsersIcon,
   XMarkIcon,
   ClockIcon,
+  FunnelIcon,
 } from '@heroicons/react/24/outline';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -25,6 +26,7 @@ const navigation = [
   { to: '/attendance', label: 'Attendance', icon: CalendarDaysIcon },
   { to: '/leave', label: 'Leave', icon: ClipboardDocumentListIcon },
   { to: '/payroll', label: 'Payroll', icon: BanknotesIcon },
+  { to: '/leads', label: 'Leads', icon: FunnelIcon },
   { to: '/activities', label: 'Activities', icon: ClockIcon, adminOnly: true },
   { to: '/profile', label: 'Profile', icon: UserCircleIcon },
 ];
@@ -32,7 +34,7 @@ const navigation = [
 export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
   const { items: employees } = useSupabaseCollection('employees');
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
-  
+
   let pendingCount = 0;
   if (isAdminLikeRole) {
     pendingCount = leaveRequests.filter(req => String(req.status || '').toLowerCase().trim() === 'pending' && req.employeeId !== user?.uid).length;

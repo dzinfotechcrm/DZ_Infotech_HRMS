@@ -22,6 +22,7 @@ const Payslip = lazy(() => import('./pages/payroll/Payslip'));
 const Profile = lazy(() => import('./pages/profile/Profile'));
 
 const Activities = lazy(() => import('./pages/activities/Activities'));
+const LeadsPipeline = lazy(() => import('./pages/leads/LeadsPipeline'));
 
 function ProtectedLayout() {
   return (
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="profile" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><Profile /></ProtectedRoute>} />
 
           <Route path="activities" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Activities /></ProtectedRoute>} />
+          <Route path="leads" element={<ProtectedRoute><LeadsPipeline /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
