@@ -20,7 +20,7 @@ const INITIAL_STATE = {
   email: '',
   address: '',
   industry: '',
-  projects: 1,
+  projects: 0,
   ltv: 0,
   owner: '',
   status: 'Active',
@@ -66,7 +66,7 @@ export default function ClientFormModal({ client, clients = [], employees, open,
     const newErrors = {};
     let isValid = true;
 
-    const required = ['companyName', 'contactPerson', 'status'];
+    const required = ['companyName', 'contactPerson', 'phone', 'email', 'status'];
     required.forEach((k) => {
       if (!formData[k] || String(formData[k]).trim() === '') {
         newErrors[k] = 'This field is required';
@@ -120,8 +120,8 @@ export default function ClientFormModal({ client, clients = [], employees, open,
             <Input label="Client ID" value={formData.clientId} disabled />
             <Input label="Company Name *" error={errors.companyName} value={formData.companyName} onChange={(e) => handleChange('companyName', e.target.value)} />
             <Input label="Contact Person *" error={errors.contactPerson} value={formData.contactPerson} onChange={(e) => handleChange('contactPerson', e.target.value)} />
-            <Input label="Phone" value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
-            <Input label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
+            <Input label="Phone *" error={errors.phone} value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
+            <Input label="Email *" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
             <Input label="Industry" value={formData.industry} onChange={(e) => handleChange('industry', e.target.value)} />
             <div className="sm:col-span-2 lg:col-span-3">
               <Input label="Address" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} />
@@ -149,7 +149,7 @@ export default function ClientFormModal({ client, clients = [], employees, open,
               <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
               <textarea
                 rows="3"
-                className="block w-full rounded-xl border border-slate-200 text-sm focus:border-primary-500 focus:ring-primary-500"
+                className="block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
               />

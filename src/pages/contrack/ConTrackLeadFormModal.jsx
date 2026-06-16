@@ -8,7 +8,9 @@ import { toast } from 'react-hot-toast';
 const PROJECT_TYPES = [
   'Road',
   'Bridge',
-  'Road + Bridge'
+  'canal',
+  'PVT Building',
+  'GOV Building'
 ];
 
 const STAGES = [
@@ -31,7 +33,7 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
     email: '',
     city: '',
     state: '',
-    projectType: 'Road',
+    projectType: [],
     status: 'New Lead',
     expectedValue: ''
   });
@@ -41,7 +43,10 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
   useEffect(() => {
     if (lead) {
       setFormData({
-        ...lead
+        ...lead,
+        projectType: typeof lead.projectType === 'string' && lead.projectType.length > 0
+          ? lead.projectType.split(',').map(s => s.trim()).filter(Boolean)
+          : (Array.isArray(lead.projectType) ? lead.projectType : [])
       });
     } else {
       setFormData({
@@ -52,7 +57,7 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
         email: '',
         city: '',
         state: '',
-        projectType: 'Road',
+        projectType: [],
         status: 'New Lead',
         expectedValue: ''
       });
@@ -62,6 +67,17 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'phone') {
+      const numericValue = value.replace(/[^\d]/g, '');
+      if (numericValue.length > 10) return;
+      setFormData((prev) => ({ ...prev, [name]: numericValue }));
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: null }));
+      }
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
@@ -84,8 +100,22 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
       newErrors.contactPerson = 'Contact Person is required';
       isValid = false;
     }
-    if (!formData.projectType) {
+    if (!formData.projectType || formData.projectType.length === 0) {
       newErrors.projectType = 'Project Type is required';
+      isValid = false;
+    }
+    if (!formData.phone?.trim()) {
+      newErrors.phone = 'Phone number is required';
+      isValid = false;
+    } else if (!/^\d{10}$/.test(formData.phone.trim())) {
+      newErrors.phone = 'Phone number must be exactly 10 digits';
+      isValid = false;
+    }
+    if (!formData.email?.trim()) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      newErrors.email = 'Invalid email format';
       isValid = false;
     }
 
@@ -102,6 +132,7 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
       const payload = {
         ...formData,
         expectedValue: parseFloat(formData.expectedValue) || 0,
+        projectType: Array.isArray(formData.projectType) ? formData.projectType.join(', ') : formData.projectType
       };
 
       // Strip virtual fields if editing
@@ -122,7 +153,7 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
   return (
     <Modal open={open} title={lead ? "Edit ConTrack Lead" : "New ConTrack Lead"} onClose={onClose} size="max-w-3xl">
       <form onSubmit={handleSubmit} className="space-y-6 text-slate-900 px-2 pb-4">
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Contractor Name *"
@@ -146,26 +177,45 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
             error={errors.contactPerson}
           />
           <Input
-            label="Phone"
+            label="Phone *"
             name="phone"
             value={formData.phone}
             onChange={handleChange}
+            error={errors.phone}
           />
           <Input
-            label="Email"
+            label="Email *"
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
+            error={errors.email}
           />
-          <Select
-            label="Project Type *"
-            name="projectType"
-            value={formData.projectType}
-            onChange={handleChange}
-            options={PROJECT_TYPES.map(s => ({ value: s, label: s }))}
-            error={errors.projectType}
-          />
+          <div className="flex flex-col gap-1.5 md:col-span-2">
+            <label className="text-sm font-medium text-neutral-700">Project Type *</label>
+            <div className={`flex flex-wrap gap-4 bg-white p-3 rounded-xl border ${errors.projectType ? 'border-danger-600 ring-1 ring-danger-100' : 'border-neutral-200'}`}>
+              {PROJECT_TYPES.map(type => (
+                <label key={type} className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                    checked={formData.projectType?.includes(type) || false}
+                    onChange={(e) => {
+                      const newTypes = e.target.checked
+                        ? [...(formData.projectType || []), type]
+                        : (formData.projectType || []).filter(t => t !== type);
+                      setFormData(prev => ({ ...prev, projectType: newTypes }));
+                      if (errors.projectType) {
+                        setErrors(prev => ({ ...prev, projectType: null }));
+                      }
+                    }}
+                  />
+                  <span className="text-sm text-slate-700 group-hover:text-slate-900">{type}</span>
+                </label>
+              ))}
+            </div>
+            {errors.projectType && <span className="text-xs font-medium text-danger-600">{errors.projectType}</span>}
+          </div>
           <Input
             label="City"
             name="city"
@@ -183,8 +233,12 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
             name="status"
             value={formData.status}
             onChange={handleChange}
-            options={STAGES.map(s => ({ value: s, label: s }))}
-          />
+          >
+            <option value="">Select...</option>
+            {STAGES.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </Select>
           <Input
             label="Expected Value (₹)"
             type="number"

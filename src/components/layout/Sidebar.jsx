@@ -24,21 +24,24 @@ import Badge from '../ui/Badge';
 import { roleLabel } from '../../utils/rbac';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 
-const navigation = [
+const hrmsNavigation = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
   { to: '/employees', label: 'Employees', icon: UsersIcon },
   { to: '/departments', label: 'Departments', icon: BuildingOffice2Icon, adminOnly: true },
   { to: '/attendance', label: 'Attendance', icon: CalendarDaysIcon },
   { to: '/leave', label: 'Leave', icon: ClipboardDocumentListIcon },
   { to: '/payroll', label: 'Payroll', icon: BanknotesIcon },
-  { to: '/leads', label: 'Leads', icon: FunnelIcon },
-  { to: '/contrack-leads', label: 'ConTrack Leads', icon: TruckIcon },
-  { to: '/contrack-revenue', label: 'ConTrack MRR', icon: ChartBarIcon },
-  { to: '/clients', label: 'Clients', icon: BriefcaseIcon },
-  { to: '/projects', label: 'Projects', icon: FolderIcon },
-  { to: '/amc', label: 'AMC', icon: ShieldCheckIcon },
   { to: '/activities', label: 'Activities', icon: ClockIcon, adminOnly: true },
   { to: '/profile', label: 'Profile', icon: UserCircleIcon },
+];
+
+const revenueNavigation = [
+  { to: '/leads', label: 'Leads', icon: FunnelIcon, adminOnly: true },
+  { to: '/clients', label: 'Clients', icon: BriefcaseIcon, adminOnly: true },
+  { to: '/projects', label: 'Projects', icon: FolderIcon, adminOnly: true },
+  { to: '/amc', label: 'AMC', icon: ShieldCheckIcon, adminOnly: true },
+  { to: '/contrack-leads', label: 'ConTrack Leads', icon: TruckIcon, adminOnly: true },
+  { to: '/contrack-revenue', label: 'ConTrack MRR', icon: ChartBarIcon, adminOnly: true },
 ];
 
 export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
@@ -79,11 +82,14 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {navigation.map((item) => {
-            if (item.adminOnly && !isAdminLikeRole) {
-              return null;
-            }
+        <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto custom-scrollbar">
+          {isAdminLikeRole && (
+            <div className="px-4 py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase">
+              HRMS
+            </div>
+          )}
+          {hrmsNavigation.map((item) => {
+            if (item.adminOnly && !isAdminLikeRole) return null;
             const Icon = item.icon;
             return (
               <NavLink
@@ -106,6 +112,32 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
               </NavLink>
             );
           })}
+
+          {isAdminLikeRole && (
+            <>
+              <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
+                Revenue
+              </div>
+              {revenueNavigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-5 w-5" />
+                      <span>{item.label}</span>
+                    </div>
+                  </NavLink>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         <div className="border-t border-white/10 p-4">

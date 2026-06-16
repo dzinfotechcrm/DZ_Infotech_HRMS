@@ -18,6 +18,7 @@ const STATUS_COLORS = {
 export default function ClientsList() {
   const { items: clients, refetch } = useSupabaseCollection('clients');
   const { items: employees } = useSupabaseCollection('employees');
+  const { items: projects } = useSupabaseCollection('projects');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -169,13 +170,13 @@ export default function ClientsList() {
                         {client.industry || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 font-medium text-center">
-                        {client.projects || 0}
+                        {projects.filter(p => p.clientId === client.id).length}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-neutral-900">
                         {formatCurrency(client.ltv || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                        {client.status === 'Onboarding' && client.since ? formatDate(client.since, 'dd MMM yyyy') : '-'}
+                        {client.since ? formatDate(client.since, 'dd MMM yyyy') : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex justify-center">

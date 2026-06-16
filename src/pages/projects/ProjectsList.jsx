@@ -47,6 +47,14 @@ export default function ProjectsList() {
         payload.projectId = nextId;
 
         await createDocument('projects', payload);
+
+        // Auto-increment client project count in database
+        const clientToUpdate = clients.find(c => c.id === payload.clientId);
+        if (clientToUpdate) {
+          const currentCount = Number(clientToUpdate.projects) || 0;
+          await updateDocument('clients', payload.clientId, { projects: currentCount + 1 });
+        }
+
         toast.success('Project created successfully');
       }
       refetchProjects();
@@ -60,7 +68,18 @@ export default function ProjectsList() {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this project?')) {
       try {
+        const projectToDelete = projects.find(p => p.id === id);
         await removeDocument('projects', id);
+
+        // Auto-decrement client project count in database
+        if (projectToDelete && projectToDelete.clientId) {
+          const clientToUpdate = clients.find(c => c.id === projectToDelete.clientId);
+          if (clientToUpdate) {
+            const currentCount = Number(clientToUpdate.projects) || 0;
+            await updateDocument('clients', projectToDelete.clientId, { projects: Math.max(0, currentCount - 1) });
+          }
+        }
+
         toast.success('Project deleted successfully');
         refetchProjects();
       } catch (error) {
@@ -72,12 +91,12 @@ export default function ProjectsList() {
   // KPIs calculations
   const activeProjects = projects.filter(p => p.status !== 'Completed');
   const activeCount = activeProjects.length;
-  
+
   // Define "On Track" as not past deadline (simplified)
   const today = new Date().toISOString().split('T')[0];
   const onTrackCount = activeProjects.filter(p => !p.deadline || p.deadline >= today).length;
   const onTrackPercent = activeCount > 0 ? Math.round((onTrackCount / activeCount) * 100) : 0;
-  
+
   const atRiskCount = activeProjects.filter(p => p.deadline && p.deadline < today).length;
 
   // Calculate Average Cycle Time based on Completed projects
@@ -99,17 +118,20 @@ export default function ProjectsList() {
     return Math.round(((index + 1) / STAGES.length) * 100);
   };
 
-  const getStageColorClass = (index) => {
-    const colors = [
-      'bg-blue-500',     // Requirements
-      'bg-purple-500',   // Design
-      'bg-emerald-500',  // Development
-      'bg-indigo-500',   // Testing
-      'bg-fuchsia-500',  // Client Review
-      'bg-orange-500',   // Deployment
-      'bg-emerald-600'   // Completed
+  const getStageTheme = (index, isAtRisk) => {
+    if (isAtRisk) {
+      return { bg: 'bg-rose-600', text: 'text-rose-600', badgeBg: 'bg-rose-50', badgeBorder: 'border-rose-200', badgeText: 'text-rose-700' };
+    }
+    const themes = [
+      { bg: 'bg-red-500', text: 'text-red-600', badgeBg: 'bg-red-50', badgeBorder: 'border-red-200', badgeText: 'text-red-700' }, // Requirements
+      { bg: 'bg-orange-500', text: 'text-orange-600', badgeBg: 'bg-orange-50', badgeBorder: 'border-orange-200', badgeText: 'text-orange-700' }, // Design
+      { bg: 'bg-amber-500', text: 'text-amber-600', badgeBg: 'bg-amber-50', badgeBorder: 'border-amber-200', badgeText: 'text-amber-700' }, // Development
+      { bg: 'bg-yellow-400', text: 'text-yellow-600', badgeBg: 'bg-yellow-50', badgeBorder: 'border-yellow-200', badgeText: 'text-yellow-700' }, // Testing
+      { bg: 'bg-lime-500', text: 'text-lime-600', badgeBg: 'bg-lime-50', badgeBorder: 'border-lime-200', badgeText: 'text-lime-700' }, // Client Review
+      { bg: 'bg-emerald-500', text: 'text-emerald-600', badgeBg: 'bg-emerald-50', badgeBorder: 'border-emerald-200', badgeText: 'text-emerald-700' }, // Deployment
+      { bg: 'bg-green-600', text: 'text-green-700', badgeBg: 'bg-green-50', badgeBorder: 'border-green-200', badgeText: 'text-green-800' }, // Completed
     ];
-    return colors[index] || 'bg-slate-500';
+    return themes[index] || themes[0];
   };
 
   return (
@@ -179,28 +201,30 @@ export default function ProjectsList() {
       {/* Projects List */}
       <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col">
         <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50/50 flex justify-between items-center">
-          <h2 className="text-sm font-semibold text-neutral-900">Active projects</h2>
+          <h2 className="text-sm font-semibold text-neutral-900">All projects</h2>
         </div>
         <div className="overflow-x-auto flex-1 p-6 space-y-6">
-          {activeProjects.length === 0 ? (
+          {projects.length === 0 ? (
             <div className="text-center py-12 text-neutral-500">
-              No active projects. Start by creating a new one!
+              No projects found. Start by creating a new one!
             </div>
           ) : (
-            activeProjects.map((project) => {
+            projects.map((project) => {
               const client = clients.find(c => c.id === project.clientId);
               const clientName = client?.companyName || 'Unknown Client';
               const clientInitials = clientName.substring(0, 2).toUpperCase();
               const progress = getProgressPercent(project.status);
               const currentStageIndex = STAGES.indexOf(project.status);
+              const isAtRisk = project.deadline && project.deadline < today && project.status !== 'Completed';
+              const currentTheme = getStageTheme(currentStageIndex, isAtRisk);
 
               return (
-                <div 
-                  key={project.id} 
-                  className="bg-white border border-neutral-200 rounded-xl p-5 hover:border-primary-300 transition-colors cursor-pointer relative group"
+                <div
+                  key={project.id}
+                  className={`bg-white border ${project.status === 'Completed' ? 'border-emerald-200 opacity-75 hover:opacity-100' : 'border-neutral-200'} rounded-xl p-5 hover:border-primary-300 transition-colors cursor-pointer relative group`}
                   onClick={() => handleOpenModal(project)}
                 >
-                  <button 
+                  <button
                     onClick={(e) => handleDelete(e, project.id)}
                     className="absolute top-4 right-4 text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
@@ -212,9 +236,16 @@ export default function ProjectsList() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-mono text-neutral-500">{project.projectId}</span>
                         {/* Health indicator logic (simplified) */}
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${project.deadline && project.deadline < today ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                          Health {project.deadline && project.deadline < today ? 'At Risk' : 'Good'}
-                        </span>
+                        {project.status !== 'Completed' && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAtRisk ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            Health {isAtRisk ? 'At Risk' : 'Good'}
+                          </span>
+                        )}
+                        {project.status === 'Completed' && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                            Completed
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-lg font-bold text-neutral-900">{project.name}</h3>
                       <p className="text-sm text-neutral-500">
@@ -226,7 +257,7 @@ export default function ProjectsList() {
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-100 text-xs font-bold text-primary-700 border border-primary-200" title={clientName}>
                         {clientInitials}
                       </div>
-                      <span className={`text-xs font-medium px-2 py-1 rounded-md border text-white ${getStageColorClass(currentStageIndex)} border-transparent`}>
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${currentTheme.badgeBg} ${currentTheme.badgeText} ${currentTheme.badgeBorder}`}>
                         {project.status}
                       </span>
                     </div>
@@ -234,27 +265,45 @@ export default function ProjectsList() {
 
                   {/* Progress visualization */}
                   <div className="mt-6">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex-1 flex gap-1 h-1.5">
-                        {STAGES.map((stage, idx) => {
-                          const isCompleted = idx <= currentStageIndex;
-                          return (
-                            <div 
-                              key={stage} 
-                              className={`flex-1 rounded-full ${isCompleted ? getStageColorClass(idx) : 'bg-neutral-100'}`}
-                            ></div>
-                          );
-                        })}
+                    {/* Top Continuous Bar & Percentage */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="relative flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                        <div
+                          className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${currentTheme.bg}`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
                       </div>
                       <span className="text-xs font-bold text-neutral-700 ml-4 w-8 text-right">{progress}%</span>
                     </div>
-                    
+
+                    {/* Bottom Segmented Bars */}
+                    <div className="flex gap-1 h-1.5 mb-2">
+                      {STAGES.map((stage, idx) => {
+                        const isCompleted = idx <= currentStageIndex;
+                        const segmentTheme = getStageTheme(idx, false);
+                        return (
+                          <div
+                            key={stage}
+                            className={`flex-1 rounded-full ${isCompleted ? segmentTheme.bg : 'bg-neutral-100'}`}
+                          ></div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Stage Labels */}
                     <div className="flex justify-between px-1">
-                      {STAGES.map((stage, idx) => (
-                        <div key={stage} className={`text-[9px] font-semibold w-0 flex-1 ${idx <= currentStageIndex ? 'text-neutral-700' : 'text-neutral-400'} text-center truncate px-1`}>
-                          {stage}
-                        </div>
-                      ))}
+                      {STAGES.map((stage, idx) => {
+                        const isActive = idx === currentStageIndex;
+                        const isPast = idx < currentStageIndex;
+                        return (
+                          <div
+                            key={stage}
+                            className={`text-[9px] font-semibold w-0 flex-1 text-center truncate px-1 ${isActive ? currentTheme.text : (isPast ? 'text-neutral-600' : 'text-neutral-400')}`}
+                          >
+                            {stage}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

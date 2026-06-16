@@ -76,12 +76,12 @@ export default function App() {
           <Route path="profile" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><Profile /></ProtectedRoute>} />
 
           <Route path="activities" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Activities /></ProtectedRoute>} />
-          <Route path="leads" element={<ProtectedRoute><LeadsPipeline /></ProtectedRoute>} />
-          <Route path="clients" element={<ProtectedRoute><ClientsList /></ProtectedRoute>} />
-          <Route path="projects" element={<ProtectedRoute><ProjectsList /></ProtectedRoute>} />
-          <Route path="amc" element={<ProtectedRoute><AmcList /></ProtectedRoute>} />
-          <Route path="contrack-leads" element={<ProtectedRoute><ConTrackLeadsPipeline /></ProtectedRoute>} />
-          <Route path="contrack-revenue" element={<ProtectedRoute><ConTrackRevenueDashboard /></ProtectedRoute>} />
+          <Route path="leads" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><LeadsPipeline /></ProtectedRoute>} />
+          <Route path="clients" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ClientsList /></ProtectedRoute>} />
+          <Route path="projects" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ProjectsList /></ProtectedRoute>} />
+          <Route path="amc" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><AmcList /></ProtectedRoute>} />
+          <Route path="contrack-leads" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ConTrackLeadsPipeline /></ProtectedRoute>} />
+          <Route path="contrack-revenue" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ConTrackRevenueDashboard /></ProtectedRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

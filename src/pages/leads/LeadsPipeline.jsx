@@ -37,7 +37,7 @@ const SOURCE_COLORS = {
   'Inbound': 'bg-emerald-400',
   'Outbound': 'bg-indigo-500',
   'Ads': 'bg-emerald-500',
-  'Other': 'bg-slate-500'
+  'PA': 'bg-slate-500'
 };
 
 export default function LeadsPipeline() {
@@ -111,10 +111,7 @@ export default function LeadsPipeline() {
         await createDocument('leads', formData);
       }
 
-      if (isNewLead) {
-        const initialStatus = formData.stage === 'Won' ? 'Onboarding' : 'Active';
-        await createClientFromLead(formData, initialStatus);
-      } else if (isNewWon) {
+      if (isNewWon) {
         await createClientFromLead(formData, 'Onboarding');
       }
 

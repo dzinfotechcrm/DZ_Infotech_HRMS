@@ -64,6 +64,10 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
   }, [lead, open, leads]);
 
   const handleChange = (field, value) => {
+    if (field === 'probability') {
+      if (Number(value) > 100) value = '100';
+      if (Number(value) < 0) value = '0';
+    }
     setErrors((prev) => ({ ...prev, [field]: undefined }));
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -72,7 +76,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
     const newErrors = {};
     let isValid = true;
 
-    const required = ['companyName', 'contactPerson', 'phone', 'stage', 'assignedTo', 'nextFollowUp'];
+    const required = ['companyName', 'contactPerson', 'phone', 'email', 'stage', 'assignedTo', 'nextFollowUp'];
     required.forEach((k) => {
       if (!formData[k] || String(formData[k]).trim() === '') {
         newErrors[k] = 'This field is required';
@@ -128,7 +132,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
             <Input label="Contact Person *" error={errors.contactPerson} value={formData.contactPerson} onChange={(e) => handleChange('contactPerson', e.target.value)} />
             <Input label="Phone *" error={errors.phone} value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
             <Input label="WhatsApp" value={formData.whatsapp} onChange={(e) => handleChange('whatsapp', e.target.value.replace(/\D/g, '').slice(0, 10))} />
-            <Input label="Email" type="email" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
+            <Input label="Email *" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
             <div className="sm:col-span-2 lg:col-span-3">
               <Input label="Address" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} />
             </div>
@@ -143,7 +147,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
             <Input label="Service Interested" value={formData.serviceInterested} onChange={(e) => handleChange('serviceInterested', e.target.value)} />
             <Input label="Expected Project Value (₹)" type="number" min="0" value={formData.expectedValue} onChange={(e) => handleChange('expectedValue', e.target.value)} />
             <Select label="Lead Source" value={formData.leadSource} onChange={(e) => handleChange('leadSource', e.target.value)}>
-              {['Website', 'LinkedIn', 'Referral', 'Cold Outreach', 'Ads', 'Inbound', 'Outbound', 'Other'].map(s => <option key={s} value={s}>{s}</option>)}
+              {['Website', 'LinkedIn', 'Referral', 'Cold Outreach', 'Ads', 'Inbound', 'Outbound', 'PA'].map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
         </div>
@@ -157,7 +161,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
             </Select>
             <Select label="Assigned To *" error={errors.assignedTo} value={formData.assignedTo} onChange={(e) => handleChange('assignedTo', e.target.value)}>
               <option value="">Select Assignee</option>
-              {employees?.map(emp => (
+              {employees?.filter(emp => emp.role?.toLowerCase() !== 'admin' && emp.designation?.toLowerCase() !== 'admin').map(emp => (
                 <option key={emp.id} value={emp.uid || emp.id}>{emp.firstName} {emp.lastName}</option>
               ))}
             </Select>
@@ -174,7 +178,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
               <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
               <textarea
                 rows="3"
-                className="block w-full rounded-xl border border-slate-200 text-sm focus:border-primary-500 focus:ring-primary-500"
+                className="block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                 value={formData.notes}
                 onChange={(e) => handleChange('notes', e.target.value)}
               />

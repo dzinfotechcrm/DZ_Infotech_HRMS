@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 import Button from '../../components/ui/Button';
 import { toast } from 'react-hot-toast';
 
-const STATUSES = ['Active', 'At Risk', 'Expired', 'Renewed'];
+const STATUSES = ['Active', 'Expired', 'Cancelled', 'Pending Renewal'];
 
 export default function AmcFormModal({ open, amc, clients, projects, onClose, onSave }) {
   const [saving, setSaving] = useState(false);
@@ -16,20 +17,22 @@ export default function AmcFormModal({ open, amc, clients, projects, onClose, on
     startDate: '',
     renewalDate: '',
     status: 'Active',
-    notes: ''
+    notes: '',
+    reminders: [60, 30, 15, 7]
   });
 
   const [errors, setErrors] = useState({});
 
   // Filter projects by selected client
-  const clientProjects = formData.clientId 
+  const clientProjects = formData.clientId
     ? projects.filter(p => p.clientId === formData.clientId)
     : projects;
 
   useEffect(() => {
     if (amc) {
       setFormData({
-        ...amc
+        ...amc,
+        reminders: amc.reminders || [60, 30, 15, 7]
       });
     } else {
       setFormData({
@@ -39,7 +42,8 @@ export default function AmcFormModal({ open, amc, clients, projects, onClose, on
         startDate: '',
         renewalDate: '',
         status: 'Active',
-        notes: ''
+        notes: '',
+        reminders: [60, 30, 15, 7]
       });
     }
     setErrors({});
@@ -94,6 +98,7 @@ export default function AmcFormModal({ open, amc, clients, projects, onClose, on
       // Strip virtual fields if editing
       delete payload.createdAt;
       delete payload.updatedAt;
+      delete payload.reminders; // Avoid DB crash since column doesn't exist yet
 
       await onSave(payload);
       onClose();
@@ -109,9 +114,9 @@ export default function AmcFormModal({ open, amc, clients, projects, onClose, on
   return (
     <Modal open={open} title={amc ? "Edit AMC" : "New AMC"} onClose={onClose} size="max-w-2xl">
       <form onSubmit={handleSubmit} className="space-y-6 text-slate-900 px-2 pb-4">
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Select
+          <SearchableSelect
             label="Client *"
             name="clientId"
             value={formData.clientId}
@@ -124,8 +129,12 @@ export default function AmcFormModal({ open, amc, clients, projects, onClose, on
             name="projectId"
             value={formData.projectId}
             onChange={handleChange}
-            options={[{ value: '', label: 'None' }, ...clientProjects.map(p => ({ value: p.id, label: p.name }))]}
-          />
+          >
+            <option value="">Select...</option>
+            {clientProjects.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </Select>
           <Input
             label="Annual Value (₹)"
             type="number"
@@ -138,8 +147,12 @@ export default function AmcFormModal({ open, amc, clients, projects, onClose, on
             name="status"
             value={formData.status}
             onChange={handleChange}
-            options={STATUSES.map(s => ({ value: s, label: s }))}
-          />
+          >
+            <option value="">Select...</option>
+            {STATUSES.map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </Select>
           <Input
             label="Start Date"
             type="date"
@@ -155,6 +168,29 @@ export default function AmcFormModal({ open, amc, clients, projects, onClose, on
             onChange={handleChange}
             error={errors.renewalDate}
           />
+        </div>
+
+        {/* Reminders */}
+        <div className="flex flex-col gap-3 pt-2">
+          <label className="text-sm font-medium text-slate-700">Reminders (Before renewal)</label>
+          <div className="flex flex-wrap gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            {[60, 30, 15, 7].map(days => (
+              <label key={days} className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  checked={formData.reminders?.includes(days) || false}
+                  onChange={(e) => {
+                    const newReminders = e.target.checked
+                      ? [...(formData.reminders || []), days]
+                      : (formData.reminders || []).filter(d => d !== days);
+                    setFormData(prev => ({ ...prev, reminders: newReminders }));
+                  }}
+                />
+                <span className="text-sm text-slate-700 group-hover:text-slate-900 transition-colors">{days} Days</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">

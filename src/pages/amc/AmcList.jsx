@@ -82,7 +82,7 @@ export default function AmcList() {
   const getDaysRemaining = (dateString) => {
     if (!dateString) return '-';
     const d = new Date(dateString);
-    d.setHours(0,0,0,0);
+    d.setHours(0, 0, 0, 0);
     const diffTime = d - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     if (diffDays < 0) return `${Math.abs(diffDays)}d overdue`;
@@ -184,10 +184,10 @@ export default function AmcList() {
                 amcs.map((amc) => {
                   const client = clients.find(c => c.id === amc.clientId);
                   const project = projects.find(p => p.id === amc.projectId);
-                  
+
                   return (
-                    <tr 
-                      key={amc.id} 
+                    <tr
+                      key={amc.id}
                       className="hover:bg-neutral-50 cursor-pointer transition-colors group"
                       onClick={() => handleOpenModal(amc)}
                     >
@@ -207,17 +207,16 @@ export default function AmcList() {
                         {getDaysRemaining(amc.renewalDate)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                          amc.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${amc.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                           amc.status === 'At Risk' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                          amc.status === 'Renewed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          'bg-neutral-100 text-neutral-700 border-neutral-200'
-                        }`}>
+                            amc.status === 'Renewed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                              'bg-neutral-100 text-neutral-700 border-neutral-200'
+                          }`}>
                           {amc.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button 
+                        <button
                           onClick={(e) => handleDelete(e, amc.id)}
                           className="text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                         >

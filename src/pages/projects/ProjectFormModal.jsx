@@ -162,25 +162,29 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
               name="clientId"
               value={formData.clientId}
               onChange={handleChange}
-              options={clients.map(c => ({ value: c.id, label: c.companyName }))}
               error={errors.clientId}
-            />
+            >
+              <option value="">Select Client</option>
+              {clients.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
+            </Select>
             <Select
               label="Service Type *"
               name="serviceType"
               value={formData.serviceType}
               onChange={handleChange}
-              options={SERVICE_TYPES.map(s => ({ value: s, label: s }))}
               error={errors.serviceType}
-            />
+            >
+              {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
             <Select
               label="Current Stage *"
               name="status"
               value={formData.status}
               onChange={handleChange}
-              options={STAGES.map(s => ({ value: s, label: s }))}
               error={errors.status}
-            />
+            >
+              {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
             <Input
               label="Start Date"
               type="date"
