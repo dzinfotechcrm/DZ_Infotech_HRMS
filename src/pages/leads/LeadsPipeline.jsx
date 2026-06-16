@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { createDocument, updateDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
 import { FunnelIcon, PlusIcon, CalendarIcon, ListBulletIcon, ViewColumnsIcon } from '@heroicons/react/24/outline';
 import LeadFormModal from './LeadFormModal';
 import { toast } from 'react-hot-toast';
@@ -48,6 +50,35 @@ export default function LeadsPipeline() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
+
+  // Filter & Sort State
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterSource, setFilterSource] = useState('');
+  const [filterAssignee, setFilterAssignee] = useState('');
+  const [filterFollowUp, setFilterFollowUp] = useState('');
+  const [sortProbability, setSortProbability] = useState('');
+
+  const filteredLeads = useMemo(() => {
+    let result = [...leads];
+    
+    if (filterSource) {
+      result = result.filter(l => l.leadSource === filterSource);
+    }
+    if (filterAssignee) {
+      result = result.filter(l => l.assignedTo === filterAssignee);
+    }
+    if (filterFollowUp) {
+      result = result.filter(l => l.nextFollowUp && l.nextFollowUp.startsWith(filterFollowUp));
+    }
+    
+    if (sortProbability === 'desc') {
+      result.sort((a, b) => (b.probability || 0) - (a.probability || 0));
+    } else if (sortProbability === 'asc') {
+      result.sort((a, b) => (a.probability || 0) - (b.probability || 0));
+    }
+    
+    return result;
+  }, [leads, filterSource, filterAssignee, filterFollowUp, sortProbability]);
 
   const createClientFromLead = async (lead, initialStatus = 'Active') => {
     try {
@@ -150,14 +181,14 @@ export default function LeadsPipeline() {
 
   // KPIs
   const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-  const leadsThisMonth = leads.filter(l => l.created_at >= currentMonthStart).length;
+  const leadsThisMonth = filteredLeads.filter(l => l.created_at >= currentMonthStart).length;
 
-  const pipelineValue = leads
+  const pipelineValue = filteredLeads
     .filter(l => !['Won', 'Lost'].includes(l.stage))
     .reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
 
-  const wonLeads = leads.filter(l => l.stage === 'Won');
-  const conversionRate = leads.length > 0 ? ((wonLeads.length / leads.length) * 100).toFixed(1) : 0;
+  const wonLeads = filteredLeads.filter(l => l.stage === 'Won');
+  const conversionRate = filteredLeads.length > 0 ? ((wonLeads.length / filteredLeads.length) * 100).toFixed(1) : 0;
 
   const avgDealSize = wonLeads.length > 0
     ? wonLeads.reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0) / wonLeads.length
@@ -178,7 +209,7 @@ export default function LeadsPipeline() {
           <h1 className="text-3xl font-bold text-neutral-900 mb-1">Leads</h1>
           <p className="text-sm text-neutral-500">Pipeline · scoring · follow-ups · forecast</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <div className="flex bg-neutral-100 p-1 rounded-xl">
             <button
               onClick={() => setViewMode('kanban')}
@@ -193,9 +224,76 @@ export default function LeadsPipeline() {
               <ListBulletIcon className="h-4 w-4" /> List
             </button>
           </div>
-          <Button variant="secondary" className="bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 gap-2">
-            <FunnelIcon className="h-4 w-4" /> Filter
-          </Button>
+          <div className="relative">
+            <Button 
+              variant="secondary" 
+              className={`bg-white border-neutral-200 gap-2 ${isFilterOpen ? 'ring-2 ring-primary-500/20 border-primary-500' : 'text-neutral-700 hover:bg-neutral-50'}`}
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+            >
+              <FunnelIcon className="h-4 w-4" /> Filter
+            </Button>
+            {isFilterOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-neutral-200 rounded-xl shadow-soft p-4 z-50">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-neutral-900 text-sm">Filters</h3>
+                  <button 
+                    onClick={() => {
+                      setFilterSource('');
+                      setFilterAssignee('');
+                      setFilterFollowUp('');
+                      setSortProbability('');
+                    }}
+                    className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    Clear all
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <Select 
+                    label="Lead Source"
+                    value={filterSource}
+                    onChange={(e) => setFilterSource(e.target.value)}
+                  >
+                    <option value="">All Sources</option>
+                    {Object.keys(SOURCE_COLORS).map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </Select>
+                  
+                  <Select 
+                    label="Assigned To"
+                    value={filterAssignee}
+                    onChange={(e) => setFilterAssignee(e.target.value)}
+                  >
+                    <option value="">Anyone</option>
+                    {employees.filter(emp => emp.role?.toLowerCase() !== 'admin' && emp.designation?.toLowerCase() !== 'admin').map(emp => (
+                      <option key={emp.id || emp.uid} value={emp.id || emp.uid}>
+                        {emp.firstName} {emp.lastName}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Input 
+                    label="Follow-up Date"
+                    type="date" 
+                    value={filterFollowUp}
+                    onChange={(e) => setFilterFollowUp(e.target.value)}
+                  />
+
+                  <Select 
+                    label="Probability"
+                    value={sortProbability}
+                    onChange={(e) => setSortProbability(e.target.value)}
+                  >
+                    <option value="">None</option>
+                    <option value="desc">High to Low</option>
+                    <option value="asc">Low to High</option>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
           <Button className="gap-2" onClick={() => handleOpenModal()}>
             <PlusIcon className="h-4 w-4" /> New lead
           </Button>
@@ -242,7 +340,7 @@ export default function LeadsPipeline() {
         <div className="flex-1 overflow-x-auto pb-4">
           <div className="flex gap-4 min-w-max h-full items-start">
           {STAGES.map((stage) => {
-            const stageLeads = leads.filter(l => l.stage === stage);
+            const stageLeads = filteredLeads.filter(l => l.stage === stage);
             const stageValue = stageLeads.reduce((sum, l) => sum + (Number(l.expectedValue) || 0), 0);
 
             return (
@@ -333,14 +431,14 @@ export default function LeadsPipeline() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
-                {leads.length === 0 ? (
+                {filteredLeads.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="px-6 py-12 text-center text-neutral-500">
-                      No leads found. Create your first lead to get started.
+                      No leads found matching your criteria.
                     </td>
                   </tr>
                 ) : (
-                  leads.map((lead) => {
+                  filteredLeads.map((lead) => {
                     const assignee = employees.find(e => e.uid === lead.assignedTo || e.id === lead.assignedTo);
                     const assigneeInitials = assignee ? `${assignee.firstName?.[0] || ''}${assignee.lastName?.[0] || ''}`.toUpperCase() : 'UN';
                     return (
