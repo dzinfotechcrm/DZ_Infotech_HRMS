@@ -6,8 +6,11 @@ import { PlusIcon, ShieldCheckIcon, CurrencyDollarIcon, ArrowPathIcon, Exclamati
 import AmcFormModal from './AmcFormModal';
 import { toast } from 'react-hot-toast';
 import { formatDate } from '../../utils/dateHelpers';
+import { useAmcNotifier } from '../../hooks/useAmcNotifier';
+import NotificationsDropdown from '../../components/layout/NotificationsDropdown';
 
 export default function AmcList() {
+  useAmcNotifier();
   const { items: amcs, refetch: refetchAmcs } = useSupabaseCollection('amcs');
   const { items: clients } = useSupabaseCollection('clients');
   const { items: projects } = useSupabaseCollection('projects');
@@ -97,7 +100,8 @@ export default function AmcList() {
           <h1 className="text-3xl font-bold text-neutral-900 mb-1">AMC Management</h1>
           <p className="text-sm text-neutral-500">Recurring maintenance contracts · renewals · reminders</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <NotificationsDropdown />
           <Button className="gap-2" onClick={() => handleOpenModal()}>
             <PlusIcon className="h-4 w-4" /> New AMC
           </Button>

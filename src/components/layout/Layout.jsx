@@ -8,6 +8,7 @@ import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
 import { logout } from '../../supabase/auth';
 import toast from 'react-hot-toast';
+import { useAmcNotifier } from '../../hooks/useAmcNotifier';
 
 const titleMap = [
   ['/dashboard', 'Dashboard'],
@@ -32,6 +33,9 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
+
+  // Initialize AMC Expiry Notifier
+  useAmcNotifier();
 
   async function handleLogout() {
     await logout();

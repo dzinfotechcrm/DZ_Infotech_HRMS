@@ -44,6 +44,7 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
           <div className="page-title">{title}</div>
           <LiveClock />
         </div>
+
         <div className="relative" ref={menuRef}>
           <button onClick={() => setOpen((value) => !value)} className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-left shadow-sm">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
@@ -55,30 +56,30 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
             </div>
           </button>
           {open && (
-            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-neutral-200 bg-white p-2 shadow-soft focus:outline-none">
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  navigate('/profile');
-                }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-neutral-100"
-              >
-                <UserCircleIcon className="h-4 w-4" />
-                Profile
-              </button>
-              <button
-                onClick={() => {
-                  setOpen(false);
-                  onLogout();
-                }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger-600 hover:bg-danger-100"
-              >
-                <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                Logout
-              </button>
-            </div>
-          )}
-        </div>
+              <div className="absolute right-0 mt-2 w-52 rounded-xl border border-neutral-200 bg-white p-2 shadow-soft focus:outline-none">
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    navigate('/profile');
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-neutral-100"
+                >
+                  <UserCircleIcon className="h-4 w-4" />
+                  Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    onLogout();
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger-600 hover:bg-danger-100"
+                >
+                  <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
       </div>
     </header>
   );
