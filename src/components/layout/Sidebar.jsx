@@ -74,7 +74,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
             </div>
             <div>
               <div className="text-xs uppercase tracking-[0.35em] text-white/60">DZ Infotech</div>
-              <div className="text-xl font-bold">HRMS</div>
+              <div className="text-xl font-bold">OS</div>
             </div>
           </div>
           <button className="rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden" onClick={onClose}>
@@ -85,7 +85,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
         <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto custom-scrollbar">
           {isAdminLikeRole && (
             <div className="px-4 py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase">
-              HRMS
+              OS
             </div>
           )}
           {hrmsNavigation.map((item) => {
@@ -152,7 +152,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
               </div>
             </div>
           </div>
-          <div className="mt-3 text-xs text-white/50">Signed in to DZ Infotech HRMS</div>
+          <div className="mt-3 text-xs text-white/50">Signed in to DZ Infotech OS</div>
         </div>
       </aside>
     </>

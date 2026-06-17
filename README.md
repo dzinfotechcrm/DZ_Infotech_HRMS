@@ -1,6 +1,6 @@
-# DZ Infotech HRMS
+# DZ Infotech OS
 
-A modern, comprehensive Human Resource Management System built for DZ Infotech. This platform streamlines HR operations including employee management, attendance tracking, leave requests, payroll processing, and real-time analytics.
+A modern, comprehensive organizational Operating System built for DZ Infotech. This platform centralizes and streamlines core business operations including Human Resources (employee management, attendance, leave, payroll) and Revenue Management (leads, clients, projects, AMC tracking).
 
 ## 🚀 Key Features
 
@@ -11,12 +11,14 @@ A modern, comprehensive Human Resource Management System built for DZ Infotech. 
 - **Leave Management**: Submit, track, and approve/reject leave requests seamlessly.
 - **Payroll Processing**: Automated salary calculation, tax deductions, and downloadable PDF payslips.
 - **Reporting**: Advanced analytics and exportable reports (CSV/PDF) for attendance and payroll data.
+- **Revenue & Client Management**: Track leads, manage client portfolios, oversee active projects, and monitor AMC status.
+- **ConTrack Integration**: Specialized tracking for ConTrack leads and Monthly Recurring Revenue (MRR).
 
 ## 🛠 Tech Stack
 
 **Frontend Framework:** React 18, Vite
 **Styling:** Tailwind CSS, Heroicons
-**Backend & Database:** Firebase (Authentication, Firestore, Hosting)
+**Backend & Database:** Supabase (Authentication, PostgreSQL Database)
 **State Management:** React Hooks, Context API
 **Charts & Visualization:** Recharts
 **File Uploads:** Cloudinary
@@ -27,8 +29,8 @@ A modern, comprehensive Human Resource Management System built for DZ Infotech. 
 ```
 src/
 ├── components/     # Reusable UI components (Buttons, Cards, Modals, Tables)
-├── firebase/       # Firebase initialization and Firestore service wrappers
-├── hooks/          # Custom React hooks (useAuth, useFirestore)
+├── supabase/       # Supabase client initialization
+├── hooks/          # Custom React hooks (useAuth, useSupabase)
 ├── pages/          # Application views (Dashboard, Employees, Payroll, etc.)
 ├── utils/          # Helper functions (Date formatting, RBAC, PDF generation)
 └── App.jsx         # Main application routing and entry point
@@ -42,17 +44,14 @@ src/
    ```
 
 2. **Environment Variables:**
-   Create a `.env` file in the root directory and add your Firebase and Cloudinary credentials:
+   Create a `.env` file in the root directory and add your Supabase and Cloudinary credentials:
    ```env
-   VITE_FIREBASE_API_KEY=your_api_key
-   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-   VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
-   VITE_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   
+   CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+   CLOUDINARY_API_KEY=your_cloudinary_api_key
+   CLOUDINARY_API_SECRET=your_cloudinary_api_secret
    ```
 
 3. **Start the development server:**
@@ -60,12 +59,12 @@ src/
    npm run dev
    ```
 
-## ☁️ Firebase Configuration
+## ☁️ Supabase Configuration
 
-1. Create a Firebase project and enable **Google Sign-In** under Authentication.
-2. Create a **Firestore Database** and configure your Web App.
-3. Deploy the security rules defined in `firestore.rules`.
-4. In Firestore, create a `users` collection. Register user roles by creating documents where the document ID is the Firebase UID, and set the `role` field to `admin`, `hr`, or `employee`.
+1. Create a Supabase project.
+2. Configure **Authentication** (e.g., Email/Password or Google Provider).
+3. Execute the `supabase_schema.sql` file in the SQL Editor to set up your PostgreSQL tables and schemas.
+4. Manage roles within your database tables (e.g., assigning `admin`, `hr`, or `employee` roles to user records).
 
 ## ☁️ Cloudinary Configuration
 
@@ -78,15 +77,10 @@ src/
 - `npm run dev`: Starts the local development server.
 - `npm run build`: Builds the app for production.
 - `npm run lint`: Lints the codebase.
-- `firebase deploy`: Deploys the application to Firebase Hosting.
-- `firebase deploy --only firestore:rules`: Deploys updated security rules.
+- `vercel deploy`: Deploys the application to Vercel (or via Vercel GitHub integration).
 
 ## 🔒 Security & Access
 
-- The application uses Firebase Google Authentication exclusively.
-- Access to modules is strictly controlled based on the user's role retrieved from the Firestore `users` collection.
+- The application uses Supabase Authentication.
+- Access to modules is strictly controlled based on the user's role retrieved from the Supabase database.
 - Employees can only view and interact with their own data unless explicitly granted HR or Admin privileges.
-"# HRMS" 
-"# HRMS_Dz-Infotech" 
-"# DZ_Infotech_HRMS" 
-#

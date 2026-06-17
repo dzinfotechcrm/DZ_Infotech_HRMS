@@ -26,7 +26,7 @@ const titleMap = [
 
 function getTitle(pathname) {
   const match = titleMap.find(([path]) => pathname.startsWith(path));
-  return match ? match[1] : 'DZ Infotech HRMS';
+  return match ? match[1] : 'DZ Infotech OS';
 }
 
 export default function Layout() {
