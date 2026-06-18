@@ -42,9 +42,14 @@ export default function DepartmentForm({ mode = 'create' }) {
   }, [department, reset]);
 
   async function onSubmit(values) {
+    const { name, description, managerId } = values;
     const payload = {
-      ...values,
-      employeeCount: mode === 'edit' ? currentCount : 0,
+      name,
+      description,
+      data: {
+        ...(mode === 'edit' && department?.data ? department.data : {}),
+        managerId
+      }
     };
     try {
       if (mode === 'edit' && id) {

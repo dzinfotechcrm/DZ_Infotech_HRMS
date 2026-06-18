@@ -110,6 +110,7 @@ export function useSupabaseDocument(tableName, id) {
     }
 
     let isMounted = true;
+    let subscription = null;
     const channelName = `realtime:${tableName}_${id}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     const mapRow = (row) => {
