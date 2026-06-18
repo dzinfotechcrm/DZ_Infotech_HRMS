@@ -4,10 +4,11 @@ import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
-import { ClockIcon, UserPlusIcon, DocumentTextIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, UserPlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 10;
 
 export default function Activities() {
   const employeesQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
@@ -17,6 +18,7 @@ export default function Activities() {
   const { items: leaveRequests, loading: loadingLeaves } = useSupabaseCollection('leaveRequests', leaveQuery);
 
   const [page, setPage] = useState(1);
+  const [filterDate, setFilterDate] = useState('');
 
   const getTimestamp = (val) => {
     if (!val) return 0;
@@ -53,8 +55,22 @@ export default function Activities() {
     return combined.sort((a, b) => b.ts - a.ts);
   }, [employees, leaveRequests]);
 
-  const totalPages = Math.ceil(activities.length / PAGE_SIZE) || 1;
-  const paginatedActivities = activities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const filteredActivities = useMemo(() => {
+    if (!filterDate) return activities;
+    const filterParts = filterDate.split('-');
+    if (filterParts.length !== 3) return activities;
+    const fYear = parseInt(filterParts[0]);
+    const fMonth = parseInt(filterParts[1]) - 1;
+    const fDate = parseInt(filterParts[2]);
+
+    return activities.filter(activity => {
+      const d = new Date(activity.ts);
+      return d.getFullYear() === fYear && d.getMonth() === fMonth && d.getDate() === fDate;
+    });
+  }, [activities, filterDate]);
+
+  const totalPages = Math.ceil(filteredActivities.length / PAGE_SIZE) || 1;
+  const paginatedActivities = filteredActivities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const isLoading = loadingEmployees || loadingLeaves;
 
@@ -66,17 +82,40 @@ export default function Activities() {
       />
 
       <Card className="overflow-hidden bg-white shadow-sm border border-neutral-200">
-        <div className="border-b border-neutral-100 bg-neutral-50 px-6 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-100 bg-neutral-50 px-6 py-4 gap-4">
           <h3 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
             <ClockIcon className="h-5 w-5 text-primary-600" /> All Activities
           </h3>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="w-full sm:w-64">
+              <Input
+                type="date"
+                value={filterDate}
+                onChange={(e) => {
+                  setFilterDate(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            {filterDate && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setFilterDate('');
+                  setPage(1);
+                }}
+              >
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="divide-y divide-neutral-100">
           {isLoading ? (
             <div className="p-8 text-center text-sm text-neutral-500">Loading activities...</div>
-          ) : activities.length === 0 ? (
-            <div className="p-8 text-center text-sm text-neutral-500">No activities recorded yet.</div>
+          ) : filteredActivities.length === 0 ? (
+            <div className="p-8 text-center text-sm text-neutral-500">No activities found.</div>
           ) : (
             paginatedActivities.map((activity) => (
               <div key={activity.id} className="flex items-start gap-4 px-6 py-4 hover:bg-neutral-50/50 transition-colors">
@@ -97,26 +136,26 @@ export default function Activities() {
             <p className="text-sm font-medium text-neutral-600">
               Showing <span className="font-bold text-neutral-900">{(page - 1) * PAGE_SIZE + 1}</span> to{' '}
               <span className="font-bold text-neutral-900">
-                {Math.min(page * PAGE_SIZE, activities.length)}
+                {Math.min(page * PAGE_SIZE, filteredActivities.length)}
               </span>{' '}
-              of <span className="font-bold text-neutral-900">{activities.length}</span> entries
+              of <span className="font-bold text-neutral-900">{filteredActivities.length}</span> entries
             </p>
             <div className="flex items-center gap-2">
               <Button
                 variant="secondary"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="!px-2"
+                className="px-4"
               >
-                <ChevronLeftIcon className="h-4 w-4" />
+                Previous
               </Button>
               <Button
                 variant="secondary"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="!px-2"
+                className="px-4"
               >
-                <ChevronRightIcon className="h-4 w-4" />
+                Next
               </Button>
             </div>
           </div>

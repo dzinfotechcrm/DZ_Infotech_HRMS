@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { EyeIcon } from '@heroicons/react/24/outline';
 import { query, orderBy } from '../../supabase/db';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -46,26 +47,26 @@ export default function LeaveList() {
 
   const currentEmployee = employees.find(e => e.uid === user?.uid || e.email === user?.email);
   const myLeaves = leaveRequests.filter((item) => item.employeeId === user?.uid || item.employeeId === currentEmployee?.id);
-  
-  const othersLeaves = isManager 
+
+  const othersLeaves = isManager
     ? leaveRequests.filter(item => {
-        if (item.employeeId === user?.uid || item.employeeId === currentEmployee?.id) return false;
-        const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
-        return requestEmp?.departmentId === currentEmployee?.departmentId;
-      })
+      if (item.employeeId === user?.uid || item.employeeId === currentEmployee?.id) return false;
+      const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
+      return requestEmp?.departmentId === currentEmployee?.departmentId;
+    })
     : [];
 
   const reviewedByMeLeaves = leaveRequests.filter(item => (item.status === 'approved' || item.status === 'rejected') && item.approvedBy === user?.uid);
   const reviewedByManagerLeaves = leaveRequests.filter(item => (item.status === 'approved' || item.status === 'rejected') && item.approvedBy && item.approvedBy !== user?.uid);
 
-  const visibleBalances = isAdminLike(user?.role) 
-    ? leaveBalance 
-    : isManager 
+  const visibleBalances = isAdminLike(user?.role)
+    ? leaveBalance
+    : isManager
       ? leaveBalance.filter(item => {
-          if (item.employeeId === user?.uid) return true;
-          const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
-          return requestEmp?.departmentId === currentEmployee?.departmentId;
-        })
+        if (item.employeeId === user?.uid) return true;
+        const requestEmp = employees.find(e => e.uid === item.employeeId || e.id === item.employeeId);
+        return requestEmp?.departmentId === currentEmployee?.departmentId;
+      })
       : leaveBalance.filter((item) => item.employeeId === user?.uid);
 
   const baseColumns = [
@@ -74,7 +75,8 @@ export default function LeaveList() {
     { key: 'days', label: 'Days' },
     { key: 'attachment', label: 'Attachment' },
     { key: 'status', label: 'Status' },
-    { key: 'reason', label: 'Reason' }
+    { key: 'reason', label: 'Reason' },
+    { key: 'reviewer', label: 'Reviewer' }
   ];
 
   const hasMyActions = myLeaves.some((item) => {
@@ -110,9 +112,29 @@ export default function LeaveList() {
   const [deleting, setDeleting] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmItem, setConfirmItem] = useState(null);
-  
+
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reasonItem, setReasonItem] = useState(null);
+
+  const [leaveReasonOpen, setLeaveReasonOpen] = useState(false);
+  const [leaveReasonItem, setLeaveReasonItem] = useState(null);
+
+  const renderReason = (item) => {
+    if (!item.reason) return <span className="text-neutral-400 text-sm">—</span>;
+    return (
+      <Button
+        variant="secondary"
+        className="py-1 px-3 text-xs flex items-center justify-center"
+        onClick={() => {
+          setLeaveReasonItem(item.reason);
+          setLeaveReasonOpen(true);
+        }}
+        title="View Reason"
+      >
+        <EyeIcon className="h-4 w-4" />
+      </Button>
+    );
+  };
 
   const renderActions = (item) => {
     const isOwner = item.employeeId === user?.uid;
@@ -294,7 +316,8 @@ export default function LeaveList() {
                     )}
                   </td>
                   <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
-                  <td className="px-4 py-3">{item.reason}</td>
+                  <td className="px-4 py-3">{renderReason(item)}</td>
+                  <td className="px-4 py-3 font-medium text-neutral-700">{item.approvedBy ? getEmpName(item.approvedBy) : '—'}</td>
                   {hasMyActions && <td className="px-4 py-3">{renderActions(item)}</td>}
                 </tr>
               )}
@@ -314,27 +337,29 @@ export default function LeaveList() {
               renderRow={(item) => {
                 const empInfo = getEmpDetails(item.employeeId);
                 return (
-                <tr key={item.id}>
-                  <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
-                  <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
-                  <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
-                  <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
-                  <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
-                  <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
-                  <td className="px-4 py-3">
-                    {item.attachmentURL ? (
-                      <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
-                        View File
-                      </a>
-                    ) : (
-                      <span className="text-neutral-400 text-sm">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
-                  <td className="px-4 py-3">{item.reason}</td>
-                  {hasOthersActions && <td className="px-4 py-3">{renderActions(item)}</td>}
-                </tr>
-              )}}
+                  <tr key={item.id}>
+                    <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
+                    <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
+                    <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
+                    <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
+                    <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
+                    <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                    <td className="px-4 py-3">
+                      {item.attachmentURL ? (
+                        <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
+                          View File
+                        </a>
+                      ) : (
+                        <span className="text-neutral-400 text-sm">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
+                    <td className="px-4 py-3">{renderReason(item)}</td>
+                    <td className="px-4 py-3 font-medium text-neutral-700">{item.approvedBy ? getEmpName(item.approvedBy) : '—'}</td>
+                    {hasOthersActions && <td className="px-4 py-3">{renderActions(item)}</td>}
+                  </tr>
+                )
+              }}
             />
 
           </Card>
@@ -360,27 +385,29 @@ export default function LeaveList() {
               renderRow={(item) => {
                 const empInfo = getEmpDetails(item.employeeId);
                 return (
-                <tr key={item.id}>
-                  <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
-                  <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
-                  <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
-                  <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
-                  <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
-                  <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
-                  <td className="px-4 py-3">
-                    {item.attachmentURL ? (
-                      <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
-                        View File
-                      </a>
-                    ) : (
-                      <span className="text-neutral-400 text-sm">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
-                  <td className="px-4 py-3">{item.reason}</td>
-                  <td className="px-4 py-3">{renderActions(item)}</td>
-                </tr>
-              )}}
+                  <tr key={item.id}>
+                    <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
+                    <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
+                    <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
+                    <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
+                    <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
+                    <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                    <td className="px-4 py-3">
+                      {item.attachmentURL ? (
+                        <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
+                          View File
+                        </a>
+                      ) : (
+                        <span className="text-neutral-400 text-sm">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
+                    <td className="px-4 py-3">{renderReason(item)}</td>
+                    <td className="px-4 py-3 font-medium text-neutral-700">{item.approvedBy ? getEmpName(item.approvedBy) : '—'}</td>
+                    <td className="px-4 py-3">{renderActions(item)}</td>
+                  </tr>
+                )
+              }}
             />
 
           </Card>
@@ -397,27 +424,29 @@ export default function LeaveList() {
               renderRow={(item) => {
                 const empInfo = getEmpDetails(item.employeeId);
                 return (
-                <tr key={item.id}>
-                  <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
-                  <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
-                  <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
-                  <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
-                  <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
-                  <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
-                  <td className="px-4 py-3">
-                    {item.attachmentURL ? (
-                      <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
-                        View File
-                      </a>
-                    ) : (
-                      <span className="text-neutral-400 text-sm">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
-                  <td className="px-4 py-3">{item.reason}</td>
-                  <td className="px-4 py-3">{renderActions(item)}</td>
-                </tr>
-              )}}
+                  <tr key={item.id}>
+                    <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
+                    <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
+                    <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
+                    <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
+                    <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
+                    <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                    <td className="px-4 py-3">
+                      {item.attachmentURL ? (
+                        <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
+                          View File
+                        </a>
+                      ) : (
+                        <span className="text-neutral-400 text-sm">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3"><Badge tone={item.status === 'approved' ? 'success' : item.status === 'pending' ? 'warning' : 'danger'}>{item.status}</Badge></td>
+                    <td className="px-4 py-3">{renderReason(item)}</td>
+                    <td className="px-4 py-3 font-medium text-neutral-700">{item.approvedBy ? getEmpName(item.approvedBy) : '—'}</td>
+                    <td className="px-4 py-3">{renderActions(item)}</td>
+                  </tr>
+                )
+              }}
             />
 
           </Card>
@@ -481,6 +510,20 @@ export default function LeaveList() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        open={leaveReasonOpen}
+        title="Leave Request Reason"
+        onClose={() => {
+          setLeaveReasonOpen(false);
+          setLeaveReasonItem(null);
+        }}
+        footer={<Button onClick={() => setLeaveReasonOpen(false)}>Close</Button>}
+      >
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto">
+          {leaveReasonItem}
+        </div>
       </Modal>
     </div>
   );

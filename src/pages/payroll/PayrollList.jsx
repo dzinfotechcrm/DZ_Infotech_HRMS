@@ -17,6 +17,7 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import PageHeader from '../../components/ui/PageHeader';
+import Select from '../../components/ui/Select';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
@@ -25,6 +26,7 @@ import { upsertDocument, updateDocument } from '../../supabase/db';
 import { exportPayslipPdf } from '../../utils/pdfExport';
 import toast from 'react-hot-toast';
 import { isWeekend, isSameMonth, isSameDay, startOfDay, isBefore, isAfter, eachDayOfInterval, endOfMonth } from 'date-fns';
+import * as XLSX from 'xlsx';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -96,7 +98,7 @@ function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, 
   // 2. Present & Half Days from Attendance
   const monthAtt = attendance.filter(
     (a) => (a.employeeId === empUid || a.employeeId === empDbId) &&
-            a.date?.startsWith(`${year}-${month}`)
+      a.date?.startsWith(`${year}-${month}`)
   );
 
   const exactPresentDays = monthAtt.filter((a) => a.status?.toLowerCase() === 'present').length;
@@ -139,9 +141,9 @@ function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, 
   creditableLeaves.forEach((leave) => {
     // Dates may be at top level (after mapRow spreads data) or inside data JSONB
     const fromStr = leave.fromDate || leave.data?.fromDate;
-    const toStr   = leave.toDate   || leave.data?.toDate;
+    const toStr = leave.toDate || leave.data?.toDate;
     const lStart = safeDate(fromStr);
-    const lEnd   = safeDate(toStr);
+    const lEnd = safeDate(toStr);
     if (!lStart || !lEnd) return;
 
     daysInMonth.forEach((d) => {
@@ -208,31 +210,38 @@ function resolveObj(val) {
 }
 
 function exportCSV(rows) {
-  const header = ['Employee', 'Emp ID', 'Department', 'Basic Salary', 'Allowances', 'Deductions', 'Net Salary', 'Month', 'Year', 'Status', 'Processed At'];
-  const lines = rows.map((r) => {
+  const data = rows.map((r) => {
     const emp = r._emp || {};
-    return [
-      `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
-      emp.employeeId || '—',
-      emp.department || '—',
-      r.basicSalary || 0,
-      resolveObj(r.allowances),
-      resolveObj(r.deductions),
-      r.netSalary || 0,
-      MONTHS.find((m) => m.value === r.month)?.label || r.month,
-      r.year,
-      r.status || 'pending',
-      r.processedAt ? formatDateTime(r.processedAt) : '—',
-    ].join(',');
+    return {
+      'Employee': `${emp.firstName || ''} ${emp.lastName || ''}`.trim(),
+      'Emp ID': emp.employeeId || '—',
+      'Department': emp.department || '—',
+      'Basic Salary': r.basicSalary || 0,
+      'Allowances': resolveObj(r.allowances),
+      'Deductions': resolveObj(r.deductions),
+      'Net Salary': r.netSalary || 0,
+      'Month': MONTHS.find((m) => m.value === r.month)?.label || r.month,
+      'Year': r.year,
+      'Status': r.status || 'pending',
+      'Processed At': r.processedAt ? formatDateTime(r.processedAt) : '—',
+    };
   });
-  const csv = [header.join(','), ...lines].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `payroll-export-${Date.now()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Payroll");
+
+  // Auto-adjust column widths
+  const max_width = data.reduce((w, r) => {
+    Object.keys(r).forEach(key => {
+      w[key] = Math.max(w[key] || key.length, String(r[key] || '').length);
+    });
+    return w;
+  }, {});
+
+  worksheet['!cols'] = Object.keys(data[0] || {}).map(key => ({ wch: max_width[key] + 2 }));
+
+  XLSX.writeFile(workbook, `payroll-export-${Date.now()}.xlsx`);
 }
 
 // ─── Summary Card ─────────────────────────────────────────────────────────────
@@ -360,13 +369,13 @@ function FilterSelect({ label, value, onChange, children }) {
   return (
     <div className="flex flex-1 flex-col gap-1 min-w-[140px]">
       <label className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">{label}</label>
-      <select
+      <Select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition"
+        className="w-full shadow-sm"
       >
         {children}
-      </select>
+      </Select>
     </div>
   );
 }
@@ -381,7 +390,7 @@ function EmployeePayrollView({ user, payroll, activeEmployees }) {
 
   const userPayrolls = useMemo(() => {
     return payroll
-      .filter((p) => p.employeeId === emp.uid || p.employeeId === emp.id)
+      .filter((p) => (p.employeeId === emp.uid || p.employeeId === emp.id) && (!emp.joinDate || isBefore(safeDate(p.createdAt), new Date(emp.joinDate))))
       .sort((a, b) => {
         if (a.year !== b.year) return parseInt(b.year) - parseInt(a.year);
         return parseInt(b.month) - parseInt(a.month);
@@ -409,24 +418,24 @@ function EmployeePayrollView({ user, payroll, activeEmployees }) {
         actions={
           <div className="flex items-center gap-4">
             <div className="flex gap-2">
-              <select
+              <Select
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
-                className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition"
+                className="w-32 shadow-sm"
               >
                 {MONTHS.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
-              </select>
-              <select
+              </Select>
+              <Select
                 value={filterYear}
                 onChange={(e) => setFilterYear(e.target.value)}
-                className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 transition"
+                className="w-28 shadow-sm"
               >
                 {YEARS.map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
-              </select>
+              </Select>
             </div>
             <Button variant="secondary" onClick={handleExportCSV} className="gap-2">
               <ArrowDownTrayIcon className="h-4 w-4" />
@@ -633,7 +642,19 @@ export default function PayrollList() {
     const sourceEmps = (adminView
       ? activeEmployees
       : activeEmployees.filter((e) => e.uid === user?.uid || e.id === user?.uid)
-    ).filter((e) => e.role !== 'admin'); // admins manage payroll but don't receive it
+    ).filter((e) => {
+      if (e.role === 'admin') return false; // admins manage payroll but don't receive it
+
+      // Filter out employees who joined AFTER the selected month/year
+      const joinStr = e.joinDate || e.createdAt;
+      if (joinStr && filterMonth && filterYear) {
+        const join = new Date(joinStr);
+        const filterDate = new Date(parseInt(filterYear), parseInt(filterMonth) - 1, 1);
+        const endOfFilterMonth = endOfMonth(filterDate);
+        if (join > endOfFilterMonth) return false;
+      }
+      return true;
+    });
 
     return sourceEmps.map((emp) => {
       const empId = emp.uid || emp.id;

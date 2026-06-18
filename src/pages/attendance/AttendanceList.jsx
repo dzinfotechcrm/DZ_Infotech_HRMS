@@ -16,6 +16,7 @@ import { isAdminLike } from '../../utils/rbac';
 import { formatDate } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
 import { createDocument } from '../../supabase/db';
+import * as XLSX from 'xlsx';
 
 export default function AttendanceList() {
   const { user } = useAuth();
@@ -105,27 +106,33 @@ export default function AttendanceList() {
   }
 
   function exportCsv(rows, filename = 'attendance') {
-    const header = ['Date', 'Employee', 'Department', 'Role', 'Status', 'Check In', 'Check Out', 'Notes'];
-    const csv = [
-      header.join(','),
-      ...rows.map((row) => [
-        formatDate(row.date, 'dd MMM yyyy'),
-        getEmpName(row),
-        getEmpDept(row.employeeId),
-        getEmpRole(row.employeeId),
-        row.status || '',
-        row.checkIn || '',
-        row.checkOut || '',
-        row.notes || '',
-      ].map((value) => `"${String(value || '').replaceAll('"', '""')}"`).join(',')),
-    ].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    const data = rows.map((row) => ({
+      'Date': formatDate(row.date, 'dd MMM yyyy'),
+      'Employee': getEmpName(row),
+      'Department': getEmpDept(row.employeeId),
+      'Role': getEmpRole(row.employeeId),
+      'Status': row.status || '',
+      'Check In': row.checkIn || '',
+      'Check Out': row.checkOut || '',
+      'Notes': row.notes || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
+
+    // Auto-adjust column widths
+    const max_width = data.reduce((w, r) => {
+      Object.keys(r).forEach(key => {
+        w[key] = Math.max(w[key] || key.length, String(r[key] || '').length);
+      });
+      return w;
+    }, {});
+
+    worksheet['!cols'] = Object.keys(data[0] || {}).map(key => ({ wch: max_width[key] + 2 }));
+
     const todayExport = formatDate(new Date(), 'yyyy-MM-dd');
-    link.download = `${filename}-${todayExport}.csv`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    XLSX.writeFile(workbook, `${filename}-${todayExport}.xlsx`);
   }
 
   const filtered = useMemo(() => {
@@ -193,7 +200,72 @@ export default function AttendanceList() {
   }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, search, statusFilter, today]);
 
   const getExportRows = () => {
-    return sortedAttendance.filter((item) => {
+    let baseList = sortedAttendance;
+
+    if (!isEmployee) {
+      let datesToProcess = [];
+      if (exportScope === 'daily' && exportDate) {
+        if (exportDate <= today) datesToProcess = [exportDate];
+      } else if (exportScope === 'monthly' && exportMonth) {
+        const [y, m] = exportMonth.split('-');
+        const daysInMonth = new Date(y, m, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+           const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
+           if (d > today) break;
+           datesToProcess.push(d);
+        }
+      } else if (exportScope === 'custom' && exportStartDate && exportEndDate) {
+        let current = new Date(exportStartDate);
+        const endDate = new Date(exportEndDate);
+        while (current <= endDate) {
+          const y = current.getFullYear();
+          const m = String(current.getMonth() + 1).padStart(2, '0');
+          const day = String(current.getDate()).padStart(2, '0');
+          const d = `${y}-${m}-${day}`;
+          if (d > today) break;
+          datesToProcess.push(d);
+          current.setDate(current.getDate() + 1);
+        }
+      }
+
+      if (datesToProcess.length > 0) {
+        const virtualRows = [];
+        const validEmps = employees.filter(emp => emp.role !== 'admin');
+        
+        for (const d of datesToProcess) {
+          for (const emp of validEmps) {
+            const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === d);
+            if (att) {
+              virtualRows.push(att);
+              continue;
+            }
+
+            const onLeave = leaveRequests.find(lr => {
+              const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
+              const isApproved = lr.status === 'approved';
+              const overlaps = lr.fromDate <= d && lr.toDate >= d;
+              return isMatch && isApproved && overlaps;
+            });
+
+            virtualRows.push({
+              id: `virtual-${emp.id || emp.uid}-${d}`,
+              employeeId: emp.id || emp.uid,
+              date: d,
+              status: onLeave ? 'On Leave' : 'absent',
+              checkIn: '',
+              checkOut: '',
+              notes: ''
+            });
+          }
+        }
+        virtualRows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        baseList = virtualRows;
+      }
+    }
+
+    return baseList.filter((item) => {
+      const empRole = getEmpRole(item.employeeId);
+      if (empRole.toLowerCase() === 'admin') return false;
       const empName = getEmpName(item);
       const employeeMatches = isEmployee ? true : String(empName || item.employeeId || '').toLowerCase().includes(search.toLowerCase());
       const itemDate = item.date || '';
