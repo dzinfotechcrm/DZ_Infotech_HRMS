@@ -85,7 +85,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
         <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto custom-scrollbar">
           {isAdminLikeRole && (
             <div className="px-4 py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase">
-              OS
+              HRMS
             </div>
           )}
           {hrmsNavigation.map((item) => {
