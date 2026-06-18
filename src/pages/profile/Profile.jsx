@@ -72,7 +72,7 @@ export default function Profile() {
             {employee.photoURL ? <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" /> : `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`}
           </div>
           <div>
-            <h1 className="page-title">My Profile</h1>
+            <h1 className="page-title">{employee.firstName} {employee.lastName}</h1>
             <div className="mt-2 flex gap-2"><Badge tone="primary">{employee.role}</Badge><Badge tone="accent">{employee.department || 'No department'}</Badge></div>
           </div>
         </div>
@@ -92,7 +92,7 @@ export default function Profile() {
           <Input label="Upload Photo (preview only)" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) { setPreview(URL.createObjectURL(file)); } }} />
           <div className="md:col-span-2 flex flex-wrap gap-3">
             <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Profile'}</Button>
-            <div className="flex items-center gap-2 text-sm text-neutral-500">Upload preview: {preview ? <img src={preview} alt="Preview" className="h-12 w-12 rounded-xl object-cover" /> : 'None'}</div>
+            {preview && <div className="flex items-center gap-2 text-sm text-neutral-500">Upload preview: <img src={preview} alt="Preview" className="h-12 w-12 rounded-xl object-cover" /></div>}
           </div>
         </form>
       </Card>

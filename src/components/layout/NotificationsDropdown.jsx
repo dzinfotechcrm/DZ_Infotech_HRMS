@@ -40,6 +40,16 @@ export default function NotificationsDropdown() {
     return dismissedNotifs[n.id] !== todayStr;
   });
 
+  const handleDismissAll = (e) => {
+    e.stopPropagation();
+    const newDismissed = { ...dismissedNotifs };
+    visibleNotifications.forEach((n) => {
+      newDismissed[n.id] = todayStr;
+    });
+    setDismissedNotifs(newDismissed);
+    localStorage.setItem('dismissed_amc_notifications', JSON.stringify(newDismissed));
+  };
+
   const unreadCount = visibleNotifications.length;
 
   return (
@@ -61,7 +71,15 @@ export default function NotificationsDropdown() {
           <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-50/50 flex justify-between items-center">
             <h3 className="text-sm font-semibold text-neutral-900">Notifications</h3>
             {unreadCount > 0 && (
-              <span className="text-xs font-medium text-neutral-500">{unreadCount} new</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-neutral-500">{unreadCount} new</span>
+                <button
+                  onClick={handleDismissAll}
+                  className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
+                >
+                  Read All
+                </button>
+              </div>
             )}
           </div>
           
@@ -88,10 +106,10 @@ export default function NotificationsDropdown() {
                       </div>
                       <button 
                         onClick={(e) => handleDismiss(e, notification.id)}
-                        className="text-neutral-400 hover:text-danger-500 flex-shrink-0 p-1 rounded-md hover:bg-danger-50 transition-colors"
-                        title="Dismiss"
+                        className="text-neutral-400 hover:text-primary-600 flex-shrink-0 p-1 rounded-md hover:bg-primary-50 transition-colors"
+                        title="Mark as read"
                       >
-                        <span className="text-xs font-medium">Clear</span>
+                        <span className="text-xs font-medium">Read</span>
                       </button>
                     </div>
                   </div>
