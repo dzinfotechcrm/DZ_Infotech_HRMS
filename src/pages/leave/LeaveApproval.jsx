@@ -15,7 +15,7 @@ import { isAdminLike } from '../../utils/rbac';
 import { daysBetween, formatDate } from '../../utils/dateHelpers';
 import { updateDocument, upsertDocument, fetchDocument } from '../../supabase/db';
 
-export default function LeaveApproval() {
+export default function LeaveApproval({ isTab = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [comments, setComments] = useState({});
@@ -163,22 +163,26 @@ export default function LeaveApproval() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Leave Approval"
-        title="Approval queue"
-        description="Review pending leave requests and approve or reject with comments."
-        actions={
-          <Button variant="secondary" onClick={() => navigate('/leave')}>
-            Return to Leave
-          </Button>
-        }
-      />
-      <Card className="p-6">
-        <div className="mb-6">
-          <div className="section-title">Approval Queue</div>
-          <p className="muted-text">Approve or reject leave with comments and automatic balance updates.</p>
-        </div>
+    <div className={isTab ? "" : "space-y-6"}>
+      {!isTab && (
+        <PageHeader
+          eyebrow="Leave Approval"
+          title="Approval queue"
+          description="Review pending leave requests and approve or reject with comments."
+          actions={
+            <Button variant="secondary" onClick={() => navigate('/leave')}>
+              Return to Leave
+            </Button>
+          }
+        />
+      )}
+      <Card className={isTab ? "p-0 border-none shadow-none" : "p-6"}>
+        {!isTab && (
+          <div className="mb-6">
+            <div className="section-title">Approval Queue</div>
+            <p className="muted-text">Approve or reject leave with comments and automatic balance updates.</p>
+          </div>
+        )}
         <Table
           columns={[
             { key: 'employee', label: 'Employee' },

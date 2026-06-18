@@ -13,6 +13,7 @@ import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { removeDocument } from '../../supabase/db';
 import { isAdminLike } from '../../utils/rbac';
 import { daysBetween, formatDate, formatDateTime } from '../../utils/dateHelpers';
+import LeaveApproval from './LeaveApproval';
 
 export default function LeaveList() {
   const { user } = useAuth();
@@ -149,7 +150,7 @@ export default function LeaveList() {
     );
   };
 
-  const [activeTab, setActiveTab] = useState(isAdmin ? 'reviewedByMe' : 'my');
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'approvalQueue' : 'my');
   const [adminStatusFilter, setAdminStatusFilter] = useState('all');
   const pendingLeavesCount = isAdmin
     ? leaveRequests.filter(req => String(req.status || '').toLowerCase().trim() === 'pending' && req.employeeId !== user?.uid).length
@@ -166,7 +167,7 @@ export default function LeaveList() {
         actions={(
           <div className="flex flex-wrap gap-2">
             {!isAdmin && <Link to="/leave/new"><Button>Apply Leave</Button></Link>}
-            {(isAdmin || isManager || user?.role === 'hr') && (
+            {!isAdmin && (isManager || user?.role === 'hr') && (
               <Link to="/leave/approval">
                 <Button variant="secondary" className="relative">
                   Approval Queue
@@ -210,6 +211,18 @@ export default function LeaveList() {
       {isAdmin && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200">
           <div className="flex gap-4">
+            <button
+              type="button"
+              className={`flex items-center gap-2 pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'approvalQueue' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+              onClick={() => setActiveTab('approvalQueue')}
+            >
+              Approval Queue
+              {pendingLeavesCount > 0 && (
+                <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'approvalQueue' ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                  {pendingLeavesCount}
+                </span>
+              )}
+            </button>
             <button
               type="button"
               className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'reviewedByMe' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
@@ -324,6 +337,15 @@ export default function LeaveList() {
               )}}
             />
 
+          </Card>
+        </div>
+      )}
+
+      {/* Admin: Approval Queue */}
+      {isAdmin && activeTab === 'approvalQueue' && (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Card className="p-5">
+            <LeaveApproval isTab={true} />
           </Card>
         </div>
       )}

@@ -111,10 +111,7 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
       newErrors.phone = 'Phone number must be exactly 10 digits';
       isValid = false;
     }
-    if (!formData.email?.trim()) {
-      newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+    if (formData.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = 'Invalid email format';
       isValid = false;
     }
@@ -184,7 +181,7 @@ export default function ConTrackLeadFormModal({ open, lead, onClose, onSave }) {
             error={errors.phone}
           />
           <Input
-            label="Email *"
+            label="Email"
             type="email"
             name="email"
             value={formData.email}
