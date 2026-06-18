@@ -31,6 +31,7 @@ import { formatDate, safeDate, daysBetween } from '../../utils/dateHelpers';
 import { removeDocument, upsertDocument, createDocument, updateDocument } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import { getBankOptions } from '../../data/banks';
+import * as XLSX from 'xlsx';
 
 const TABS = [
   { key: 'all', label: 'All' },
@@ -46,29 +47,36 @@ const STATUS_OPTIONS = [
 
 const PAGE_SIZE = 10;
 
-// Utility: Export CSV
-function exportCsv(rows, filename = 'employees') {
-  const header = ['Employee ID', 'Name', 'Email', 'Department', 'Designation', 'Role', 'Status', 'Join Date'];
-  const csv = [
-    header.join(','),
-    ...rows.map((row) => [
-      row.employeeId,
-      `${row.firstName} ${row.lastName}`,
-      row.email,
-      row.department,
-      row.designation,
-      row.role,
-      row.status,
-      formatDate(row.joinDate, 'dd MMM yyyy'),
-    ].map((value) => `"${String(value || '').replaceAll('"', '""')}"`).join(',')),
-  ].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
+// Utility: Export Excel
+function exportData(rows, filename = 'employees') {
+  const data = rows.map((row) => ({
+    'Employee ID': row.employeeId || '',
+    'Name': `${row.firstName || ''} ${row.lastName || ''}`.trim(),
+    'Email': row.email || '',
+    'Phone': row.phone ? String(row.phone) : '',
+    'Department': row.department || '',
+    'Designation': row.designation || '',
+    'Role': row.role || '',
+    'Status': row.status || '',
+    'Join Date': formatDate(row.joinDate, 'dd MMM yyyy') || ''
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Employees");
+
+  // Auto-adjust column widths
+  const max_width = data.reduce((w, r) => {
+    Object.keys(r).forEach(key => {
+      w[key] = Math.max(w[key] || key.length, String(r[key] || '').length);
+    });
+    return w;
+  }, {});
+
+  worksheet['!cols'] = Object.keys(data[0] || {}).map(key => ({ wch: max_width[key] + 2 }));
+
   const today = formatDate(new Date(), 'yyyy-MM-dd');
-  link.download = `${filename}-${today}.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  XLSX.writeFile(workbook, `${filename}-${today}.xlsx`);
 }
 
 // Component: Status Badge
@@ -1210,6 +1218,7 @@ export default function EmployeeList() {
   // State
   const [search, setSearch] = useState(searchParams.get('department') || '');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('all');
   const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
   const [sortBy, setSortBy] = useState('firstName');
@@ -1218,6 +1227,12 @@ export default function EmployeeList() {
   const [page, setPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
+
+  useEffect(() => {
+    if (searchParams.toString()) {
+      navigate('/employees', { replace: true });
+    }
+  }, [navigate, searchParams]);
 
   // Modals
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -1300,16 +1315,18 @@ export default function EmployeeList() {
 
         const matchesStatus = statusFilter === 'all' || String(employee.status || 'active').toLowerCase() === statusFilter;
 
+        const matchesDepartment = departmentFilter === 'all' || String(employee.departmentId || '') === departmentFilter;
+
         const tab = activeTab.toLowerCase();
         const matchesTab =
           tab === 'all' ||
           (tab === 'managers' && (employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager')) ||
           (tab === 'employees' && employee.role?.toLowerCase() !== 'manager' && employee.designation?.toLowerCase() !== 'manager');
 
-        return matchesText && matchesStatus && matchesTab;
+        return matchesText && matchesStatus && matchesDepartment && matchesTab;
       });
     };
-  }, [search, statusFilter, activeTab]);
+  }, [search, statusFilter, departmentFilter, activeTab]);
 
   // Sort employees
   const getSortedEmployees = (empList) => {
@@ -1540,6 +1557,7 @@ export default function EmployeeList() {
   const resetFilters = () => {
     setSearch('');
     setStatusFilter('all');
+    setDepartmentFilter('all');
     setActiveTab('all');
     setAttendanceDate(formatDate(new Date(), 'yyyy-MM-dd'));
     setPage(1);
@@ -1571,7 +1589,7 @@ export default function EmployeeList() {
       <div key={title} className="space-y-3">
         <div className="flex items-center justify-between rounded-3xl bg-slate-50 px-4 py-3 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-          <Badge variant="neutral">{count}</Badge>
+          <Badge variant="neutral">{filteredEmp.length}</Badge>
         </div>
 
         {viewMode === 'grid' || !isAdminLike(user?.role) ? (
@@ -1766,11 +1784,11 @@ export default function EmployeeList() {
             {isAdminLike(user?.role) && (
               <Button
                 variant="secondary"
-                onClick={() => exportCsv(getSortedEmployees(getFilteredEmployees(enrichedEmployees)), 'employees')}
+                onClick={() => exportData(getSortedEmployees(getFilteredEmployees(enrichedEmployees)), 'employees')}
                 className="gap-2"
               >
                 <ArrowDownTrayIcon className="h-4 w-4" />
-                Export CSV
+                Export Excel
               </Button>
             )}
             {isAdminLike(user?.role) && (
@@ -1787,7 +1805,7 @@ export default function EmployeeList() {
 
       {/* Filters */}
       <Card className="p-4 space-y-4">
-        <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto]">
+        <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
           <div className="relative">
             <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
@@ -1802,47 +1820,36 @@ export default function EmployeeList() {
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </Select>
+          <Select value={departmentFilter} onChange={(event) => setDepartmentFilter(event.target.value)}>
+            <option value="all">All Departments</option>
+            {allDepartments.map((dept) => (
+              <option key={dept.id} value={dept.id}>{dept.name}</option>
+            ))}
+          </Select>
           <Input type="date" value={attendanceDate} onChange={(event) => setAttendanceDate(event.target.value)} />
-          <Button variant="secondary" onClick={resetFilters}>Reset</Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={resetFilters}>Reset</Button>
+            {isAdminLike(user?.role) && (
+              <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`rounded-lg p-1.5 transition ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  title="Grid View"
+                >
+                  <Squares2X2Icon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`rounded-lg p-1.5 transition ${viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                  title="Table View"
+                >
+                  <ListBulletIcon className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
-
-      {/* Tabs and Views */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-2 rounded-3xl bg-slate-50 px-4 py-3 shadow-sm">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab.key);
-                setPage(1);
-              }}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${activeTab === tab.key ? 'bg-slate-900 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        {isAdminLike(user?.role) && (
-          <div className="flex items-center gap-1 rounded-3xl bg-slate-50 p-1 shadow-sm">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`rounded-full p-2 transition ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              title="Grid View"
-            >
-              <Squares2X2Icon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`rounded-full p-2 transition ${viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-              title="Table View"
-            >
-              <ListBulletIcon className="h-5 w-5" />
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Content */}
       {isLoading ? (

@@ -25,6 +25,7 @@ export default function AttendanceList() {
   const [month, setMonth] = useState('');
   const [date, setDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
   const [statusFilter, setStatusFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportScope, setExportScope] = useState('monthly');
@@ -130,30 +131,51 @@ export default function AttendanceList() {
   const filtered = useMemo(() => {
     let baseList = sortedAttendance;
 
-    if (!isEmployee && date) {
-      baseList = employees
-        .filter(emp => emp.role !== 'admin')
-        .map(emp => {
-          const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === date);
-          if (att) return att;
+    if (!isEmployee && (date || month)) {
+      const datesToProcess = date ? [date] : (() => {
+        const [y, m] = month.split('-');
+        const daysInMonth = new Date(y, m, 0).getDate();
+        const days = [];
+        for (let i = 1; i <= daysInMonth; i++) {
+           const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
+           if (d > today) break;
+           days.push(d);
+        }
+        return days;
+      })();
+
+      const virtualRows = [];
+      const validEmps = employees.filter(emp => emp.role !== 'admin');
+      
+      for (const d of datesToProcess) {
+        for (const emp of validEmps) {
+          const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === d);
+          if (att) {
+            virtualRows.push(att);
+            continue;
+          }
 
           const onLeave = leaveRequests.find(lr => {
             const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
             const isApproved = lr.status === 'approved';
-            const overlaps = lr.fromDate <= date && lr.toDate >= date;
+            const overlaps = lr.fromDate <= d && lr.toDate >= d;
             return isMatch && isApproved && overlaps;
           });
 
-          return {
-            id: `virtual-${emp.id || emp.uid}-${date}`,
+          virtualRows.push({
+            id: `virtual-${emp.id || emp.uid}-${d}`,
             employeeId: emp.id || emp.uid,
-            date: date,
-            status: onLeave ? 'On Leave' : (date > today ? '—' : 'absent'),
+            date: d,
+            status: onLeave ? 'On Leave' : (d > today ? '—' : 'absent'),
             checkIn: '',
             checkOut: '',
             notes: ''
-          };
-        });
+          });
+        }
+      }
+      
+      virtualRows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      baseList = virtualRows;
     }
 
     return baseList.filter((item) => {
@@ -214,6 +236,13 @@ export default function AttendanceList() {
   const absentCount = filtered.filter(a => a.status === 'absent').length;
   const lateCount = filtered.filter(a => a.status === 'late').length;
 
+  const rowsPerPage = 15;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filtered.slice(start, start + rowsPerPage);
+  }, [filtered, currentPage]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -249,6 +278,7 @@ export default function AttendanceList() {
                 setMonth('');
                 setDate(today);
                 setStatusFilter('');
+                setCurrentPage(1);
               }}
               className="h-[42px]"
             >
@@ -326,7 +356,7 @@ export default function AttendanceList() {
             { key: 'checkOut', label: 'Check Out' },
             { key: 'notes', label: 'Notes' }
           ]}
-          data={filtered}
+          data={paginatedData}
           renderRow={(item) => (
             <tr key={item.id} className={item.status === 'present' ? 'bg-success-100/30' : item.status === 'late' ? 'bg-warning-100/40' : item.status === 'absent' ? 'bg-danger-100/30' : item.status === 'On Leave' ? 'bg-primary-50/50' : ''}>
               <td className="px-4 py-3">{formatDate(item.date)}</td>
@@ -355,6 +385,29 @@ export default function AttendanceList() {
             </tr>
           )}
         />
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-neutral-200 mt-4 pt-4 px-2">
+            <div className="text-sm text-neutral-500">
+              Showing <span className="font-medium">{(currentPage - 1) * rowsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * rowsPerPage, filtered.length)}</span> of <span className="font-medium">{filtered.length}</span> results
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <Modal

@@ -20,15 +20,6 @@ export default function DepartmentForm({ mode = 'create' }) {
   const { items: departments } = useSupabaseCollection('departments', (base) => query(base, orderBy('name')));
   const { register, handleSubmit, reset, watch, formState: { errors, isSubmitting } } = useForm();
 
-  // Get list of already assigned manager IDs (except current department)
-  const assignedManagerIds = useMemo(() => {
-    return new Set(
-      departments
-        .filter((dept) => dept.id !== id) // Exclude current department
-        .map((dept) => dept.managerId)
-        .filter(Boolean)
-    );
-  }, [departments, id]);
 
   const currentCount = useMemo(() => {
     if (mode === 'create' || !id || !employees) return 0;
@@ -90,7 +81,7 @@ export default function DepartmentForm({ mode = 'create' }) {
           <Select label="Manager" value={watch('managerId') || ''} {...register('managerId')}>
             <option value="">Select manager</option>
             {employees
-              .filter((employee) => (employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager') && !assignedManagerIds.has(employee.id))
+              .filter((employee) => employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager')
               .map((employee) => <option key={employee.id} value={employee.id}>{employee.firstName} {employee.lastName}</option>)}
           </Select>
           <Input label="Description" className="md:col-span-2" {...register('description', { required: 'Description is required' })} error={errors.description?.message} />

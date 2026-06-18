@@ -1,12 +1,45 @@
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
+
 export default function Modal({ open, title, onClose, children, footer }) {
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
   if (!open) {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 px-4 py-6 backdrop-blur-sm">
-      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-soft">
-        <div className="border-b border-neutral-200 px-6 py-4">
+  const modalContent = (
+    <>
+      {/* Modal Overlay */}
+      <div 
+        className="fixed inset-0 backdrop-blur-sm"
+        style={{ zIndex: 1000, background: 'rgba(0,0,0,0.5)' }}
+        onClick={onClose}
+      />
+      
+      {/* Modal Container */}
+      <div 
+        className="fixed bg-white rounded-2xl shadow-soft flex flex-col"
+        style={{
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '90%',
+          maxWidth: '780px',
+          maxHeight: '90vh',
+          zIndex: 1001
+        }}
+      >
+        <div className="border-b border-neutral-200 px-6 py-4 flex-shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>
@@ -16,9 +49,19 @@ export default function Modal({ open, title, onClose, children, footer }) {
             </button>
           </div>
         </div>
-        <div className="max-h-[75vh] overflow-y-auto px-6 py-5">{children}</div>
-        {footer && <div className="border-t border-neutral-200 px-6 py-4">{footer}</div>}
+        
+        <div className="overflow-y-auto px-6 py-5 flex-1">
+          {children}
+        </div>
+        
+        {footer && (
+          <div className="border-t border-neutral-200 px-6 py-4 flex-shrink-0">
+            {footer}
+          </div>
+        )}
       </div>
-    </div>
+    </>
   );
+
+  return createPortal(modalContent, document.body);
 }

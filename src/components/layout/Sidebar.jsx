@@ -73,8 +73,8 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
               <img src="/DZ_Infotech_Logo.png" alt="DZ Infotech" className="h-full w-full object-contain" />
             </div>
             <div>
-              <div className="text-xs uppercase tracking-[0.35em] text-white/60">DZ Infotech</div>
-              <div className="text-xl font-bold">OS</div>
+              <div className="text-3xl font-black uppercase tracking-wider text-white leading-none">DZ</div>
+              <div className="text-xs font-bold uppercase tracking-[0.3em] text-white/70 mt-1">INFOTECH</div>
             </div>
           </div>
           <button className="rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden" onClick={onClose}>
