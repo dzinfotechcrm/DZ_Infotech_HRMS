@@ -16,7 +16,10 @@ export default function Login() {
     if (accessDenied) {
       navigate('/access-denied', { replace: true });
     } else if (user) {
-      const destination = location.state?.from?.pathname || '/dashboard';
+      let destination = location.state?.from?.pathname || '/dashboard';
+      if (destination === '/dashboard' && user.role === 'agent') {
+        destination = '/my-day';
+      }
       navigate(destination, { replace: true });
     }
   }, [accessDenied, user, navigate, location]);

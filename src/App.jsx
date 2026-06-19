@@ -4,6 +4,7 @@ import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import Spinner from './components/ui/Spinner';
 import { PERMISSIONS, ROLES } from './utils/rbac';
+import { useAuth } from './hooks/useAuth';
 
 const Login = lazy(() => import('./pages/auth/Login'));
 const AccessDenied = lazy(() => import('./pages/auth/AccessDenied'));
@@ -28,6 +29,32 @@ const ProjectsList = lazy(() => import('./pages/projects/ProjectsList'));
 const AmcList = lazy(() => import('./pages/amc/AmcList'));
 const ConTrackLeadsPipeline = lazy(() => import('./pages/contrack/ConTrackLeadsPipeline'));
 const ConTrackRevenueDashboard = lazy(() => import('./pages/contrack/ConTrackRevenueDashboard'));
+
+// SFMS Routes
+const SfmsDashboard = lazy(() => import('./pages/sfms/Dashboard'));
+const SfmsTeams = lazy(() => import('./pages/sfms/Teams'));
+const SfmsAgents = lazy(() => import('./pages/sfms/Agents'));
+const SfmsAgentProfile = lazy(() => import('./pages/sfms/AgentProfile'));
+const SfmsLeads = lazy(() => import('./pages/sfms/Leads'));
+const SfmsLeadProfile = lazy(() => import('./pages/sfms/LeadProfile'));
+const SfmsMeetings = lazy(() => import('./pages/sfms/Meetings'));
+const SfmsTargets = lazy(() => import('./pages/sfms/Targets'));
+const SfmsCommissions = lazy(() => import('./pages/sfms/Commissions'));
+const SfmsFinance = lazy(() => import('./pages/sfms/Finance'));
+const SfmsReports = lazy(() => import('./pages/sfms/Reports'));
+
+// Agent Portal Routes
+const AgentMyDay = lazy(() => import('./pages/sfms/agent/MyDay'));
+const AgentMyLeads = lazy(() => import('./pages/sfms/agent/MyLeads'));
+const AgentMeetings = lazy(() => import('./pages/sfms/agent/Meetings'));
+const AgentDailyReport = lazy(() => import('./pages/sfms/agent/DailyReport'));
+const AgentMyCommissions = lazy(() => import('./pages/sfms/agent/MyCommissions'));
+
+function RootRedirect() {
+  const { user } = useAuth();
+  if (user?.role === 'agent') return <Navigate to="/my-day" replace />;
+  return <Navigate to="/dashboard" replace />;
+}
 
 function ProtectedLayout() {
   return (
@@ -57,7 +84,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route index element={<RootRedirect />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="employees" element={<ProtectedRoute allowedRoles={PERMISSIONS.employees}><EmployeeList /></ProtectedRoute>} />
           <Route path="employees/new" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr]}><EmployeeForm mode="create" /></ProtectedRoute>} />
@@ -82,8 +109,27 @@ export default function App() {
           <Route path="amc" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><AmcList /></ProtectedRoute>} />
           <Route path="contrack-leads" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ConTrackLeadsPipeline /></ProtectedRoute>} />
           <Route path="contrack-revenue" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ConTrackRevenueDashboard /></ProtectedRoute>} />
+
+          <Route path="sfms/dashboard" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsDashboard /></ProtectedRoute>} />
+          <Route path="sfms/teams" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsTeams /></ProtectedRoute>} />
+          <Route path="sfms/agents" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsAgents /></ProtectedRoute>} />
+          <Route path="sfms/agents/:id" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsAgentProfile /></ProtectedRoute>} />
+          <Route path="sfms/leads" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsLeads /></ProtectedRoute>} />
+          <Route path="sfms/leads/:id" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsLeadProfile /></ProtectedRoute>} />
+          <Route path="sfms/meetings" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsMeetings /></ProtectedRoute>} />
+          <Route path="sfms/targets" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsTargets /></ProtectedRoute>} />
+          <Route path="sfms/commissions" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsCommissions /></ProtectedRoute>} />
+          <Route path="sfms/finance" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsFinance /></ProtectedRoute>} />
+          <Route path="sfms/reports" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsReports /></ProtectedRoute>} />
+          
+          {/* Agent Routes */}
+          <Route path="my-day" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentMyDay /></ProtectedRoute>} />
+          <Route path="my-leads" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentMyLeads /></ProtectedRoute>} />
+          <Route path="my-meetings" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentMeetings /></ProtectedRoute>} />
+          <Route path="daily-report" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentDailyReport /></ProtectedRoute>} />
+          <Route path="my-commissions" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentMyCommissions /></ProtectedRoute>} />
         </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<RootRedirect />} />
       </Routes>
     </Suspense>
   );

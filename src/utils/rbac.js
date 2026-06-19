@@ -3,6 +3,7 @@ export const ROLES = {
   hr: 'hr',
   manager: 'manager',
   employee: 'employee',
+  agent: 'agent',
 };
 
 export const ROLE_LABELS = {
@@ -10,6 +11,7 @@ export const ROLE_LABELS = {
   hr: 'HR',
   manager: 'Manager',
   employee: 'Employee',
+  agent: 'Agent',
 };
 
 export const ROLE_COLORS = {
@@ -17,6 +19,7 @@ export const ROLE_COLORS = {
   hr: 'bg-accent-100 text-accent-600',
   manager: 'bg-indigo-100 text-indigo-700',
   employee: 'bg-neutral-100 text-neutral-700',
+  agent: 'bg-emerald-100 text-emerald-700',
 };
 
 export const PERMISSIONS = {
@@ -28,8 +31,9 @@ export const PERMISSIONS = {
   payroll: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
   documents: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
   reports: [ROLES.admin, ROLES.hr, ROLES.manager],
-  profile: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  profile: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.agent],
   settings: [ROLES.admin],
+  sfmsAgent: [ROLES.admin, ROLES.agent],
 };
 
 export function canAccess(role, allowedRoles = []) {
@@ -48,6 +52,10 @@ export function isAdminLike(role) {
 
 export function isEmployee(role) {
   return role === ROLES.employee;
+}
+
+export function isAgent(role) {
+  return role === ROLES.agent;
 }
 
 export function roleLabel(role) {

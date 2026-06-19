@@ -4,6 +4,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
+      redirectTo: window.location.origin,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
@@ -54,7 +55,7 @@ export async function syncAuthenticatedUser(supabaseUser) {
         .from('employees')
         .update({ uid: supabaseUser.id })
         .eq('id', empByEmail.id);
-      
+
       employeeSnap = empByEmail;
     }
   }
@@ -68,8 +69,8 @@ export async function syncAuthenticatedUser(supabaseUser) {
     email: supabaseUser.email,
     display_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
     photo_url: supabaseUser.user_metadata?.avatar_url || '',
-    role: userSnap?.role || employeeSnap.role || 'employee',
-    employee_id: userSnap?.employee_id || employeeSnap.id || '',
+    role: employeeSnap.role || 'employee',
+    employee_id: employeeSnap.id || '',
     employee_linked: true,
     is_active: employeeSnap.status === 'active',
     last_login: new Date().toISOString(),

@@ -18,10 +18,19 @@ import {
   ShieldCheckIcon,
   TruckIcon,
   ChartBarIcon,
+  PresentationChartLineIcon,
+  UserGroupIcon,
+  UserIcon,
+  DocumentMagnifyingGlassIcon,
+  CalendarIcon,
+  TrophyIcon,
+  CurrencyRupeeIcon,
+  BanknotesIcon as BanknotesIconOutline,
+  DocumentChartBarIcon
 } from '@heroicons/react/24/outline';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
-import { roleLabel } from '../../utils/rbac';
+import { roleLabel, isAgent } from '../../utils/rbac';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 
 const hrmsNavigation = [
@@ -42,6 +51,26 @@ const revenueNavigation = [
   { to: '/amc', label: 'AMC', icon: ShieldCheckIcon, adminOnly: true },
   { to: '/contrack-leads', label: 'ConTrack Leads', icon: TruckIcon, adminOnly: true },
   { to: '/contrack-revenue', label: 'ConTrack MRR', icon: ChartBarIcon, adminOnly: true },
+];
+
+const fieldSalesNavigation = [
+  { to: '/sfms/dashboard', label: 'Dashboard', icon: PresentationChartLineIcon, adminOnly: true },
+  { to: '/sfms/teams', label: 'Teams', icon: UserGroupIcon, adminOnly: true },
+  { to: '/sfms/agents', label: 'Agents', icon: UserIcon, adminOnly: true },
+  { to: '/sfms/leads', label: 'Leads', icon: DocumentMagnifyingGlassIcon, adminOnly: true },
+  { to: '/sfms/meetings', label: 'Meetings', icon: CalendarIcon, adminOnly: true },
+  { to: '/sfms/targets', label: 'Targets', icon: TrophyIcon, adminOnly: true },
+  { to: '/sfms/commissions', label: 'Commissions', icon: CurrencyRupeeIcon, adminOnly: true },
+  { to: '/sfms/finance', label: 'Finance', icon: BanknotesIconOutline, adminOnly: true },
+  { to: '/sfms/reports', label: 'Reports', icon: DocumentChartBarIcon, adminOnly: true },
+];
+
+const agentPortalNavigation = [
+  { to: '/my-day', label: 'My Day', icon: PresentationChartLineIcon },
+  { to: '/my-leads', label: 'My Leads', icon: DocumentMagnifyingGlassIcon },
+  { to: '/my-meetings', label: 'Meetings', icon: CalendarIcon },
+  { to: '/daily-report', label: 'Daily Report', icon: DocumentChartBarIcon },
+  { to: '/my-commissions', label: 'My Commissions', icon: CurrencyRupeeIcon },
 ];
 
 export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
@@ -82,13 +111,8 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto custom-scrollbar">
-          {isAdminLikeRole && (
-            <div className="px-4 py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase">
-              HRMS
-            </div>
-          )}
-          {hrmsNavigation.map((item) => {
+        <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          {!isAgent(user?.role) && hrmsNavigation.map((item) => {
             if (item.adminOnly && !isAdminLikeRole) return null;
             const Icon = item.icon;
             return (
@@ -119,6 +143,58 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
                 Revenue
               </div>
               {revenueNavigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-5 w-5" />
+                      <span>{item.label}</span>
+                    </div>
+                  </NavLink>
+                );
+              })}
+            </>
+          )}
+
+          {isAdminLikeRole && (
+            <>
+              <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
+                Field Sales
+              </div>
+              {fieldSalesNavigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-5 w-5" />
+                      <span>{item.label}</span>
+                    </div>
+                  </NavLink>
+                );
+              })}
+            </>
+          )}
+
+          {isAgent(user?.role) && (
+            <>
+              <div className="px-4 py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase">
+                Agent Portal
+              </div>
+              {agentPortalNavigation.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink

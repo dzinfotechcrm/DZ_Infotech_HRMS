@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
-const Select = forwardRef(({ label, error, children, className = '', onChange, value, name, ...props }, ref) => {
+const Select = forwardRef(({ label, error, children, className = '', onChange, value, name, helpText, ...props }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -18,7 +18,7 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
     });
     return opts;
   };
-  const options = getOptions(children);
+  const options = props.options || getOptions(children);
 
   const [internalValue, setInternalValue] = useState(value || '');
 
@@ -92,6 +92,7 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
         {options.map((o, i) => <option key={i} value={o.value}>{o.label}</option>)}
       </select>
 
+      {helpText && <span className="text-xs text-neutral-500">{helpText}</span>}
       {error && <span className="text-xs font-medium text-danger-600">{error}</span>}
     </div>
   );
