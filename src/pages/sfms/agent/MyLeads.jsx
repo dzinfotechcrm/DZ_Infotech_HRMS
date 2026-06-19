@@ -177,28 +177,26 @@ export default function MyLeads() {
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <MagnifyingGlassIcon className="h-5 w-5 text-neutral-400" />
+      <Card className="p-4 space-y-4 mb-6">
+        <div className="grid gap-3 md:grid-cols-[2fr_1fr_auto]">
+          <div className="relative">
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <Input
+              className="pl-10"
+              placeholder="Search leads..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <input
-            type="text"
-            className="block w-full rounded-xl border-neutral-200 pl-10 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-            placeholder="Search leads..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <Select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
+            <option value="">All Stages</option>
+            {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+          </Select>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => { setSearchTerm(''); setStageFilter(''); }}>Reset</Button>
+          </div>
         </div>
-        <select
-          className="block w-full sm:w-48 rounded-xl border-neutral-200 focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-          value={stageFilter}
-          onChange={(e) => setStageFilter(e.target.value)}
-        >
-          <option value="">All Stages</option>
-          {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </div>
+      </Card>
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -348,7 +346,7 @@ export default function MyLeads() {
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1">Notes</label>
             <textarea
-              className="block w-full rounded-xl border-neutral-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
               rows={3}
               {...register('notes')}
             />
