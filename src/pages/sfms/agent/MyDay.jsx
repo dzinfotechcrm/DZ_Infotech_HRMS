@@ -6,10 +6,10 @@ import Badge from '../../../components/ui/Badge';
 import Spinner from '../../../components/ui/Spinner';
 import { useSupabaseCollection } from '../../../hooks/useSupabase';
 import { useAuth } from '../../../hooks/useAuth';
-import { 
-  UsersIcon, 
-  CalendarDaysIcon, 
-  CurrencyRupeeIcon, 
+import {
+  UsersIcon,
+  CalendarDaysIcon,
+  CurrencyRupeeIcon,
   ArrowRightIcon,
   PhoneIcon,
   CheckCircleIcon
@@ -27,59 +27,73 @@ export default function MyDay() {
   const { user } = useAuth();
 
   const { items: agents, loading: agentsLoading } = useSupabaseCollection('sfmsAgents');
+  const { items: sfmsTeamAgents, loading: sfmsTeamAgentsLoading } = useSupabaseCollection('sfmsTeamAgents');
   const { items: teams, loading: teamsLoading } = useSupabaseCollection('sfmsTeams');
   const { items: targets, loading: targetsLoading } = useSupabaseCollection('sfmsTargets');
   const { items: leads, loading: leadsLoading } = useSupabaseCollection('sfmsLeads');
   const { items: meetings, loading: meetingsLoading } = useSupabaseCollection('sfmsMeetings');
   const { items: commissions, loading: commissionsLoading } = useSupabaseCollection('sfmsCommissions');
 
-  const loading = agentsLoading || teamsLoading || targetsLoading || leadsLoading || meetingsLoading || commissionsLoading;
+  const loading = agentsLoading || sfmsTeamAgentsLoading || teamsLoading || targetsLoading || leadsLoading || meetingsLoading || commissionsLoading;
 
   const agentData = useMemo(() => {
     if (loading || !user?.email) return null;
     return agents.find(a => a.email?.toLowerCase() === user.email?.toLowerCase());
   }, [agents, user, loading]);
 
-  const teamData = useMemo(() => {
-    if (!agentData || !agentData.team_id) return null;
-    return teams.find(t => t.id === agentData.team_id);
-  }, [agentData, teams]);
+  const agentTeamIds = useMemo(() => {
+    if (loading || !agentData) return [];
+    let tids = sfmsTeamAgents.filter(ta => ta.agent_id === agentData.id).map(ta => ta.team_id);
+    if (tids.length === 0 && agentData.team_id) tids.push(agentData.team_id);
+    return tids;
+  }, [sfmsTeamAgents, agentData, loading]);
 
-  const teamTarget = useMemo(() => {
-    if (!teamData) return null;
+  const agentTeams = useMemo(() => {
+    if (agentTeamIds.length === 0) return [];
+    return agentTeamIds.map(tid => teams.find(t => t.id === tid)).filter(Boolean);
+  }, [agentTeamIds, teams]);
+
+  const aggregatedTarget = useMemo(() => {
+    if (agentTeamIds.length === 0) return null;
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-    return targets.find(t => t.entity_type === 'team' && t.entity_id === teamData.id && t.month === currentMonth);
-  }, [teamData, targets]);
+    const activeTargets = targets.filter(t => t.entity_type === 'team' && agentTeamIds.includes(t.entity_id) && t.month === currentMonth);
+    if (activeTargets.length === 0) return null;
+    return activeTargets.reduce((acc, t) => {
+      acc.achieved_value += Number(t.achieved_value) || 0;
+      acc.target_value += Number(t.target_value) || 0;
+      return acc;
+    }, { achieved_value: 0, target_value: 0 });
+  }, [agentTeamIds, targets]);
 
   const stats = useMemo(() => {
-    if (!agentData || !teamData) return { myLeads: 0, pendingFollowUps: 0, myMeetings: 0, myCommissions: 0 };
-    
+    if (!agentData || agentTeamIds.length === 0) return { myLeads: 0, pendingFollowUps: 0, myMeetings: 0, myCommissions: 0 };
+
     // Agent specific commissions
     const agentComms = commissions.filter(c => c.agent_id === agentData.id);
     const myCommissions = agentComms.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
 
     // Team specific data
-    const teamLeads = leads.filter(l => l.team_id === teamData.id);
-    const teamMeetings = meetings.filter(m => m.team_id === teamData.id);
-    
+    const teamLeads = leads.filter(l => agentTeamIds.includes(l.team_id));
+    const teamMeetings = meetings.filter(m => agentTeamIds.includes(m.team_id));
+
     const myLeads = teamLeads.length;
     const pendingFollowUps = teamLeads.filter(l => l.status !== 'Won' && l.status !== 'Lost').length;
     const myMeetings = teamMeetings.length;
 
     return { myLeads, pendingFollowUps, myMeetings, myCommissions };
-  }, [agentData, teamData, leads, meetings, commissions]);
+  }, [agentData, agentTeamIds, leads, meetings, commissions]);
 
   const todaysFollowUps = useMemo(() => {
-    if (!teamData) return [];
+    if (agentTeamIds.length === 0) return [];
     const today = new Date().toISOString().split('T')[0];
-    const teamLeads = leads.filter(l => l.team_id === teamData.id && l.status !== 'Won' && l.status !== 'Lost');
-    
+    const teamLeads = leads.filter(l => agentTeamIds.includes(l.team_id) && l.status !== 'Won' && l.status !== 'Lost');
+
     return teamLeads.filter(l => {
       if (!l.data?.timeline) return false;
       const t = l.data.timeline;
       return t.some(event => event.type === 'follow_up' && event.date?.startsWith(today));
     }).slice(0, 5); // Limit to top 5
-  }, [leads, teamData]);
+  }, [leads, agentTeamIds]);
 
   if (loading) {
     return (
@@ -100,7 +114,7 @@ export default function MyDay() {
     );
   }
 
-  if (!teamData) {
+  if (agentTeamIds.length === 0) {
     return (
       <div className="p-6 text-center">
         <Card className="p-12 border-neutral-800 bg-neutral-900/50">
@@ -111,7 +125,9 @@ export default function MyDay() {
     );
   }
 
-  const targetProgress = teamTarget ? (Number(teamTarget.achieved_value) / Number(teamTarget.target_value)) * 100 : 0;
+  const targetProgress = aggregatedTarget && aggregatedTarget.target_value > 0 
+    ? (Number(aggregatedTarget.achieved_value) / Number(aggregatedTarget.target_value)) * 100 
+    : 0;
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -120,13 +136,17 @@ export default function MyDay() {
           <h1 className="text-3xl font-bold text-neutral-900 mb-1">My Day</h1>
           <p className="text-sm text-neutral-500">{`Welcome back, ${agentData.name.split(' ')[0]}`}</p>
         </div>
-        <Badge tone="accent" className="px-3 py-1.5 text-sm">{teamData.name}</Badge>
+        <div className="flex gap-2 flex-wrap">
+          {agentTeams.map(t => (
+            <Badge key={t.id} tone="accent" className="px-3 py-1.5 text-sm">{t.name}</Badge>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Dashboard Area */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           {/* Target Card */}
           <Card className="overflow-hidden bg-gradient-to-br from-primary-900/40 to-neutral-900 border-primary-500/20">
             <div className="p-6">
@@ -136,15 +156,15 @@ export default function MyDay() {
                   Team Target ({new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })})
                 </h3>
               </div>
-              
-              {teamTarget ? (
+
+              {aggregatedTarget ? (
                 <>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-neutral-400">Achieved: <span className="font-bold text-white">{formatCurrency(teamTarget.achieved_value)}</span></span>
-                    <span className="text-neutral-400">Target: <span className="font-bold text-white">{formatCurrency(teamTarget.target_value)}</span></span>
+                    <span className="text-neutral-400">Achieved: <span className="font-bold text-white">{formatCurrency(aggregatedTarget.achieved_value)}</span></span>
+                    <span className="text-neutral-400">Target: <span className="font-bold text-white">{formatCurrency(aggregatedTarget.target_value)}</span></span>
                   </div>
                   <div className="h-3 w-full bg-neutral-800 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full rounded-full ${targetProgress >= 100 ? 'bg-emerald-500' : 'bg-primary-500'}`}
                       style={{ width: `${Math.min(targetProgress, 100)}%` }}
                     />
@@ -168,7 +188,7 @@ export default function MyDay() {
               <div className="text-2xl font-bold text-white">{stats.myLeads}</div>
               <div className="text-xs font-medium text-neutral-500 mt-1 uppercase tracking-wider">Team Leads</div>
             </Card>
-            
+
             <Card className="p-4 bg-neutral-900 border-neutral-800 text-center hover:bg-neutral-800/80 transition-colors">
               <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-400 mb-2">
                 <CalendarDaysIcon className="h-5 w-5" />
@@ -225,7 +245,7 @@ export default function MyDay() {
                 </div>
               )}
             </div>
-            
+
             <div className="mt-6 pt-4 border-t border-neutral-800 text-center">
               <Link to="/sfms/my-leads" className="text-sm font-medium text-primary-400 hover:text-primary-300">
                 View all leads &rarr;

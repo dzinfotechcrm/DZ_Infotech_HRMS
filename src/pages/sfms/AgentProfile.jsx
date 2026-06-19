@@ -21,29 +21,35 @@ export default function AgentProfile() {
   const navigate = useNavigate();
 
   const { item: agent, loading: agentLoading } = useSupabaseDocument('sfms_agents', id);
+  const { items: sfmsTeamAgents, loading: sfmsTeamAgentsLoading } = useSupabaseCollection('sfmsTeamAgents');
   const { items: teams, loading: teamsLoading } = useSupabaseCollection('sfmsTeams');
   const { items: leads, loading: leadsLoading } = useSupabaseCollection('sfmsLeads');
   const { items: meetings, loading: meetingsLoading } = useSupabaseCollection('sfmsMeetings');
   const { items: commissions, loading: commissionsLoading } = useSupabaseCollection('sfmsCommissions');
   const { items: finance, loading: financeLoading } = useSupabaseCollection('sfmsFinance');
 
-  const loading = agentLoading || teamsLoading || leadsLoading || meetingsLoading || commissionsLoading || financeLoading;
+  const loading = agentLoading || sfmsTeamAgentsLoading || teamsLoading || leadsLoading || meetingsLoading || commissionsLoading || financeLoading;
 
   const enrichedData = useMemo(() => {
     if (loading || !agent) return null;
 
-    const team = teams.find(t => t.id === agent.team_id);
-    const teamLeads = leads.filter(l => l.team_id === agent.team_id);
+    const agentTeamIds = sfmsTeamAgents.filter(ta => ta.agent_id === agent.id).map(ta => ta.team_id);
+    if (agentTeamIds.length === 0 && agent.team_id) agentTeamIds.push(agent.team_id);
+
+    const agentTeams = agentTeamIds.map(tid => teams.find(t => t.id === tid)).filter(Boolean);
+    const team_name = agentTeams.map(t => t.name).join(', ') || 'Unassigned';
+
+    const teamLeads = leads.filter(l => agentTeamIds.includes(l.team_id));
     const agentCommissions = commissions.filter(c => c.agent_id === agent.id);
-    
+
     const deals = teamLeads.filter(l => l.stage === 'Won').length;
     const teamFinance = finance.filter(f => teamLeads.some(l => l.id === f.lead_id));
     const revenue = teamFinance.reduce((sum, f) => sum + (Number(f.project_value) || 0), 0);
     const totalCommission = agentCommissions.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
-    const agentMeetings = meetings.filter(m => m.team_id === agent.team_id);
+    const agentMeetings = meetings.filter(m => agentTeamIds.includes(m.team_id));
 
     return {
-      team_name: team?.name || 'Unassigned',
+      team_name,
       stats: {
         meetings: agentMeetings.length,
         deals,
@@ -75,15 +81,15 @@ export default function AgentProfile() {
   return (
     <div className="space-y-6 pb-12">
       <div className="flex items-center gap-4">
-        <button 
+        <button
           onClick={() => navigate('/sfms/agents')}
           className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-neutral-100 transition-colors"
         >
           <ArrowLeftIcon className="h-5 w-5 text-neutral-600" />
         </button>
-      <div>
-        <h1 className="text-3xl font-bold text-neutral-900 mb-1">Agent Profile</h1>
-      </div>
+        <div>
+          <h1 className="text-3xl font-bold text-neutral-900 mb-1">Agent Profile</h1>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -95,7 +101,7 @@ export default function AgentProfile() {
             </div>
             <h2 className="text-xl font-bold text-neutral-900">{agent.name}</h2>
             <p className="text-sm text-neutral-500 font-medium mb-4">{enrichedData.team_name}</p>
-            
+
             <Badge tone={agent.status === 'active' ? 'success' : 'neutral'} className="mb-6">
               {agent.status === 'active' ? 'Active' : 'Inactive'}
             </Badge>

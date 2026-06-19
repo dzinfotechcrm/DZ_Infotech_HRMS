@@ -27,6 +27,7 @@ export default function Teams() {
   const [submitting, setSubmitting] = useState(false);
 
   const { items: teams, loading: teamsLoading, refetch: refetchTeams } = useSupabaseCollection('sfmsTeams');
+  const { items: sfmsTeamAgents, loading: sfmsTeamAgentsLoading, refetch: refetchTeamAgents } = useSupabaseCollection('sfmsTeamAgents');
   const { items: agents, loading: agentsLoading, refetch: refetchAgents } = useSupabaseCollection('sfmsAgents');
   const { items: leads, loading: leadsLoading } = useSupabaseCollection('sfmsLeads');
   const { items: finance, loading: financeLoading } = useSupabaseCollection('sfmsFinance');
@@ -35,21 +36,28 @@ export default function Teams() {
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   const watchAgent1 = watch('agent1_id');
   const watchAgent2 = watch('agent2_id');
+  const watchAgent3 = watch('agent3_id');
+  const watchAgent4 = watch('agent4_id');
 
-  const loading = teamsLoading || agentsLoading || leadsLoading || financeLoading || targetsLoading;
+  const loading = teamsLoading || sfmsTeamAgentsLoading || agentsLoading || leadsLoading || financeLoading || targetsLoading;
 
   const handleOpenModal = (team = null) => {
     if (team) {
       setEditingTeam(team);
-      const teamAgents = agents.filter(a => a.team_id === team.id);
+      let teamAgentIds = sfmsTeamAgents.filter(ta => ta.team_id === team.id).map(ta => ta.agent_id);
+      if (teamAgentIds.length === 0) {
+         teamAgentIds = agents.filter(a => a.team_id === team.id).map(a => a.id);
+      }
       setValue('name', team.name);
       setValue('status', team.status || 'active');
-      setValue('agent1_id', teamAgents[0]?.id || '');
-      setValue('agent2_id', teamAgents[1]?.id || '');
+      setValue('agent1_id', teamAgentIds[0] || '');
+      setValue('agent2_id', teamAgentIds[1] || '');
+      setValue('agent3_id', teamAgentIds[2] || '');
+      setValue('agent4_id', teamAgentIds[3] || '');
       setValue('leader_id', team.leader_id || '');
     } else {
       setEditingTeam(null);
-      reset({ name: '', status: 'active', agent1_id: '', agent2_id: '', leader_id: '' });
+      reset({ name: '', status: 'active', agent1_id: '', agent2_id: '', agent3_id: '', agent4_id: '', leader_id: '' });
     }
     setIsModalOpen(true);
   };
@@ -64,7 +72,7 @@ export default function Teams() {
     setSubmitting(true);
     try {
       let teamId = editingTeam?.id;
-      
+
       const teamPayload = {
         name: data.name,
         status: data.status,
@@ -80,21 +88,21 @@ export default function Teams() {
         teamId = newTeam.id;
       }
 
-      // Update agents team_id
-      // First, clear old assignments if editing
+      // Update team assignments
       if (editingTeam) {
-        await supabase.from('sfms_agents').update({ team_id: null }).eq('team_id', teamId);
+        await supabase.from('sfms_team_agents').delete().eq('team_id', teamId);
       }
-      
-      // Assign new agents
-      const agentIdsToUpdate = [data.agent1_id, data.agent2_id].filter(Boolean);
+
+      const agentIdsToUpdate = [data.agent1_id, data.agent2_id, data.agent3_id, data.agent4_id].filter(Boolean);
       if (agentIdsToUpdate.length > 0) {
-        await supabase.from('sfms_agents').update({ team_id: teamId }).in('id', agentIdsToUpdate);
+        const inserts = agentIdsToUpdate.map(aid => ({ team_id: teamId, agent_id: aid }));
+        await supabase.from('sfms_team_agents').insert(inserts);
       }
 
       toast.success(`Team ${editingTeam ? 'updated' : 'created'} successfully`);
       refetchTeams();
       refetchAgents();
+      refetchTeamAgents();
       handleCloseModal();
     } catch (err) {
       console.error(err);
@@ -107,15 +115,19 @@ export default function Teams() {
   const enrichedTeams = useMemo(() => {
     if (loading) return [];
     return teams.map(team => {
-      const teamAgents = agents.filter(a => a.team_id === team.id);
+      let teamAgentIds = sfmsTeamAgents.filter(ta => ta.team_id === team.id).map(ta => ta.agent_id);
+      if (teamAgentIds.length === 0) {
+         teamAgentIds = agents.filter(a => a.team_id === team.id).map(a => a.id);
+      }
+      const teamAgents = teamAgentIds.map(aid => agents.find(a => a.id === aid)).filter(Boolean);
       const teamLeads = leads.filter(l => l.team_id === team.id);
       const teamFinance = finance.filter(f => teamLeads.some(l => l.id === f.lead_id));
-      
+
       const wins = teamLeads.filter(l => l.stage === 'Won').length;
       const totalLeads = teamLeads.length;
       const conversionRate = totalLeads ? (wins / totalLeads) * 100 : 0;
       const revenue = teamFinance.reduce((sum, f) => sum + (Number(f.project_value) || 0), 0);
-      
+
       const activeTargets = targets.filter(t => t.team_id === team.id && t.type === 'Revenue' && new Date(t.deadline) >= new Date());
       const currentTarget = activeTargets.length > 0 ? activeTargets[0] : null;
       const targetPercent = currentTarget && currentTarget.target_value > 0 ? (revenue / currentTarget.target_value) * 100 : 0;
@@ -137,14 +149,28 @@ export default function Teams() {
     );
   }
 
-  // Agents available for assignment (not assigned to other teams, unless we are editing the team they are in)
-  const availableAgents = agents.filter(a => !a.team_id || (editingTeam && a.team_id === editingTeam.id));
-  const agentOptions = availableAgents.map(a => ({ value: a.id, label: `${a.name} (${a.city})` }));
-  
+  // Agents available for assignment (show all, so they can be reassigned)
+  const availableAgents = agents;
+  const agentOptions = availableAgents.map(a => {
+    let agentTeamIds = sfmsTeamAgents.filter(ta => ta.agent_id === a.id).map(ta => ta.team_id);
+    if (agentTeamIds.length === 0 && a.team_id) agentTeamIds.push(a.team_id);
+    const agentTeams = agentTeamIds.map(tid => teams.find(t => t.id === tid)).filter(Boolean);
+    const currentTeamNames = agentTeams.map(t => t.name).join(', ');
+    const teamLabel = currentTeamNames ? ` - ${currentTeamNames}` : '';
+    return { value: a.id, label: `${a.name} (${a.city})${teamLabel}` };
+  });
+
   const leaderOptions = [
     agents.find(a => a.id === watchAgent1),
-    agents.find(a => a.id === watchAgent2)
+    agents.find(a => a.id === watchAgent2),
+    agents.find(a => a.id === watchAgent3),
+    agents.find(a => a.id === watchAgent4)
   ].filter(Boolean).map(a => ({ value: a.id, label: a.name }));
+
+  const getDisabledFor = (currentFieldVal) => (opt) => {
+    const selectedVals = [watchAgent1, watchAgent2, watchAgent3, watchAgent4].filter(Boolean).map(String);
+    return selectedVals.includes(String(opt.value)) && String(opt.value) !== String(currentFieldVal);
+  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -252,20 +278,63 @@ export default function Teams() {
 
           <Select
             label="Agent 1"
-            options={[{ value: '', label: 'Select an agent...' }, ...agentOptions]}
-            {...register('agent1_id')}
+            options={[
+              { value: '', label: 'Select an agent...' },
+              ...agentOptions.map(opt => ({
+                ...opt,
+                disabled: getDisabledFor(watchAgent1)(opt)
+              }))
+            ]}
+            {...register('agent1_id', { required: 'Agent 1 is required' })}
+            value={watchAgent1}
+            error={errors.agent1_id?.message}
           />
 
           <Select
             label="Agent 2"
-            options={[{ value: '', label: 'Select an agent...' }, ...agentOptions]}
-            {...register('agent2_id')}
+            options={[
+              { value: '', label: 'Select an agent...' },
+              ...agentOptions.map(opt => ({
+                ...opt,
+                disabled: getDisabledFor(watchAgent2)(opt)
+              }))
+            ]}
+            {...register('agent2_id', { required: 'Agent 2 is required' })}
+            value={watchAgent2}
+            error={errors.agent2_id?.message}
+          />
+
+          <Select
+            label="Agent 3 (Optional)"
+            options={[
+              { value: '', label: 'Select an agent...' },
+              ...agentOptions.map(opt => ({
+                ...opt,
+                disabled: getDisabledFor(watchAgent3)(opt)
+              }))
+            ]}
+            {...register('agent3_id')}
+            value={watchAgent3}
+          />
+
+          <Select
+            label="Agent 4 (Optional)"
+            options={[
+              { value: '', label: 'Select an agent...' },
+              ...agentOptions.map(opt => ({
+                ...opt,
+                disabled: getDisabledFor(watchAgent4)(opt)
+              }))
+            ]}
+            {...register('agent4_id')}
+            value={watchAgent4}
           />
 
           <Select
             label="Team Leader"
             options={[{ value: '', label: 'Select leader...' }, ...leaderOptions]}
             {...register('leader_id')}
+            value={watch('leader_id')}
             disabled={leaderOptions.length === 0}
             helpText="Only selected agents can be the leader"
           />
@@ -277,6 +346,7 @@ export default function Teams() {
               { value: 'inactive', label: 'Inactive' }
             ]}
             {...register('status')}
+            value={watch('status')}
           />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100 mt-6">

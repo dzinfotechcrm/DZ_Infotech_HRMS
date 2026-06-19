@@ -29,17 +29,25 @@ export default function Meetings() {
   const [selectedMeeting, setSelectedMeeting] = useState(null);
 
   const { items: agents, loading: agentsLoading } = useSupabaseCollection('sfmsAgents');
+  const { items: sfmsTeamAgents, loading: sfmsTeamAgentsLoading } = useSupabaseCollection('sfmsTeamAgents');
   const { items: meetings, loading: meetingsLoading, refetch: refetchMeetings } = useSupabaseCollection('sfmsMeetings');
   const { items: leads, loading: leadsLoading, refetch: refetchLeads } = useSupabaseCollection('sfmsLeads');
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
-  const loading = meetingsLoading || leadsLoading || agentsLoading;
+  const loading = meetingsLoading || leadsLoading || agentsLoading || sfmsTeamAgentsLoading;
 
   const agentData = useMemo(() => {
     if (loading || !user?.email) return null;
     return agents.find(a => a.email?.toLowerCase() === user.email?.toLowerCase());
   }, [agents, user, loading]);
+
+  const agentTeamIds = useMemo(() => {
+    if (loading || !agentData) return [];
+    let tids = sfmsTeamAgents.filter(ta => ta.agent_id === agentData.id).map(ta => ta.team_id);
+    if (tids.length === 0 && agentData.team_id) tids.push(agentData.team_id);
+    return tids;
+  }, [sfmsTeamAgents, agentData, loading]);
 
   const handleOpenModal = () => {
     reset({ meeting_date: new Date().toISOString().split('T')[0], lead_id: '', person_met: '', designation: '', phone: '', email: '', discussion_summary: '', quotation_amount: '', negotiated_amount: '', outcome: 'Interested', follow_up_date: '', services_discussed: '' });
@@ -57,7 +65,7 @@ export default function Meetings() {
   };
 
   const onSubmit = async (data) => {
-    if (!agentData || !agentData.team_id) {
+    if (agentTeamIds.length === 0) {
       toast.error('You must be assigned to a team to log meetings.');
       return;
     }
@@ -65,21 +73,21 @@ export default function Meetings() {
     setSubmitting(true);
     try {
       const selectedLead = leads.find(l => l.id === data.lead_id);
-      
+
       const payload = {
         ...data,
-        team_id: agentData.team_id,
+        team_id: selectedLead?.team_id || agentTeamIds[0],
         services_discussed: data.services_discussed ? data.services_discussed.split(',').map(s => s.trim()) : [],
         quotation_amount: Number(data.quotation_amount) || 0,
         negotiated_amount: Number(data.negotiated_amount) || 0
       };
-      
+
       const { error } = await supabase.from('sfms_meetings').insert([payload]);
       if (error) throw error;
-      
+
       // Update lead interest level
       await supabase.from('sfms_leads').update({ interest_level: data.outcome }).eq('id', data.lead_id);
-      
+
       // Auto move stage if it was scheduled
       if (selectedLead && selectedLead.stage === 'Meeting Scheduled') {
         await supabase.from('sfms_leads').update({ stage: 'Meeting Completed' }).eq('id', data.lead_id);
@@ -99,10 +107,10 @@ export default function Meetings() {
   };
 
   const enrichedMeetings = useMemo(() => {
-    if (loading || !agentData) return [];
-    
-    const teamMeetings = meetings.filter(m => m.team_id === agentData.team_id);
-    
+    if (loading || agentTeamIds.length === 0) return [];
+
+    const teamMeetings = meetings.filter(m => agentTeamIds.includes(m.team_id));
+
     return teamMeetings.sort((a, b) => new Date(b.meeting_date) - new Date(a.meeting_date)).map(m => {
       const lead = leads.find(l => l.id === m.lead_id);
       return {
@@ -120,7 +128,7 @@ export default function Meetings() {
     );
   }
 
-  if (!agentData || !agentData.team_id) {
+  if (agentTeamIds.length === 0) {
     return (
       <div className="p-6">
         <Card className="p-12 text-center text-neutral-500">
@@ -131,7 +139,7 @@ export default function Meetings() {
   }
 
   // Only allow logging meetings for leads in the agent's team
-  const teamLeads = leads.filter(l => l.team_id === agentData.team_id);
+  const teamLeads = leads.filter(l => agentTeamIds.includes(l.team_id));
   const leadOptions = teamLeads.map(l => ({ value: l.id, label: l.company_name }));
 
   return (
@@ -163,8 +171,8 @@ export default function Meetings() {
             </thead>
             <tbody className="divide-y divide-neutral-50">
               {enrichedMeetings.map(meeting => (
-                <tr 
-                  key={meeting.id} 
+                <tr
+                  key={meeting.id}
                   className="hover:bg-neutral-50/50 cursor-pointer transition-colors"
                   onClick={() => handleViewMeeting(meeting)}
                 >
@@ -223,7 +231,7 @@ export default function Meetings() {
             <Input label="Phone" {...register('phone')} />
             <Input label="Email" type="email" {...register('email')} />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1">Discussion Summary</label>
             <textarea

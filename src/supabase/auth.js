@@ -64,6 +64,20 @@ export async function syncAuthenticatedUser(supabaseUser) {
     return null; // No employee record found
   }
 
+  // If role is agent, verify the agent still exists in sfms_agents
+  if (employeeSnap.role === 'agent') {
+    const { data: agentSnap } = await supabase
+      .from('sfms_agents')
+      .select('id')
+      .eq('id', employeeSnap.id)
+      .maybeSingle();
+
+    if (!agentSnap) {
+      // Agent was deleted from the database
+      return null;
+    }
+  }
+
   const userPayload = {
     id: supabaseUser.id,
     email: supabaseUser.email,

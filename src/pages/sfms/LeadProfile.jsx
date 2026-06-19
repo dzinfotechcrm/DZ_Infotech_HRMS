@@ -33,20 +33,21 @@ export default function LeadProfile() {
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [isLostModalOpen, setIsLostModalOpen] = useState(false);
   const [isWonModalOpen, setIsWonModalOpen] = useState(false);
-  
+
   const { item: lead, loading: leadLoading, refetch: refetchLead } = useSupabaseDocument('sfms_leads', id);
   const { items: teams, loading: teamsLoading } = useSupabaseCollection('sfmsTeams');
   const { items: meetings, loading: meetingsLoading, refetch: refetchMeetings } = useSupabaseCollection('sfmsMeetings');
   const { items: timeline, loading: timelineLoading, refetch: refetchTimeline } = useSupabaseCollection('sfmsLeadTimeline');
+  const { items: sfmsTeamAgents, loading: sfmsTeamAgentsLoading } = useSupabaseCollection('sfmsTeamAgents');
   const { items: agents } = useSupabaseCollection('sfmsAgents');
 
   const { register: registerLost, handleSubmit: handleLostSubmit } = useForm();
   const { register: registerWon, handleSubmit: handleWonSubmit } = useForm();
   const { register: registerMeeting, handleSubmit: handleMeetingSubmit, reset: resetMeeting } = useForm();
-  
+
   const [interestLevel, setInterestLevel] = useState('');
 
-  const loading = leadLoading || teamsLoading || meetingsLoading || timelineLoading;
+  const loading = leadLoading || teamsLoading || meetingsLoading || timelineLoading || sfmsTeamAgentsLoading;
 
   const currentStageIndex = STAGES.indexOf(lead?.stage || 'Assigned');
 
@@ -59,7 +60,7 @@ export default function LeadProfile() {
       setIsWonModalOpen(true);
       return;
     }
-    
+
     await updateStage(newStage);
   };
 
@@ -68,13 +69,13 @@ export default function LeadProfile() {
     try {
       const { error } = await supabase.from('sfms_leads').update({ stage: newStage, ...additionalData }).eq('id', id);
       if (error) throw error;
-      
+
       await supabase.from('sfms_lead_timeline').insert([{
         lead_id: id,
         stage: newStage,
         changed_by: 'User'
       }]);
-      
+
       toast.success(`Stage updated to ${newStage}`);
       refetchLead();
       refetchTimeline();
@@ -97,7 +98,7 @@ export default function LeadProfile() {
       if (data.advance_paid === 'yes') {
         // Create client + project + finance + commissions
         // Note: For simplicity and speed in this demo, we'll assume the tables exist as specified
-        
+
         // 1. Convert Lead
         await supabase.from('sfms_leads').update({ stage: 'Won', advance_paid: true, closed_by: data.closed_by }).eq('id', id);
         await supabase.from('sfms_lead_timeline').insert([{ lead_id: id, stage: 'Won', changed_by: 'User' }]);
@@ -106,7 +107,7 @@ export default function LeadProfile() {
         const projectValue = Number(data.project_value) || 0;
         const advanceReceived = Number(data.advance_received) || 0;
         const remainingAmount = projectValue - advanceReceived;
-        
+
         await supabase.from('sfms_finance').insert([{
           lead_id: id,
           project_value: projectValue,
@@ -117,12 +118,15 @@ export default function LeadProfile() {
 
         // 3. Commissions Entry
         if (data.closed_by === 'Team' && lead.team_id) {
-          const teamAgents = agents.filter(a => a.team_id === lead.team_id);
-          if (teamAgents.length > 0) {
-            const commissionAmount = (advanceReceived * 0.1) / teamAgents.length;
-            const commissionEntries = teamAgents.map(a => ({
+          let teamAgentIds = sfmsTeamAgents.filter(ta => ta.team_id === lead.team_id).map(ta => ta.agent_id);
+          if (teamAgentIds.length === 0) {
+             teamAgentIds = agents.filter(a => a.team_id === lead.team_id).map(a => a.id);
+          }
+          if (teamAgentIds.length > 0) {
+            const commissionAmount = (advanceReceived * 0.1) / teamAgentIds.length;
+            const commissionEntries = teamAgentIds.map(aid => ({
               lead_id: id,
-              agent_id: a.id,
+              agent_id: aid,
               type: 'Advance',
               amount: commissionAmount,
               status: 'Generated'
@@ -130,12 +134,15 @@ export default function LeadProfile() {
             await supabase.from('sfms_commissions').insert(commissionEntries);
           }
         } else if (data.closed_by === 'Founder' && lead.team_id) {
-          const teamAgents = agents.filter(a => a.team_id === lead.team_id);
-          if (teamAgents.length > 0) {
-            const commissionAmount = (projectValue * 0.1) / teamAgents.length;
-            const commissionEntries = teamAgents.map(a => ({
+          let teamAgentIds = sfmsTeamAgents.filter(ta => ta.team_id === lead.team_id).map(ta => ta.agent_id);
+          if (teamAgentIds.length === 0) {
+             teamAgentIds = agents.filter(a => a.team_id === lead.team_id).map(a => a.id);
+          }
+          if (teamAgentIds.length > 0) {
+            const commissionAmount = (projectValue * 0.1) / teamAgentIds.length;
+            const commissionEntries = teamAgentIds.map(aid => ({
               lead_id: id,
-              agent_id: a.id,
+              agent_id: aid,
               type: 'Final',
               amount: commissionAmount,
               status: 'Generated'
@@ -170,13 +177,13 @@ export default function LeadProfile() {
         quotation_amount: Number(data.quotation_amount) || 0,
         negotiated_amount: Number(data.negotiated_amount) || 0
       };
-      
+
       const { error } = await supabase.from('sfms_meetings').insert([payload]);
       if (error) throw error;
-      
+
       // Update interest level
       await supabase.from('sfms_leads').update({ interest_level: data.outcome }).eq('id', id);
-      
+
       // Auto move stage if it was scheduled
       if (lead.stage === 'Meeting Scheduled') {
         await updateStage('Meeting Completed');
@@ -230,7 +237,7 @@ export default function LeadProfile() {
   return (
     <div className="space-y-6 pb-12">
       <div className="flex items-center gap-4">
-        <button 
+        <button
           onClick={() => navigate('/sfms/leads')}
           className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-neutral-100 transition-colors"
         >
@@ -249,7 +256,7 @@ export default function LeadProfile() {
             const isCompleted = STAGES.indexOf(lead.stage) >= idx;
             const isCurrent = lead.stage === stage;
             const isLost = lead.stage === 'Lost';
-            
+
             let colorClass = 'text-neutral-400 bg-neutral-100';
             if (isCurrent) {
               colorClass = isLost ? 'text-white bg-rose-500' : 'text-white bg-primary-600';
@@ -269,7 +276,7 @@ export default function LeadProfile() {
             );
           })}
         </div>
-        
+
         <div className="mt-8 flex justify-end gap-3">
           {lead.stage !== 'Won' && lead.stage !== 'Lost' && (
             <>
@@ -323,7 +330,7 @@ export default function LeadProfile() {
                 </div>
                 <div className="flex justify-between items-center text-sm pt-2">
                   <span className="text-neutral-500">Interest</span>
-                  <select 
+                  <select
                     value={lead.interest_level}
                     onChange={(e) => updateInterestLevel(e.target.value)}
                     className="text-xs rounded-md border-neutral-200 py-1 pl-2 pr-6"
@@ -344,14 +351,14 @@ export default function LeadProfile() {
                 ))}
               </div>
             </div>
-            
+
             {lead.notes && (
               <div className="border-t border-neutral-100 pt-6">
                 <h3 className="text-sm font-bold text-neutral-400 tracking-wider mb-3">NOTES</h3>
                 <p className="text-sm text-neutral-600 whitespace-pre-wrap">{lead.notes}</p>
               </div>
             )}
-            
+
             {lead.stage === 'Lost' && (
               <div className="border-t border-neutral-100 pt-6">
                 <Badge tone="danger" className="w-full justify-center">Lost Reason: {lead.lost_reason}</Badge>
@@ -446,7 +453,7 @@ export default function LeadProfile() {
           <div className="p-4 bg-emerald-50 text-emerald-800 rounded-xl text-sm font-medium mb-4">
             Congratulations on winning this deal! Please fill in the details to generate commissions and finance records.
           </div>
-          
+
           <Select
             label="Has the client paid advance?"
             options={[
@@ -455,7 +462,7 @@ export default function LeadProfile() {
             ]}
             {...registerWon('advance_paid', { required: true })}
           />
-          
+
           <Select
             label="Closed By"
             options={[
@@ -471,7 +478,7 @@ export default function LeadProfile() {
             {...registerWon('project_value', { required: true })}
             defaultValue={lead.expected_revenue}
           />
-          
+
           <Input
             label="Advance Received (₹)"
             type="number"
@@ -500,7 +507,7 @@ export default function LeadProfile() {
             <Input label="Phone" {...registerMeeting('phone')} defaultValue={lead.phone} />
             <Input label="Email" type="email" {...registerMeeting('email')} defaultValue={lead.email} />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1">Discussion Summary</label>
             <textarea

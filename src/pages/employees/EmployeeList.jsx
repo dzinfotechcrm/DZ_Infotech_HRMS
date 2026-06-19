@@ -1259,7 +1259,13 @@ export default function EmployeeList() {
       // Find current logged in employee's record to get their department
       const currentEmployee = employees.find((e) => e.uid === user?.uid || e.email === user?.email);
 
-      let filtered = employees.filter((emp) => emp.designation?.toLowerCase() !== 'admin' && emp.role !== 'admin');
+      let filtered = employees.filter((emp) => 
+        emp.designation?.toLowerCase() !== 'admin' && 
+        emp.role !== 'admin' &&
+        emp.role?.toLowerCase() !== 'agent' &&
+        emp.designation?.toLowerCase() !== 'agent' &&
+        emp.designation?.toLowerCase() !== 'field agent'
+      );
 
       // If user is not an admin, only show employees from their department
       if (!isAdminLike(user?.role) && currentEmployee?.departmentId) {

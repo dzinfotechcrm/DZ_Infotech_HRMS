@@ -24,7 +24,7 @@ const formatCurrency = (value) => {
 };
 
 const SERVICES_LIST = [
-  'Static Website', 'Dynamic Website', 'Ecommerce Website', 
+  'Static Website', 'Dynamic Website', 'Ecommerce Website',
   'CRM', 'ERP', 'AI Chatbot', 'AI Automation', 'ConTrack'
 ];
 
@@ -48,16 +48,18 @@ export default function MyLeads() {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState('');
 
   const { items: agents, loading: agentsLoading } = useSupabaseCollection('sfmsAgents');
+  const { items: sfmsTeamAgents, loading: sfmsTeamAgentsLoading } = useSupabaseCollection('sfmsTeamAgents');
+  const { items: teams, loading: teamsLoading } = useSupabaseCollection('sfmsTeams');
   const { items: leads, loading: leadsLoading, refetch: refetchLeads } = useSupabaseCollection('sfmsLeads');
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
-  
+
   const selectedServices = watch('services_interested') || [];
 
   const handleToggleService = (service) => {
@@ -68,18 +70,25 @@ export default function MyLeads() {
     }
   };
 
-  const loading = leadsLoading || agentsLoading;
+  const loading = leadsLoading || agentsLoading || sfmsTeamAgentsLoading || teamsLoading;
 
   const agentData = useMemo(() => {
     if (loading || !user?.email) return null;
     return agents.find(a => a.email?.toLowerCase() === user.email?.toLowerCase());
   }, [agents, user, loading]);
 
+  const agentTeamIds = useMemo(() => {
+    if (loading || !agentData) return [];
+    let tids = sfmsTeamAgents.filter(ta => ta.agent_id === agentData.id).map(ta => ta.team_id);
+    if (tids.length === 0 && agentData.team_id) tids.push(agentData.team_id);
+    return tids;
+  }, [sfmsTeamAgents, agentData, loading]);
+
   const handleOpenModal = () => {
-    reset({ 
-      company_name: '', contact_person: '', phone: '', email: '', 
-      address: '', industry: '', lead_source: '', expected_revenue: '', 
-      services_interested: [], notes: '' 
+    reset({
+      company_name: '', contact_person: '', phone: '', email: '',
+      address: '', industry: '', lead_source: '', expected_revenue: '',
+      services_interested: [], notes: '', team_id: agentTeamIds[0] || ''
     });
     setIsModalOpen(true);
   };
@@ -90,22 +99,22 @@ export default function MyLeads() {
   };
 
   const onSubmit = async (data) => {
-    if (!agentData || !agentData.team_id) {
+    if (agentTeamIds.length === 0) {
       toast.error('You must be assigned to a team to create leads.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const payload = { 
-        ...data, 
-        team_id: agentData.team_id,
+      const payload = {
+        ...data,
+        team_id: data.team_id || agentTeamIds[0],
         expected_revenue: Number(data.expected_revenue) || 0
       };
-      
+
       const { data: newLead, error } = await supabase.from('sfms_leads').insert([payload]).select().single();
       if (error) throw error;
-      
+
       // Log timeline
       await supabase.from('sfms_lead_timeline').insert([{
         lead_id: newLead.id,
@@ -125,10 +134,10 @@ export default function MyLeads() {
   };
 
   const filteredLeads = useMemo(() => {
-    if (loading || !agentData) return [];
-    
+    if (loading || agentTeamIds.length === 0) return [];
+
     // Only show leads assigned to the agent's team
-    let result = leads.filter(l => l.team_id === agentData.team_id);
+    let result = leads.filter(l => agentTeamIds.includes(l.team_id));
 
     if (stageFilter) {
       result = result.filter(l => l.stage === stageFilter);
@@ -136,7 +145,7 @@ export default function MyLeads() {
 
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
-      result = result.filter(l => 
+      result = result.filter(l =>
         (l.company_name && l.company_name.toLowerCase().includes(lower)) ||
         (l.contact_person && l.contact_person.toLowerCase().includes(lower)) ||
         (l.phone && l.phone.includes(lower))
@@ -154,7 +163,7 @@ export default function MyLeads() {
     );
   }
 
-  if (!agentData || !agentData.team_id) {
+  if (agentTeamIds.length === 0) {
     return (
       <div className="p-6">
         <Card className="p-12 text-center text-neutral-500">
@@ -214,8 +223,8 @@ export default function MyLeads() {
             <tbody className="divide-y divide-neutral-50">
               {filteredLeads.map(lead => {
                 return (
-                  <tr 
-                    key={lead.id} 
+                  <tr
+                    key={lead.id}
                     className="hover:bg-neutral-50/50 cursor-pointer transition-colors"
                     onClick={() => navigate(`/sfms/leads/${lead.id}`)}
                   >
@@ -267,6 +276,20 @@ export default function MyLeads() {
 
       <Modal open={isModalOpen} onClose={handleCloseModal} title="New Lead" className="max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {agentTeamIds.length > 1 && (
+            <Select
+              label="Assign to Team"
+              options={[
+                ...agentTeamIds.map(tid => {
+                  const t = teams.find(team => team.id === tid);
+                  return { value: tid, label: t?.name || 'Unknown Team' };
+                })
+              ]}
+              {...register('team_id')}
+              defaultValue={agentTeamIds[0]}
+            />
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Company Name"
@@ -278,7 +301,7 @@ export default function MyLeads() {
               {...register('contact_person')}
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Phone"
@@ -330,11 +353,10 @@ export default function MyLeads() {
                     key={service}
                     type="button"
                     onClick={() => handleToggleService(service)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-                      isSelected 
-                        ? 'bg-primary-50 border-primary-500 text-primary-700' 
+                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${isSelected
+                        ? 'bg-primary-50 border-primary-500 text-primary-700'
                         : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                    }`}
+                      }`}
                   >
                     {service}
                   </button>

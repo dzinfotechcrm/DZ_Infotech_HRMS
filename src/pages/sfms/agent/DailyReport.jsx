@@ -55,10 +55,10 @@ export default function DailyReport() {
         challenges_faced: data.challenges_faced || '',
         tomorrows_plan: data.tomorrows_plan || ''
       };
-      
+
       const { error } = await supabase.from('sfms_daily_reports').insert([payload]);
       if (error) throw error;
-      
+
       toast.success('Report submitted successfully');
       reset();
       refetchReports();
@@ -90,10 +90,10 @@ export default function DailyReport() {
 
   return (
     <div className="space-y-6 pb-12">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-1">Daily Report</h1>
-          <p className="text-sm text-neutral-500">Submit your end of day report.</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-neutral-900 mb-1">Daily Report</h1>
+        <p className="text-sm text-neutral-500">Submit your end of day report.</p>
+      </div>
 
       <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
         {/* Submit Form */}
@@ -104,35 +104,35 @@ export default function DailyReport() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <Input 
-                  label="Meetings Completed" 
-                  type="number" 
+                <Input
+                  label="Meetings Completed"
+                  type="number"
                   min="0"
-                  {...register('meetings_completed', { required: true })} 
+                  {...register('meetings_completed', { required: true })}
                 />
-                <Input 
-                  label="Interested Leads" 
-                  type="number" 
+                <Input
+                  label="Interested Leads"
+                  type="number"
                   min="0"
-                  {...register('interested_leads')} 
+                  {...register('interested_leads')}
                 />
-                <Input 
-                  label="Very Interested" 
-                  type="number" 
+                <Input
+                  label="Very Interested"
+                  type="number"
                   min="0"
-                  {...register('very_interested_leads')} 
+                  {...register('very_interested_leads')}
                 />
-                <Input 
-                  label="Follow Ups Scheduled" 
-                  type="number" 
+                <Input
+                  label="Follow Ups Scheduled"
+                  type="number"
                   min="0"
-                  {...register('follow_ups_scheduled')} 
+                  {...register('follow_ups_scheduled')}
                 />
-                <Input 
-                  label="Expected Revenue (₹)" 
-                  type="number" 
+                <Input
+                  label="Expected Revenue (₹)"
+                  type="number"
                   min="0"
-                  {...register('expected_revenue')} 
+                  {...register('expected_revenue')}
                 />
               </div>
 
