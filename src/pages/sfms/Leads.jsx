@@ -13,6 +13,7 @@ import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { supabase } from '../../supabase/config';
+import SfmsLeadsBoard from '../../components/sfms/SfmsLeadsBoard';
 
 const formatCurrency = (value) => {
   if (!value) return '₹0';
@@ -23,7 +24,7 @@ const formatCurrency = (value) => {
 };
 
 const SERVICES_LIST = [
-  'Static Website', 'Dynamic Website', 'Ecommerce Website', 
+  'Static Website', 'Dynamic Website', 'Ecommerce Website',
   'CRM', 'ERP', 'AI Chatbot', 'AI Automation', 'ConTrack'
 ];
 
@@ -45,19 +46,20 @@ const getInterestTone = (interest) => {
 export default function Leads() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingLeadId, setEditingLeadId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [stageFilter, setStageFilter] = useState('');
-  const [teamFilter, setTeamFilter] = useState('');
 
   const { items: leads, loading: leadsLoading, refetch: refetchLeads } = useSupabaseCollection('sfmsLeads');
   const { items: teams, loading: teamsLoading } = useSupabaseCollection('sfmsTeams');
+  const { items: agents, loading: agentsLoading } = useSupabaseCollection('sfmsAgents');
+  const { items: meetings, loading: meetingsLoading } = useSupabaseCollection('sfmsMeetings');
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
-  
+
   const selectedServices = watch('services_interested') || [];
+  const watchedStage = watch('stage');
+  const watchedSource = watch('lead_source');
+  const watchedAssignTo = watch('assign_to');
 
   const handleToggleService = (service) => {
     if (selectedServices.includes(service)) {
@@ -67,42 +69,75 @@ export default function Leads() {
     }
   };
 
-  const loading = leadsLoading || teamsLoading;
+  const loading = leadsLoading || teamsLoading || agentsLoading || meetingsLoading;
 
-  const handleOpenModal = () => {
-    reset({ 
-      company_name: '', contact_person: '', phone: '', email: '', 
-      address: '', industry: '', lead_source: '', expected_revenue: '', 
-      team_id: '', services_interested: [], notes: '' 
-    });
+  const handleOpenModal = (lead = null) => {
+    if (lead && lead.id) {
+      setEditingLeadId(lead.id);
+      reset({
+        company_name: lead.company_name || '',
+        contact_person: lead.contact_person || '',
+        phone: lead.phone || '',
+        email: lead.email || '',
+        address: lead.address || '',
+        industry: lead.industry || '',
+        lead_source: lead.lead_source || '',
+        expected_revenue: lead.expected_revenue || '',
+        assign_to: lead.agent_id ? `agent_${lead.agent_id}` : (lead.team_id ? `team_${lead.team_id}` : ''),
+        services_interested: lead.services_interested || [],
+        notes: lead.notes || '',
+        stage: lead.stage || 'Assigned'
+      });
+    } else {
+      setEditingLeadId(null);
+      reset({
+        company_name: '', contact_person: '', phone: '', email: '',
+        address: '', industry: '', lead_source: '', expected_revenue: '',
+        assign_to: '', services_interested: [], notes: '', stage: 'Assigned'
+      });
+    }
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setEditingLeadId(null);
     reset();
   };
 
   const onSubmit = async (data) => {
     setSubmitting(true);
     try {
-      const payload = { 
-        ...data, 
-        team_id: data.team_id || null,
+      let team_id = null;
+      let agent_id = null;
+      if (data.assign_to?.startsWith('team_')) team_id = data.assign_to.replace('team_', '');
+      if (data.assign_to?.startsWith('agent_')) agent_id = data.assign_to.replace('agent_', '');
+
+      const payload = {
+        ...data,
+        team_id,
+        agent_id,
         expected_revenue: Number(data.expected_revenue) || 0
       };
-      
-      const { data: newLead, error } = await supabase.from('sfms_leads').insert([payload]).select().single();
-      if (error) throw error;
-      
-      // Log timeline
-      await supabase.from('sfms_lead_timeline').insert([{
-        lead_id: newLead.id,
-        stage: 'Assigned',
-        changed_by: 'System'
-      }]);
+      delete payload.assign_to;
 
-      toast.success('Lead created successfully');
+      if (editingLeadId) {
+        const { error } = await supabase.from('sfms_leads').update(payload).eq('id', editingLeadId);
+        if (error) throw error;
+        toast.success('Lead updated successfully');
+      } else {
+        const { data: newLead, error } = await supabase.from('sfms_leads').insert([payload]).select().single();
+        if (error) throw error;
+
+        // Log timeline
+        await supabase.from('sfms_lead_timeline').insert([{
+          lead_id: newLead.id,
+          stage: data.stage || 'Assigned',
+          changed_by: 'System'
+        }]);
+        toast.success('Lead created successfully');
+      }
+
       refetchLeads();
       handleCloseModal();
     } catch (err) {
@@ -113,29 +148,23 @@ export default function Leads() {
     }
   };
 
-  const filteredLeads = useMemo(() => {
-    if (loading) return [];
-    let result = leads;
-
-    if (stageFilter) {
-      result = result.filter(l => l.stage === stageFilter);
+  const handleStageChange = async (leadId, newStage) => {
+    try {
+      await supabase.from('sfms_leads').update({ stage: newStage }).eq('id', leadId);
+      
+      // Log timeline
+      await supabase.from('sfms_lead_timeline').insert([{
+        lead_id: leadId,
+        stage: newStage,
+        changed_by: 'System (Kanban)'
+      }]);
+      
+      toast.success(`Moved to ${newStage}`);
+      refetchLeads();
+    } catch (err) {
+      toast.error('Failed to update stage');
     }
-
-    if (teamFilter) {
-      result = result.filter(l => l.team_id === teamFilter);
-    }
-
-    if (searchTerm) {
-      const lower = searchTerm.toLowerCase();
-      result = result.filter(l => 
-        (l.company_name && l.company_name.toLowerCase().includes(lower)) ||
-        (l.contact_person && l.contact_person.toLowerCase().includes(lower)) ||
-        (l.phone && l.phone.includes(lower))
-      );
-    }
-
-    return result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }, [leads, stageFilter, teamFilter, searchTerm, loading]);
+  };
 
   if (loading) {
     return (
@@ -145,116 +174,22 @@ export default function Leads() {
     );
   }
 
-  const teamOptions = teams.map(t => ({ value: t.id, label: t.name }));
+  const teamOptions = teams.map(t => ({ value: `team_${t.id}`, label: `Team: ${t.name}` }));
+  const agentOptions = agents.map(a => ({ value: `agent_${a.id}`, label: `Agent: ${a.name}` }));
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-1">{`Leads (${filteredLeads.length})`}</h1>
-        </div>
-        <Button onClick={handleOpenModal} className="flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
-          <span>New Lead</span>
-        </Button>
-      </div>
+    <>
+      <SfmsLeadsBoard 
+        leads={leads}
+        teams={teams}
+        agents={agents}
+        meetings={meetings}
+        onLeadClick={handleOpenModal}
+        onNewLead={() => handleOpenModal()}
+        onStageChange={handleStageChange}
+      />
 
-      <Card className="p-4 space-y-4 mb-6">
-        <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto]">
-          <div className="relative">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-            <Input
-              className="pl-10"
-              placeholder="Search leads..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
-            <option value="">All Stages</option>
-            {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-          </Select>
-          <Select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
-            <option value="">All Teams</option>
-            {teamOptions.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </Select>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => { setSearchTerm(''); setStageFilter(''); setTeamFilter(''); }}>Reset</Button>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50/50 text-neutral-500">
-                <th className="px-4 py-3 font-medium">COMPANY</th>
-                <th className="px-4 py-3 font-medium">CONTACT</th>
-                <th className="px-4 py-3 font-medium">TEAM</th>
-                <th className="px-4 py-3 font-medium">SERVICES</th>
-                <th className="px-4 py-3 font-medium">STAGE</th>
-                <th className="px-4 py-3 font-medium">INTEREST</th>
-                <th className="px-4 py-3 font-medium text-right">EXPECTED REV</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-50">
-              {filteredLeads.map(lead => {
-                const team = teams.find(t => t.id === lead.team_id);
-                return (
-                  <tr 
-                    key={lead.id} 
-                    className="hover:bg-neutral-50/50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/sfms/leads/${lead.id}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-neutral-900">{lead.company_name}</div>
-                      <div className="text-xs text-neutral-500">{lead.industry} • {lead.lead_source}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-neutral-900">{lead.contact_person}</div>
-                      <div className="text-xs text-neutral-500">{lead.phone}</div>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-neutral-700">{team?.name || 'Unassigned'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {(lead.services_interested || []).slice(0, 2).map((s, idx) => (
-                          <span key={idx} className="inline-flex items-center rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600">
-                            {s}
-                          </span>
-                        ))}
-                        {(lead.services_interested || []).length > 2 && (
-                          <span className="inline-flex items-center rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600">
-                            +{(lead.services_interested.length - 2)}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={getStageTone(lead.stage)}>{lead.stage}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={getInterestTone(lead.interest_level)}>{lead.interest_level}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-neutral-900">
-                      {formatCurrency(lead.expected_revenue)}
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredLeads.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-neutral-400">
-                    No leads found matching your criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <Modal open={isModalOpen} onClose={handleCloseModal} title="New Lead" className="max-w-2xl">
+      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingLeadId ? "Edit Lead" : "New Lead"} className="max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -267,7 +202,7 @@ export default function Leads() {
               {...register('contact_person')}
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Phone"
@@ -285,7 +220,7 @@ export default function Leads() {
             {...register('address')}
           />
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <Input
               label="Industry"
               {...register('industry')}
@@ -300,20 +235,30 @@ export default function Leads() {
                 { value: 'Website', label: 'Website' },
                 { value: 'Social Media', label: 'Social Media' }
               ]}
+              value={watchedSource}
               {...register('lead_source')}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <Select
+              label="Lead Status"
+              options={STAGES.map(s => ({ value: s, label: s }))}
+              value={watchedStage}
+              {...register('stage')}
             />
             <Input
               label="Expected Rev (₹)"
               type="number"
               {...register('expected_revenue')}
             />
+            <Select
+              label="Assign To"
+              options={[{ value: '', label: 'Select team or agent...' }, ...teamOptions, ...agentOptions]}
+              value={watchedAssignTo}
+              {...register('assign_to')}
+            />
           </div>
-
-          <Select
-            label="Assign Team"
-            options={[{ value: '', label: 'Select team...' }, ...teamOptions]}
-            {...register('team_id')}
-          />
 
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-2">Services Interested</label>
@@ -325,11 +270,10 @@ export default function Leads() {
                     key={service}
                     type="button"
                     onClick={() => handleToggleService(service)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-                      isSelected 
-                        ? 'bg-primary-50 border-primary-500 text-primary-700' 
+                    className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${isSelected
+                        ? 'bg-primary-50 border-primary-500 text-primary-700'
                         : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                    }`}
+                      }`}
                   >
                     {service}
                   </button>
@@ -349,10 +293,10 @@ export default function Leads() {
 
           <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100 mt-6">
             <Button type="button" variant="outline" onClick={handleCloseModal}>Cancel</Button>
-            <Button type="submit" loading={submitting}>Create Lead</Button>
+            <Button type="submit" loading={submitting}>{editingLeadId ? "Update Lead" : "Create Lead"}</Button>
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 }

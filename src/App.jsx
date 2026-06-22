@@ -121,10 +121,11 @@ export default function App() {
           <Route path="sfms/commissions" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsCommissions /></ProtectedRoute>} />
           <Route path="sfms/finance" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsFinance /></ProtectedRoute>} />
           <Route path="sfms/reports" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsReports /></ProtectedRoute>} />
-          
+
           {/* Agent Routes */}
           <Route path="my-day" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentMyDay /></ProtectedRoute>} />
           <Route path="my-leads" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentMyLeads /></ProtectedRoute>} />
+          <Route path="my-leads/:id" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><SfmsLeadProfile isAgent={true} /></ProtectedRoute>} />
           <Route path="my-meetings" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentMeetings /></ProtectedRoute>} />
           <Route path="daily-report" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentDailyReport /></ProtectedRoute>} />
           <Route path="my-commissions" element={<ProtectedRoute allowedRoles={PERMISSIONS.sfmsAgent}><AgentMyCommissions /></ProtectedRoute>} />

@@ -27,13 +27,14 @@ export default function Targets() {
 
   const { items: targets, loading: targetsLoading, refetch: refetchTargets } = useSupabaseCollection('sfmsTargets');
   const { items: teams, loading: teamsLoading } = useSupabaseCollection('sfmsTeams');
+  const { items: agents, loading: agentsLoading } = useSupabaseCollection('sfmsAgents');
   const { items: leads, loading: leadsLoading } = useSupabaseCollection('sfmsLeads');
   const { items: meetings, loading: meetingsLoading } = useSupabaseCollection('sfmsMeetings');
   const { items: finance, loading: financeLoading } = useSupabaseCollection('sfmsFinance');
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
   
-  const loading = targetsLoading || teamsLoading || leadsLoading || meetingsLoading || financeLoading;
+  const loading = targetsLoading || teamsLoading || agentsLoading || leadsLoading || meetingsLoading || financeLoading;
 
   const durationDays = watch('duration_days');
   const startDate = watch('start_date');
@@ -48,7 +49,7 @@ export default function Targets() {
   }, [startDate, durationDays, setValue]);
 
   const handleOpenModal = () => {
-    reset({ team_id: '', type: 'Revenue', target_value: '', duration_days: '30', start_date: new Date().toISOString().split('T')[0], deadline: '', bonus_amount: '' });
+    reset({ assignee: '', type: 'Revenue', target_value: '', duration_days: '30', start_date: new Date().toISOString().split('T')[0], deadline: '', bonus_amount: '' });
     setIsModalOpen(true);
   };
 
@@ -60,11 +61,23 @@ export default function Targets() {
   const onSubmit = async (data) => {
     setSubmitting(true);
     try {
+      let team_id = null;
+      let agent_id = null;
+      if (data.assignee?.startsWith('team_')) {
+        team_id = data.assignee.replace('team_', '');
+      } else if (data.assignee?.startsWith('agent_')) {
+        agent_id = data.assignee.replace('agent_', '');
+      }
+
       const payload = {
-        ...data,
+        team_id,
+        agent_id,
+        type: data.type,
         target_value: Number(data.target_value) || 0,
         duration_days: Number(data.duration_days) || 0,
         bonus_amount: Number(data.bonus_amount) || 0,
+        start_date: data.start_date,
+        deadline: data.deadline,
       };
       
       const { error } = await supabase.from('sfms_targets').insert([payload]);
@@ -88,18 +101,26 @@ export default function Targets() {
     
     return targets.map(target => {
       const team = teams.find(t => t.id === target.team_id);
+      const agent = agents.find(a => a.id === target.agent_id);
+      const assigneeName = agent ? agent.name : (team ? team.name : 'Unassigned');
       
-      const teamLeads = leads.filter(l => l.team_id === target.team_id && new Date(l.created_at) >= new Date(target.start_date));
-      const teamMeetings = meetings.filter(m => m.team_id === target.team_id && new Date(m.meeting_date) >= new Date(target.start_date));
-      const teamFinance = finance.filter(f => teamLeads.some(l => l.id === f.lead_id));
+      const targetLeads = leads.filter(l => 
+        ((target.team_id && l.team_id === target.team_id) || (target.agent_id && l.agent_id === target.agent_id)) 
+        && new Date(l.created_at) >= new Date(target.start_date)
+      );
+      const targetMeetings = meetings.filter(m => 
+        ((target.team_id && m.team_id === target.team_id) || (target.agent_id && m.agent_id === target.agent_id)) 
+        && new Date(m.meeting_date) >= new Date(target.start_date)
+      );
+      const targetFinance = finance.filter(f => targetLeads.some(l => l.id === f.lead_id));
       
       let currentValue = 0;
       if (target.type === 'Revenue') {
-        currentValue = teamFinance.reduce((sum, f) => sum + (Number(f.project_value) || 0), 0);
+        currentValue = targetFinance.reduce((sum, f) => sum + (Number(f.project_value) || 0), 0);
       } else if (target.type === 'Client') {
-        currentValue = teamLeads.filter(l => l.stage === 'Won').length;
+        currentValue = targetLeads.filter(l => l.stage === 'Won').length;
       } else if (target.type === 'Meeting') {
-        currentValue = teamMeetings.length;
+        currentValue = targetMeetings.length;
       }
 
       const progressPercent = target.target_value > 0 ? (currentValue / target.target_value) * 100 : 0;
@@ -131,7 +152,7 @@ export default function Targets() {
 
       return {
         ...target,
-        team_name: team?.name || 'Unassigned',
+        assigneeName,
         currentValue,
         progressPercent: Math.min(progressPercent, 100),
         daysLeft,
@@ -139,7 +160,7 @@ export default function Targets() {
         bonusStatus
       };
     }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }, [targets, teams, leads, meetings, finance, loading]);
+  }, [targets, teams, agents, leads, meetings, finance, loading]);
 
   if (loading) {
     return (
@@ -149,7 +170,9 @@ export default function Targets() {
     );
   }
 
-  const teamOptions = teams.map(t => ({ value: t.id, label: t.name }));
+  const teamOptions = teams.map(t => ({ value: `team_${t.id}`, label: `Team: ${t.name}` }));
+  const agentOptions = agents.map(a => ({ value: `agent_${a.id}`, label: `Agent: ${a.name}` }));
+  const combinedOptions = [...teamOptions, ...agentOptions];
 
   return (
     <div className="space-y-6 pb-12">
@@ -181,7 +204,7 @@ export default function Targets() {
                   {isBonusEligible && <span className="flex items-center gap-1 text-xs font-bold text-amber-600"><TrophyIcon className="h-4 w-4" /> WON</span>}
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-bold text-neutral-900">{target.team_name}</div>
+                  <div className="text-sm font-bold text-neutral-900">{target.assigneeName}</div>
                   <div className="text-xs text-neutral-500">{target.duration_days} days</div>
                 </div>
               </div>
@@ -248,10 +271,10 @@ export default function Targets() {
       <Modal open={isModalOpen} onClose={handleCloseModal} title="Set New Target">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Select
-            label="Select Team"
-            options={[{ value: '', label: 'Select team...' }, ...teamOptions]}
-            {...register('team_id', { required: 'Please select a team' })}
-            error={errors.team_id?.message}
+            label="Assign To"
+            options={[{ value: '', label: 'Select team or agent...' }, ...combinedOptions]}
+            {...register('assignee', { required: 'Please select a team or agent' })}
+            error={errors.assignee?.message}
           />
 
           <Select
@@ -288,6 +311,10 @@ export default function Targets() {
                 { value: '90', label: '90 Days' }
               ]}
               {...register('duration_days')}
+              value={durationDays}
+              onChange={(e) => {
+                setValue('duration_days', e.target.value, { shouldValidate: true });
+              }}
             />
             <Input
               label="Start Date"

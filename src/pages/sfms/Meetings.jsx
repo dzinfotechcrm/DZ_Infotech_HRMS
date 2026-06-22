@@ -116,10 +116,6 @@ export default function Meetings() {
           <h1 className="text-3xl font-bold text-neutral-900 mb-1">All Meetings</h1>
           <p className="text-sm text-neutral-500">Meetings conducted across all teams.</p>
         </div>
-        <Button onClick={handleOpenModal} className="flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
-          <span>Add Meeting</span>
-        </Button>
       </div>
 
       <Card className="overflow-hidden">
@@ -178,64 +174,7 @@ export default function Meetings() {
         </div>
       </Card>
 
-      {/* Add Meeting Modal */}
-      <Modal open={isModalOpen} onClose={handleCloseModal} title="Log New Meeting" className="max-w-2xl">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Select
-            label="Lead / Company"
-            options={[{ value: '', label: 'Select lead...' }, ...leadOptions]}
-            {...register('lead_id', { required: 'Please select a lead' })}
-            error={errors.lead_id?.message}
-          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Date" type="date" {...register('meeting_date', { required: true })} />
-            <Input label="Time" type="time" {...register('meeting_time')} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Person Met" {...register('person_met', { required: true })} />
-            <Input label="Designation" {...register('designation')} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Phone" {...register('phone')} />
-            <Input label="Email" type="email" {...register('email')} />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Discussion Summary</label>
-            <textarea
-              className="w-full rounded-xl border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-              rows={3}
-              {...register('discussion_summary')}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Quotation Amount (₹)" type="number" {...register('quotation_amount')} />
-            <Input label="Negotiated Amount (₹)" type="number" {...register('negotiated_amount')} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Outcome / Interest"
-              options={[
-                { value: 'Very Interested', label: 'Very Interested' },
-                { value: 'Interested', label: 'Interested' },
-                { value: 'Not Interested', label: 'Not Interested' }
-              ]}
-              {...register('outcome', { required: true })}
-            />
-            <Input label="Follow-Up Date" type="date" {...register('follow_up_date')} />
-          </div>
-
-          <Input label="Services Discussed (comma separated)" placeholder="e.g. CRM, ERP" {...register('services_discussed')} />
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100 mt-6">
-            <Button type="button" variant="outline" onClick={handleCloseModal}>Cancel</Button>
-            <Button type="submit" loading={submitting}>Save Meeting</Button>
-          </div>
-        </form>
-      </Modal>
 
       {/* View Meeting Modal */}
       <Modal open={!!selectedMeeting} onClose={() => setSelectedMeeting(null)} title="Meeting Details" className="max-w-2xl">

@@ -66,34 +66,36 @@ export default function MyDay() {
   }, [agentTeamIds, targets]);
 
   const stats = useMemo(() => {
-    if (!agentData || agentTeamIds.length === 0) return { myLeads: 0, pendingFollowUps: 0, myMeetings: 0, myCommissions: 0 };
+    if (!agentData) return { myLeads: 0, pendingFollowUps: 0, myMeetings: 0, myCommissions: 0 };
 
     // Agent specific commissions
     const agentComms = commissions.filter(c => c.agent_id === agentData.id);
     const myCommissions = agentComms.reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
 
-    // Team specific data
-    const teamLeads = leads.filter(l => agentTeamIds.includes(l.team_id));
+    // Team and Agent specific data
+    const myFilteredLeads = leads.filter(l => agentTeamIds.includes(l.team_id) || l.agent_id === agentData.id);
     const teamMeetings = meetings.filter(m => agentTeamIds.includes(m.team_id));
 
-    const myLeads = teamLeads.length;
-    const pendingFollowUps = teamLeads.filter(l => l.status !== 'Won' && l.status !== 'Lost').length;
+    const myLeads = myFilteredLeads.length;
+    const pendingFollowUps = myFilteredLeads.filter(l => l.stage !== 'Won' && l.stage !== 'Lost').length;
     const myMeetings = teamMeetings.length;
 
     return { myLeads, pendingFollowUps, myMeetings, myCommissions };
   }, [agentData, agentTeamIds, leads, meetings, commissions]);
 
   const todaysFollowUps = useMemo(() => {
-    if (agentTeamIds.length === 0) return [];
+    if (!agentData) return [];
     const today = new Date().toISOString().split('T')[0];
-    const teamLeads = leads.filter(l => agentTeamIds.includes(l.team_id) && l.status !== 'Won' && l.status !== 'Lost');
+    const myFilteredLeads = leads.filter(l => (agentTeamIds.includes(l.team_id) || l.agent_id === agentData.id) && l.stage !== 'Won' && l.stage !== 'Lost');
 
-    return teamLeads.filter(l => {
-      if (!l.data?.timeline) return false;
-      const t = l.data.timeline;
-      return t.some(event => event.type === 'follow_up' && event.date?.startsWith(today));
+    const leadsWithMeetingsToday = meetings.filter(m => m.follow_up_date === today).map(m => m.lead_id);
+
+    return myFilteredLeads.filter(l => {
+      if (l.stage === 'Assigned') return true;
+      if (leadsWithMeetingsToday.includes(l.id)) return true;
+      return false;
     }).slice(0, 5); // Limit to top 5
-  }, [leads, agentTeamIds]);
+  }, [leads, meetings, agentTeamIds, agentData]);
 
   if (loading) {
     return (
@@ -106,20 +108,22 @@ export default function MyDay() {
   if (!agentData) {
     return (
       <div className="p-6 text-center">
-        <Card className="p-12 border-neutral-800 bg-neutral-900/50">
-          <h2 className="text-2xl font-bold text-white mb-2">Agent Profile Not Found</h2>
-          <p className="text-neutral-400">Please contact your administrator to ensure your employee profile is linked to an agent profile.</p>
+        <Card className="p-12">
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Agent Profile Not Found</h2>
+          <p className="text-neutral-500">Please contact your administrator to ensure your employee profile is linked to an agent profile.</p>
         </Card>
       </div>
     );
   }
 
-  if (agentTeamIds.length === 0) {
+  const hasDirectLeads = leads.some(l => l.agent_id === agentData.id);
+  
+  if (agentTeamIds.length === 0 && !hasDirectLeads) {
     return (
       <div className="p-6 text-center">
-        <Card className="p-12 border-neutral-800 bg-neutral-900/50">
-          <h2 className="text-2xl font-bold text-white mb-2">No Team Assigned</h2>
-          <p className="text-neutral-400">You are not currently assigned to any field sales team. Please contact your administrator.</p>
+        <Card className="p-12">
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">No Team or Leads Assigned</h2>
+          <p className="text-neutral-500">You are not currently assigned to any field sales team or individual leads. Please contact your administrator.</p>
         </Card>
       </div>
     );
@@ -148,11 +152,11 @@ export default function MyDay() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Target Card */}
-          <Card className="overflow-hidden bg-gradient-to-br from-primary-900/40 to-neutral-900 border-primary-500/20">
+          <Card className="overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <CurrencyRupeeIcon className="h-5 w-5 text-primary-400" />
+                <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                  <CurrencyRupeeIcon className="h-5 w-5 text-primary-600" />
                   Team Target ({new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })})
                 </h3>
               </div>
@@ -160,10 +164,10 @@ export default function MyDay() {
               {aggregatedTarget ? (
                 <>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-neutral-400">Achieved: <span className="font-bold text-white">{formatCurrency(aggregatedTarget.achieved_value)}</span></span>
-                    <span className="text-neutral-400">Target: <span className="font-bold text-white">{formatCurrency(aggregatedTarget.target_value)}</span></span>
+                    <span className="text-neutral-500">Achieved: <span className="font-bold text-neutral-900">{formatCurrency(aggregatedTarget.achieved_value)}</span></span>
+                    <span className="text-neutral-500">Target: <span className="font-bold text-neutral-900">{formatCurrency(aggregatedTarget.target_value)}</span></span>
                   </div>
-                  <div className="h-3 w-full bg-neutral-800 rounded-full overflow-hidden">
+                  <div className="h-3 w-full bg-neutral-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${targetProgress >= 100 ? 'bg-emerald-500' : 'bg-primary-500'}`}
                       style={{ width: `${Math.min(targetProgress, 100)}%` }}
@@ -174,53 +178,53 @@ export default function MyDay() {
                   </div>
                 </>
               ) : (
-                <div className="text-sm text-neutral-400 py-2">No target set for this month.</div>
+                <div className="text-sm text-neutral-500 py-2">No target set for this month.</div>
               )}
             </div>
           </Card>
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Card className="p-4 bg-neutral-900 border-neutral-800 text-center hover:bg-neutral-800/80 transition-colors">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary-500/10 text-primary-400 mb-2">
-                <UsersIcon className="h-5 w-5" />
+            <Card className="p-4 flex flex-col items-center justify-center text-center">
+              <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center mb-2">
+                <UsersIcon className="h-5 w-5 text-primary-600" />
               </div>
-              <div className="text-2xl font-bold text-white">{stats.myLeads}</div>
-              <div className="text-xs font-medium text-neutral-500 mt-1 uppercase tracking-wider">Team Leads</div>
+              <div className="text-2xl font-bold text-neutral-900">{stats.myLeads}</div>
+              <div className="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-wider">Team Leads</div>
             </Card>
 
-            <Card className="p-4 bg-neutral-900 border-neutral-800 text-center hover:bg-neutral-800/80 transition-colors">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-amber-400 mb-2">
-                <CalendarDaysIcon className="h-5 w-5" />
+            <Card className="p-4 flex flex-col items-center justify-center text-center">
+              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center mb-2">
+                <CalendarDaysIcon className="h-5 w-5 text-amber-600" />
               </div>
-              <div className="text-2xl font-bold text-white">{stats.pendingFollowUps}</div>
-              <div className="text-xs font-medium text-neutral-500 mt-1 uppercase tracking-wider">Follow Ups</div>
+              <div className="text-2xl font-bold text-neutral-900">{stats.pendingFollowUps}</div>
+              <div className="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-wider">Follow Ups</div>
             </Card>
 
-            <Card className="p-4 bg-neutral-900 border-neutral-800 text-center hover:bg-neutral-800/80 transition-colors">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-sky-500/10 text-sky-400 mb-2">
-                <UsersIcon className="h-5 w-5" />
+            <Card className="p-4 flex flex-col items-center justify-center text-center">
+              <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center mb-2">
+                <UsersIcon className="h-5 w-5 text-sky-600" />
               </div>
-              <div className="text-2xl font-bold text-white">{stats.myMeetings}</div>
-              <div className="text-xs font-medium text-neutral-500 mt-1 uppercase tracking-wider">Team Meetings</div>
+              <div className="text-2xl font-bold text-neutral-900">{stats.myMeetings}</div>
+              <div className="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-wider">Team Meetings</div>
             </Card>
 
-            <Card className="p-4 bg-neutral-900 border-neutral-800 text-center hover:bg-neutral-800/80 transition-colors">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 mb-2">
-                <CurrencyRupeeIcon className="h-5 w-5" />
+            <Card className="p-4 flex flex-col items-center justify-center text-center">
+              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center mb-2">
+                <CurrencyRupeeIcon className="h-5 w-5 text-emerald-600" />
               </div>
-              <div className="text-2xl font-bold text-white">{formatCurrency(stats.myCommissions)}</div>
-              <div className="text-xs font-medium text-neutral-500 mt-1 uppercase tracking-wider">Earned</div>
+              <div className="text-2xl font-bold text-neutral-900">{formatCurrency(stats.myCommissions)}</div>
+              <div className="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-wider">Earned</div>
             </Card>
           </div>
         </div>
 
         {/* Sidebar Area */}
         <div className="space-y-6">
-          <Card className="p-6 bg-neutral-900 border-neutral-800">
+          <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <PhoneIcon className="h-5 w-5 text-amber-400" />
+              <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                <PhoneIcon className="h-5 w-5 text-amber-500" />
                 Today's Follow-ups
               </h3>
             </div>
@@ -228,26 +232,26 @@ export default function MyDay() {
             <div className="space-y-4">
               {todaysFollowUps.length > 0 ? (
                 todaysFollowUps.map(lead => (
-                  <div key={lead.id} className="group relative flex items-center justify-between gap-4 rounded-xl border border-neutral-800 bg-neutral-900/50 p-4 transition-all hover:bg-neutral-800">
+                  <div key={lead.id} className="group relative flex items-center justify-between gap-4 rounded-xl border border-neutral-100 bg-neutral-50 p-4 transition-all hover:border-primary-100 hover:bg-primary-50/50">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-white">{lead.company_name}</p>
-                      <p className="text-xs text-neutral-400 mt-0.5">{lead.contact_person}</p>
+                      <p className="truncate text-sm font-bold text-neutral-900">{lead.company_name}</p>
+                      <p className="text-xs text-neutral-500 mt-0.5">{lead.contact_person}</p>
                     </div>
-                    <Link to="/sfms/my-leads" className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-500/10 text-primary-400 opacity-0 transition-all group-hover:opacity-100 hover:bg-primary-500/20">
+                    <Link to="/my-leads" className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary-600 shadow-sm opacity-0 transition-all group-hover:opacity-100 hover:bg-primary-50">
                       <ArrowRightIcon className="h-4 w-4" />
                     </Link>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <CheckCircleIcon className="h-10 w-10 text-emerald-500/50 mx-auto mb-3" />
-                  <p className="text-sm text-neutral-400">All caught up for today!</p>
+                  <CheckCircleIcon className="h-10 w-10 text-emerald-500/20 mx-auto mb-3" />
+                  <p className="text-sm text-neutral-500">All caught up for today!</p>
                 </div>
               )}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-neutral-800 text-center">
-              <Link to="/sfms/my-leads" className="text-sm font-medium text-primary-400 hover:text-primary-300">
+            <div className="mt-6 pt-4 border-t border-neutral-100 text-center">
+              <Link to="/my-leads" className="text-sm font-medium text-primary-600 hover:text-primary-500">
                 View all leads &rarr;
               </Link>
             </div>

@@ -25,7 +25,7 @@ const formatCurrency = (value) => {
 const STAGES = ['Assigned', 'Contacted', 'Meeting Scheduled', 'Meeting Completed', 'Proposal Sent', 'Negotiation', 'Won', 'Lost'];
 const LOST_REASONS = ['Budget Issue', 'Already Has Provider', 'No Requirement', 'No Response', 'Competitor Selected', 'Follow Up Later', 'Decision Delayed', 'Other'];
 
-export default function LeadProfile() {
+export default function LeadProfile({ isAgent = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -48,6 +48,8 @@ export default function LeadProfile() {
   const [interestLevel, setInterestLevel] = useState('');
 
   const loading = leadLoading || teamsLoading || meetingsLoading || timelineLoading || sfmsTeamAgentsLoading;
+
+  const backLink = isAgent ? '/my-leads' : '/sfms/leads';
 
   const currentStageIndex = STAGES.indexOf(lead?.stage || 'Assigned');
 
@@ -117,37 +119,59 @@ export default function LeadProfile() {
         }]);
 
         // 3. Commissions Entry
-        if (data.closed_by === 'Team' && lead.team_id) {
-          let teamAgentIds = sfmsTeamAgents.filter(ta => ta.team_id === lead.team_id).map(ta => ta.agent_id);
-          if (teamAgentIds.length === 0) {
-             teamAgentIds = agents.filter(a => a.team_id === lead.team_id).map(a => a.id);
-          }
-          if (teamAgentIds.length > 0) {
-            const commissionAmount = (advanceReceived * 0.1) / teamAgentIds.length;
-            const commissionEntries = teamAgentIds.map(aid => ({
+        if (data.closed_by === 'Team') {
+          if (lead.agent_id) {
+            const commissionAmount = advanceReceived * 0.1;
+            await supabase.from('sfms_commissions').insert([{
               lead_id: id,
-              agent_id: aid,
+              agent_id: lead.agent_id,
               type: 'Advance',
               amount: commissionAmount,
               status: 'Generated'
-            }));
-            await supabase.from('sfms_commissions').insert(commissionEntries);
+            }]);
+          } else if (lead.team_id) {
+            let teamAgentIds = sfmsTeamAgents.filter(ta => ta.team_id === lead.team_id).map(ta => ta.agent_id);
+            if (teamAgentIds.length === 0) {
+              teamAgentIds = agents.filter(a => a.team_id === lead.team_id).map(a => a.id);
+            }
+            if (teamAgentIds.length > 0) {
+              const commissionAmount = (advanceReceived * 0.1) / teamAgentIds.length;
+              const commissionEntries = teamAgentIds.map(aid => ({
+                lead_id: id,
+                agent_id: aid,
+                type: 'Advance',
+                amount: commissionAmount,
+                status: 'Generated'
+              }));
+              await supabase.from('sfms_commissions').insert(commissionEntries);
+            }
           }
-        } else if (data.closed_by === 'Founder' && lead.team_id) {
-          let teamAgentIds = sfmsTeamAgents.filter(ta => ta.team_id === lead.team_id).map(ta => ta.agent_id);
-          if (teamAgentIds.length === 0) {
-             teamAgentIds = agents.filter(a => a.team_id === lead.team_id).map(a => a.id);
-          }
-          if (teamAgentIds.length > 0) {
-            const commissionAmount = (projectValue * 0.1) / teamAgentIds.length;
-            const commissionEntries = teamAgentIds.map(aid => ({
+        } else if (data.closed_by === 'Founder') {
+          if (lead.agent_id) {
+            const commissionAmount = projectValue * 0.1;
+            await supabase.from('sfms_commissions').insert([{
               lead_id: id,
-              agent_id: aid,
+              agent_id: lead.agent_id,
               type: 'Final',
               amount: commissionAmount,
               status: 'Generated'
-            }));
-            await supabase.from('sfms_commissions').insert(commissionEntries);
+            }]);
+          } else if (lead.team_id) {
+            let teamAgentIds = sfmsTeamAgents.filter(ta => ta.team_id === lead.team_id).map(ta => ta.agent_id);
+            if (teamAgentIds.length === 0) {
+              teamAgentIds = agents.filter(a => a.team_id === lead.team_id).map(a => a.id);
+            }
+            if (teamAgentIds.length > 0) {
+              const commissionAmount = (projectValue * 0.1) / teamAgentIds.length;
+              const commissionEntries = teamAgentIds.map(aid => ({
+                lead_id: id,
+                agent_id: aid,
+                type: 'Final',
+                amount: commissionAmount,
+                status: 'Generated'
+              }));
+              await supabase.from('sfms_commissions').insert(commissionEntries);
+            }
           }
         }
 
@@ -227,18 +251,20 @@ export default function LeadProfile() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-lg font-medium text-neutral-600">Lead not found</p>
-        <Button onClick={() => navigate('/sfms/leads')}>Back to Leads</Button>
+        <Button onClick={() => navigate(backLink)}>Back to Leads</Button>
       </div>
     );
   }
 
-  const teamName = teams.find(t => t.id === lead.team_id)?.name || 'Unassigned';
+  const assigneeName = lead.agent_id
+    ? (agents.find(a => a.id === lead.agent_id)?.name || 'Unknown Agent')
+    : (teams.find(t => t.id === lead.team_id)?.name || 'Unassigned');
 
   return (
     <div className="space-y-6 pb-12">
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/sfms/leads')}
+          onClick={() => navigate(backLink)}
           className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-neutral-100 transition-colors"
         >
           <ArrowLeftIcon className="h-5 w-5 text-neutral-600" />
@@ -325,8 +351,8 @@ export default function LeadProfile() {
                   <span className="font-medium text-neutral-900">{lead.lead_source || 'Unknown'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-neutral-500">Team</span>
-                  <span className="font-medium text-neutral-900">{teamName}</span>
+                  <span className="text-neutral-500">Assignee</span>
+                  <span className="font-medium text-neutral-900">{assigneeName}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm pt-2">
                   <span className="text-neutral-500">Interest</span>

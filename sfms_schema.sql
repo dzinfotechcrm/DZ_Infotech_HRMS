@@ -38,6 +38,7 @@ CREATE TABLE sfms_leads (
   expected_revenue NUMERIC DEFAULT 0,
   notes TEXT,
   team_id UUID REFERENCES sfms_teams(id),
+  agent_id UUID REFERENCES sfms_agents(id),
   stage TEXT DEFAULT 'Assigned' CHECK (stage IN ('Assigned', 'Contacted', 'Meeting Scheduled', 'Meeting Completed', 'Proposal Sent', 'Negotiation', 'Won', 'Lost')),
   interest_level TEXT DEFAULT 'Interested' CHECK (interest_level IN ('Very Interested', 'Interested', 'Not Interested')),
   services_interested TEXT[],

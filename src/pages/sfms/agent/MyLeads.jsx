@@ -14,6 +14,7 @@ import Spinner from '../../../components/ui/Spinner';
 import { useSupabaseCollection } from '../../../hooks/useSupabase';
 import { supabase } from '../../../supabase/config';
 import { useAuth } from '../../../hooks/useAuth';
+import SfmsLeadsBoard from '../../../components/sfms/SfmsLeadsBoard';
 
 const formatCurrency = (value) => {
   if (!value) return '₹0';
@@ -47,20 +48,21 @@ export default function MyLeads() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingLeadId, setEditingLeadId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [stageFilter, setStageFilter] = useState('');
 
   const { items: agents, loading: agentsLoading } = useSupabaseCollection('sfmsAgents');
   const { items: sfmsTeamAgents, loading: sfmsTeamAgentsLoading } = useSupabaseCollection('sfmsTeamAgents');
   const { items: teams, loading: teamsLoading } = useSupabaseCollection('sfmsTeams');
   const { items: leads, loading: leadsLoading, refetch: refetchLeads } = useSupabaseCollection('sfmsLeads');
+  const { items: meetings, loading: meetingsLoading } = useSupabaseCollection('sfmsMeetings');
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
 
   const selectedServices = watch('services_interested') || [];
+  const watchedStage = watch('stage');
+  const watchedSource = watch('lead_source');
+  const watchedAssignTo = watch('assign_to');
 
   const handleToggleService = (service) => {
     if (selectedServices.includes(service)) {
@@ -70,7 +72,7 @@ export default function MyLeads() {
     }
   };
 
-  const loading = leadsLoading || agentsLoading || sfmsTeamAgentsLoading || teamsLoading;
+  const loading = leadsLoading || agentsLoading || sfmsTeamAgentsLoading || teamsLoading || meetingsLoading;
 
   const agentData = useMemo(() => {
     if (loading || !user?.email) return null;
@@ -84,17 +86,38 @@ export default function MyLeads() {
     return tids;
   }, [sfmsTeamAgents, agentData, loading]);
 
-  const handleOpenModal = () => {
-    reset({
-      company_name: '', contact_person: '', phone: '', email: '',
-      address: '', industry: '', lead_source: '', expected_revenue: '',
-      services_interested: [], notes: '', team_id: agentTeamIds[0] || ''
-    });
+  const handleOpenModal = (lead = null) => {
+    if (lead && lead.id) {
+      setEditingLeadId(lead.id);
+      reset({
+        company_name: lead.company_name || '',
+        contact_person: lead.contact_person || '',
+        phone: lead.phone || '',
+        email: lead.email || '',
+        address: lead.address || '',
+        industry: lead.industry || '',
+        lead_source: lead.lead_source || '',
+        expected_revenue: lead.expected_revenue || '',
+        assign_to: lead.agent_id ? `agent_${lead.agent_id}` : (lead.team_id ? `team_${lead.team_id}` : ''),
+        services_interested: lead.services_interested || [],
+        notes: lead.notes || '',
+        stage: lead.stage || 'Assigned'
+      });
+    } else {
+      setEditingLeadId(null);
+      reset({
+        company_name: '', contact_person: '', phone: '', email: '',
+        address: '', industry: '', lead_source: '', expected_revenue: '',
+        services_interested: [], notes: '', assign_to: agentTeamIds.length > 0 ? `team_${agentTeamIds[0]}` : `agent_${agentData.id}`,
+        stage: 'Assigned'
+      });
+    }
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setEditingLeadId(null);
     reset();
   };
 
@@ -106,23 +129,36 @@ export default function MyLeads() {
 
     setSubmitting(true);
     try {
+      let team_id = null;
+      let agent_id = null;
+      if (data.assign_to?.startsWith('team_')) team_id = data.assign_to.replace('team_', '');
+      if (data.assign_to?.startsWith('agent_')) agent_id = data.assign_to.replace('agent_', '');
+
       const payload = {
         ...data,
-        team_id: data.team_id || agentTeamIds[0],
+        team_id,
+        agent_id,
         expected_revenue: Number(data.expected_revenue) || 0
       };
+      delete payload.assign_to;
 
-      const { data: newLead, error } = await supabase.from('sfms_leads').insert([payload]).select().single();
-      if (error) throw error;
+      if (editingLeadId) {
+        const { error } = await supabase.from('sfms_leads').update(payload).eq('id', editingLeadId);
+        if (error) throw error;
+        toast.success('Lead updated successfully');
+      } else {
+        const { data: newLead, error } = await supabase.from('sfms_leads').insert([payload]).select().single();
+        if (error) throw error;
 
-      // Log timeline
-      await supabase.from('sfms_lead_timeline').insert([{
-        lead_id: newLead.id,
-        stage: 'Assigned',
-        changed_by: agentData.name || 'System'
-      }]);
+        // Log timeline
+        await supabase.from('sfms_lead_timeline').insert([{
+          lead_id: newLead.id,
+          stage: data.stage || 'Assigned',
+          changed_by: agentData.name || 'System'
+        }]);
+        toast.success('Lead created successfully');
+      }
 
-      toast.success('Lead created successfully');
       refetchLeads();
       handleCloseModal();
     } catch (err) {
@@ -135,25 +171,26 @@ export default function MyLeads() {
 
   const filteredLeads = useMemo(() => {
     if (loading || agentTeamIds.length === 0) return [];
+    return leads.filter(l => agentTeamIds.includes(l.team_id) || l.agent_id === agentData.id);
+  }, [leads, agentTeamIds, agentData, loading]);
 
-    // Only show leads assigned to the agent's team
-    let result = leads.filter(l => agentTeamIds.includes(l.team_id));
-
-    if (stageFilter) {
-      result = result.filter(l => l.stage === stageFilter);
+  const handleStageChange = async (leadId, newStage) => {
+    try {
+      await supabase.from('sfms_leads').update({ stage: newStage }).eq('id', leadId);
+      
+      // Log timeline
+      await supabase.from('sfms_lead_timeline').insert([{
+        lead_id: leadId,
+        stage: newStage,
+        changed_by: agentData?.name || 'System (Kanban)'
+      }]);
+      
+      toast.success(`Moved to ${newStage}`);
+      refetchLeads();
+    } catch (err) {
+      toast.error('Failed to update stage');
     }
-
-    if (searchTerm) {
-      const lower = searchTerm.toLowerCase();
-      result = result.filter(l =>
-        (l.company_name && l.company_name.toLowerCase().includes(lower)) ||
-        (l.contact_person && l.contact_person.toLowerCase().includes(lower)) ||
-        (l.phone && l.phone.includes(lower))
-      );
-    }
-
-    return result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }, [leads, stageFilter, searchTerm, agentData, loading]);
+  };
 
   if (loading) {
     return (
@@ -163,132 +200,59 @@ export default function MyLeads() {
     );
   }
 
-  if (agentTeamIds.length === 0) {
+  if (!agentData) {
     return (
-      <div className="p-6">
-        <Card className="p-12 text-center text-neutral-500">
-          You are not assigned to any team. Contact your administrator to view your leads.
+      <div className="p-6 text-center">
+        <Card className="p-12">
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Agent Profile Not Found</h2>
+          <p className="text-neutral-500">Please contact your administrator to ensure your employee profile is linked to an agent profile.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  const hasDirectLeads = leads.some(l => l.agent_id === agentData.id);
+
+  if (agentTeamIds.length === 0 && !hasDirectLeads) {
+    return (
+      <div className="p-6 text-center">
+        <Card className="p-12">
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">No Team Assigned</h2>
+          <p className="text-neutral-500">You must be assigned to a field sales team to view leads.</p>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-1">{`My Leads (${filteredLeads.length})`}</h1>
-          <p className="text-sm text-neutral-500">Manage your team's assigned leads.</p>
-        </div>
-        <Button onClick={handleOpenModal} className="flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
-          <span>New Lead</span>
-        </Button>
-      </div>
+    <>
+      <SfmsLeadsBoard 
+        leads={filteredLeads}
+        teams={teams}
+        agents={agents}
+        meetings={meetings}
+        onLeadClick={handleOpenModal}
+        onNewLead={() => handleOpenModal()}
+        onStageChange={handleStageChange}
+      />
 
-      <Card className="p-4 space-y-4 mb-6">
-        <div className="grid gap-3 md:grid-cols-[2fr_1fr_auto]">
-          <div className="relative">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-            <Input
-              className="pl-10"
-              placeholder="Search leads..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
-            <option value="">All Stages</option>
-            {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-          </Select>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => { setSearchTerm(''); setStageFilter(''); }}>Reset</Button>
-          </div>
-        </div>
-      </Card>
-
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50/50 text-neutral-500">
-                <th className="px-4 py-3 font-medium">COMPANY</th>
-                <th className="px-4 py-3 font-medium">CONTACT</th>
-                <th className="px-4 py-3 font-medium">SERVICES</th>
-                <th className="px-4 py-3 font-medium">STAGE</th>
-                <th className="px-4 py-3 font-medium">INTEREST</th>
-                <th className="px-4 py-3 font-medium text-right">EXPECTED REV</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-50">
-              {filteredLeads.map(lead => {
-                return (
-                  <tr
-                    key={lead.id}
-                    className="hover:bg-neutral-50/50 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/sfms/leads/${lead.id}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-neutral-900">{lead.company_name}</div>
-                      <div className="text-xs text-neutral-500">{lead.industry} • {lead.lead_source}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-neutral-900">{lead.contact_person}</div>
-                      <div className="text-xs text-neutral-500">{lead.phone}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {(lead.services_interested || []).slice(0, 2).map((s, idx) => (
-                          <span key={idx} className="inline-flex items-center rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600">
-                            {s}
-                          </span>
-                        ))}
-                        {(lead.services_interested || []).length > 2 && (
-                          <span className="inline-flex items-center rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600">
-                            +{(lead.services_interested.length - 2)}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={getStageTone(lead.stage)}>{lead.stage}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={getInterestTone(lead.interest_level)}>{lead.interest_level}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right font-bold text-neutral-900">
-                      {formatCurrency(lead.expected_revenue)}
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredLeads.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-neutral-400">
-                    No leads found in your team.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <Modal open={isModalOpen} onClose={handleCloseModal} title="New Lead" className="max-w-2xl">
+      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingLeadId ? "Edit Lead" : "New Lead"} className="max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {agentTeamIds.length > 1 && (
+          <div className="grid grid-cols-1 gap-4">
             <Select
-              label="Assign to Team"
+              label="Assign To"
               options={[
                 ...agentTeamIds.map(tid => {
                   const t = teams.find(team => team.id === tid);
-                  return { value: tid, label: t?.name || 'Unknown Team' };
-                })
+                  return { value: `team_${tid}`, label: `Team: ${t?.name || 'Unknown Team'}` };
+                }),
+                ...agents.map(a => ({ value: `agent_${a.id}`, label: `Agent: ${a.name}` }))
               ]}
-              {...register('team_id')}
-              defaultValue={agentTeamIds[0]}
+              {...register('assign_to', { required: 'Assignee is required' })}
+              defaultValue={agentTeamIds.length > 0 ? `team_${agentTeamIds[0]}` : `agent_${agentData.id}`}
+              error={errors.assign_to?.message}
             />
-          )}
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -298,31 +262,36 @@ export default function MyLeads() {
             />
             <Input
               label="Contact Person"
-              {...register('contact_person')}
+              {...register('contact_person', { required: 'Contact person is required' })}
+              error={errors.contact_person?.message}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Phone"
-              {...register('phone')}
+              {...register('phone', { required: 'Phone is required' })}
+              error={errors.phone?.message}
             />
             <Input
               label="Email"
               type="email"
-              {...register('email')}
+              {...register('email', { required: 'Email is required' })}
+              error={errors.email?.message}
             />
           </div>
 
           <Input
             label="Address"
-            {...register('address')}
+            {...register('address', { required: 'Address is required' })}
+            error={errors.address?.message}
           />
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <Input
               label="Industry"
-              {...register('industry')}
+              {...register('industry', { required: 'Industry is required' })}
+              error={errors.industry?.message}
             />
             <Select
               label="Lead Source"
@@ -334,12 +303,25 @@ export default function MyLeads() {
                 { value: 'Website', label: 'Website' },
                 { value: 'Social Media', label: 'Social Media' }
               ]}
-              {...register('lead_source')}
+              value={watchedSource}
+              {...register('lead_source', { required: 'Source is required' })}
+              error={errors.lead_source?.message}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Lead Status"
+              options={STAGES.map(s => ({ value: s, label: s }))}
+              value={watchedStage}
+              {...register('stage', { required: 'Status is required' })}
+              error={errors.stage?.message}
             />
             <Input
               label="Expected Rev (₹)"
               type="number"
-              {...register('expected_revenue')}
+              {...register('expected_revenue', { required: 'Expected revenue is required', min: { value: 0, message: 'Must be positive' } })}
+              error={errors.expected_revenue?.message}
             />
           </div>
 
@@ -354,8 +336,8 @@ export default function MyLeads() {
                     type="button"
                     onClick={() => handleToggleService(service)}
                     className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${isSelected
-                        ? 'bg-primary-50 border-primary-500 text-primary-700'
-                        : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                      ? 'bg-primary-50 border-primary-500 text-primary-700'
+                      : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
                       }`}
                   >
                     {service}
@@ -376,10 +358,10 @@ export default function MyLeads() {
 
           <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100 mt-6">
             <Button type="button" variant="outline" onClick={handleCloseModal}>Cancel</Button>
-            <Button type="submit" loading={submitting}>Create Lead</Button>
+            <Button type="submit" loading={submitting}>{editingLeadId ? "Update Lead" : "Create Lead"}</Button>
           </div>
         </form>
       </Modal>
-    </div>
+    </>
   );
 }

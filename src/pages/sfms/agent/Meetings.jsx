@@ -12,6 +12,9 @@ import Select from '../../../components/ui/Select';
 import Spinner from '../../../components/ui/Spinner';
 import { useSupabaseCollection } from '../../../hooks/useSupabase';
 import { supabase } from '../../../supabase/config';
+import { uploadFile } from '../../../supabase/storage';
+import CameraCapture from '../../../components/ui/CameraCapture';
+import { CameraIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../../hooks/useAuth';
 
 const formatCurrency = (value) => {
@@ -22,9 +25,23 @@ const formatCurrency = (value) => {
   return `₹${val.toFixed(2)}`;
 };
 
+const SERVICE_OPTIONS = [
+  'Static Website',
+  'Dynamic Website',
+  'Ecommerce Website',
+  'CRM',
+  'ERP',
+  'AI Chatbot',
+  'AI Automation',
+  'ConTrack'
+];
+
 export default function Meetings() {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [capturedImageFile, setCapturedImageFile] = useState(null);
+  const [capturedImagePreview, setCapturedImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
 
@@ -33,7 +50,7 @@ export default function Meetings() {
   const { items: meetings, loading: meetingsLoading, refetch: refetchMeetings } = useSupabaseCollection('sfmsMeetings');
   const { items: leads, loading: leadsLoading, refetch: refetchLeads } = useSupabaseCollection('sfmsLeads');
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm();
 
   const loading = meetingsLoading || leadsLoading || agentsLoading || sfmsTeamAgentsLoading;
 
@@ -50,8 +67,10 @@ export default function Meetings() {
   }, [sfmsTeamAgents, agentData, loading]);
 
   const handleOpenModal = () => {
-    reset({ meeting_date: new Date().toISOString().split('T')[0], lead_id: '', person_met: '', designation: '', phone: '', email: '', discussion_summary: '', quotation_amount: '', negotiated_amount: '', outcome: 'Interested', follow_up_date: '', services_discussed: '' });
+    reset({ meeting_date: new Date().toISOString().split('T')[0], lead_id: '', person_met: '', designation: '', phone: '', email: '', discussion_summary: '', quotation_amount: '', negotiated_amount: '', outcome: 'Interested', follow_up_date: '', services_discussed: [] });
     setSelectedMeeting(null);
+    setCapturedImageFile(null);
+    setCapturedImagePreview(null);
     setIsModalOpen(true);
   };
 
@@ -65,8 +84,13 @@ export default function Meetings() {
   };
 
   const onSubmit = async (data) => {
-    if (agentTeamIds.length === 0) {
-      toast.error('You must be assigned to a team to log meetings.');
+    if (agentTeamIds.length === 0 && !agentData) {
+      toast.error('You must be assigned to a team or have direct leads to log meetings.');
+      return;
+    }
+
+    if (!capturedImageFile) {
+      toast.error('A live meeting image captured from the camera is mandatory.');
       return;
     }
 
@@ -74,12 +98,15 @@ export default function Meetings() {
     try {
       const selectedLead = leads.find(l => l.id === data.lead_id);
 
+      const live_image_url = await uploadFile(capturedImageFile, 'meetings');
+
       const payload = {
         ...data,
-        team_id: selectedLead?.team_id || agentTeamIds[0],
-        services_discussed: data.services_discussed ? data.services_discussed.split(',').map(s => s.trim()) : [],
+        team_id: selectedLead?.team_id || null, // Team is optional if agent directly assigned
+        services_discussed: Array.isArray(data.services_discussed) ? data.services_discussed : (data.services_discussed ? data.services_discussed.split(',').map(s => s.trim()) : []),
         quotation_amount: Number(data.quotation_amount) || 0,
-        negotiated_amount: Number(data.negotiated_amount) || 0
+        negotiated_amount: Number(data.negotiated_amount) || 0,
+        live_image_url
       };
 
       const { error } = await supabase.from('sfms_meetings').insert([payload]);
@@ -106,12 +133,17 @@ export default function Meetings() {
     }
   };
 
+  // Only allow logging meetings for leads in the agent's team OR assigned to them directly
+  const teamLeads = leads.filter(l => agentTeamIds.includes(l.team_id) || l.agent_id === agentData?.id);
+  const leadOptions = teamLeads.map(l => ({ value: l.id, label: l.company_name }));
+
   const enrichedMeetings = useMemo(() => {
-    if (loading || agentTeamIds.length === 0) return [];
+    if (loading || teamLeads.length === 0) return [];
 
-    const teamMeetings = meetings.filter(m => agentTeamIds.includes(m.team_id));
+    const leadIds = teamLeads.map(l => l.id);
+    const relevantMeetings = meetings.filter(m => leadIds.includes(m.lead_id));
 
-    return teamMeetings.sort((a, b) => new Date(b.meeting_date) - new Date(a.meeting_date)).map(m => {
+    return relevantMeetings.sort((a, b) => new Date(b.meeting_date) - new Date(a.meeting_date)).map(m => {
       const lead = leads.find(l => l.id === m.lead_id);
       return {
         ...m,
@@ -128,19 +160,15 @@ export default function Meetings() {
     );
   }
 
-  if (agentTeamIds.length === 0) {
+  if (agentTeamIds.length === 0 && teamLeads.length === 0) {
     return (
       <div className="p-6">
         <Card className="p-12 text-center text-neutral-500">
-          You are not assigned to any team. Contact your administrator to view meetings.
+          You have no leads or teams assigned.
         </Card>
       </div>
     );
   }
-
-  // Only allow logging meetings for leads in the agent's team
-  const teamLeads = leads.filter(l => agentTeamIds.includes(l.team_id));
-  const leadOptions = teamLeads.map(l => ({ value: l.id, label: l.company_name }));
 
   return (
     <div className="space-y-6 pb-12">
@@ -259,7 +287,52 @@ export default function Meetings() {
             <Input label="Follow-Up Date" type="date" {...register('follow_up_date')} />
           </div>
 
-          <Input label="Services Discussed (comma separated)" placeholder="e.g. CRM, ERP" {...register('services_discussed')} />
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">Live Meeting Image <span className="text-danger-500">*</span></label>
+            {!capturedImagePreview ? (
+              <div className="border-2 border-dashed border-neutral-300 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-neutral-50">
+                <div className="text-sm text-neutral-500 mb-4">You must capture a live photo to log this meeting. Uploading files is strictly prohibited.</div>
+                <Button type="button" onClick={() => setIsCameraOpen(true)} className="flex items-center gap-2">
+                  <CameraIcon className="w-5 h-5" /> Open Camera
+                </Button>
+              </div>
+            ) : (
+              <div className="border border-neutral-200 rounded-xl p-4 flex flex-col items-center relative bg-neutral-50">
+                <img src={capturedImagePreview} alt="Captured" className="rounded-lg max-w-sm w-full object-cover aspect-[4/3] mb-4 shadow-sm border border-neutral-200" />
+                <Button type="button" variant="outline" onClick={() => setIsCameraOpen(true)} className="flex items-center gap-2">
+                  <ArrowPathIcon className="w-4 h-4" /> Retake Photo
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-2">Services Discussed</label>
+            <div className="flex flex-wrap gap-2">
+              {SERVICE_OPTIONS.map(service => {
+                const currentServices = watch('services_discussed') || [];
+                const isSelected = Array.isArray(currentServices) ? currentServices.includes(service) : false;
+
+                return (
+                  <button
+                    key={service}
+                    type="button"
+                    onClick={() => {
+                      const current = Array.isArray(watch('services_discussed')) ? watch('services_discussed') : [];
+                      if (current.includes(service)) {
+                        setValue('services_discussed', current.filter(s => s !== service));
+                      } else {
+                        setValue('services_discussed', [...current, service]);
+                      }
+                    }}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${isSelected ? 'bg-primary-600 text-white border border-primary-600' : 'bg-white border border-neutral-200 text-neutral-600 hover:border-primary-300'}`}
+                  >
+                    {service}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100 mt-6">
             <Button type="button" variant="outline" onClick={handleCloseModal}>Cancel</Button>
@@ -326,6 +399,18 @@ export default function Meetings() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Camera Capture Modal */}
+      <Modal open={isCameraOpen} onClose={() => setIsCameraOpen(false)} title="Capture Live Image">
+        <CameraCapture 
+          onCancel={() => setIsCameraOpen(false)}
+          onCapture={(file, previewUrl) => {
+            setCapturedImageFile(file);
+            setCapturedImagePreview(previewUrl);
+            setIsCameraOpen(false);
+          }}
+        />
       </Modal>
     </div>
   );
