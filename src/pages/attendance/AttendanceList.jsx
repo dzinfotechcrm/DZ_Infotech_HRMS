@@ -138,24 +138,28 @@ export default function AttendanceList() {
   const filtered = useMemo(() => {
     let baseList = sortedAttendance;
 
-    if (!isEmployee && (date || month)) {
+    if (date || month) {
       const datesToProcess = date ? [date] : (() => {
         const [y, m] = month.split('-');
         const daysInMonth = new Date(y, m, 0).getDate();
         const days = [];
         for (let i = 1; i <= daysInMonth; i++) {
-           const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
-           if (d > today) break;
-           days.push(d);
+          const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
+          if (d > today) break;
+          days.push(d);
         }
         return days;
       })();
 
       const virtualRows = [];
-      const validEmps = employees.filter(emp => emp.role !== 'admin');
-      
+      const validEmps = isEmployee
+        ? employees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id))
+        : employees.filter(emp => emp.role !== 'admin' && String(emp.role).toLowerCase() !== 'agent');
+
       for (const d of datesToProcess) {
         for (const emp of validEmps) {
+          if (emp.joinDate && d < emp.joinDate) continue;
+
           const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === d);
           if (att) {
             virtualRows.push(att);
@@ -180,14 +184,14 @@ export default function AttendanceList() {
           });
         }
       }
-      
+
       virtualRows.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
       baseList = virtualRows;
     }
 
     return baseList.filter((item) => {
       const empRole = getEmpRole(item.employeeId);
-      if (empRole.toLowerCase() === 'admin') return false;
+      if (empRole.toLowerCase() === 'admin' || empRole.toLowerCase() === 'agent') return false;
       const empName = getEmpName(item);
       const employeeMatches = isEmployee ? true : String(empName || item.employeeId || '').toLowerCase().includes(search.toLowerCase());
       const itemDate = item.date || '';
@@ -202,7 +206,7 @@ export default function AttendanceList() {
   const getExportRows = () => {
     let baseList = sortedAttendance;
 
-    if (!isEmployee) {
+    if (exportScope) {
       let datesToProcess = [];
       if (exportScope === 'daily' && exportDate) {
         if (exportDate <= today) datesToProcess = [exportDate];
@@ -210,9 +214,9 @@ export default function AttendanceList() {
         const [y, m] = exportMonth.split('-');
         const daysInMonth = new Date(y, m, 0).getDate();
         for (let i = 1; i <= daysInMonth; i++) {
-           const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
-           if (d > today) break;
-           datesToProcess.push(d);
+          const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
+          if (d > today) break;
+          datesToProcess.push(d);
         }
       } else if (exportScope === 'custom' && exportStartDate && exportEndDate) {
         let current = new Date(exportStartDate);
@@ -230,10 +234,14 @@ export default function AttendanceList() {
 
       if (datesToProcess.length > 0) {
         const virtualRows = [];
-        const validEmps = employees.filter(emp => emp.role !== 'admin');
-        
+        const validEmps = isEmployee
+          ? employees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id))
+          : employees.filter(emp => emp.role !== 'admin' && String(emp.role).toLowerCase() !== 'agent');
+
         for (const d of datesToProcess) {
           for (const emp of validEmps) {
+            if (emp.joinDate && d < emp.joinDate) continue;
+
             const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === d);
             if (att) {
               virtualRows.push(att);
@@ -265,7 +273,7 @@ export default function AttendanceList() {
 
     return baseList.filter((item) => {
       const empRole = getEmpRole(item.employeeId);
-      if (empRole.toLowerCase() === 'admin') return false;
+      if (empRole.toLowerCase() === 'admin' || empRole.toLowerCase() === 'agent') return false;
       const empName = getEmpName(item);
       const employeeMatches = isEmployee ? true : String(empName || item.employeeId || '').toLowerCase().includes(search.toLowerCase());
       const itemDate = item.date || '';
@@ -304,9 +312,52 @@ export default function AttendanceList() {
 
 
 
-  const presentCount = filtered.filter(a => a.status === 'present').length;
-  const absentCount = filtered.filter(a => a.status === 'absent').length;
-  const lateCount = filtered.filter(a => a.status === 'late').length;
+  const { presentCount, absentCount, lateCount, onLeaveCount } = useMemo(() => {
+    if (!isEmployee) return { presentCount: 0, absentCount: 0, lateCount: 0, onLeaveCount: 0 };
+    
+    const targetMonth = month || (date ? date.substring(0, 7) : thisMonth);
+    const [y, m] = targetMonth.split('-');
+    const daysInMonth = new Date(y, m, 0).getDate();
+    
+    let present = 0;
+    let absent = 0;
+    let late = 0;
+    let onLeaveCountStat = 0;
+    
+    const validEmps = employees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id));
+    
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
+      if (d > today) break;
+      
+      for (const emp of validEmps) {
+        if (emp.joinDate && d < emp.joinDate) continue;
+        
+        const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === d);
+        if (att) {
+           if (att.status === 'present') present++;
+           else if (att.status === 'absent') absent++;
+           else if (att.status === 'late') late++;
+           else if (att.status === 'On Leave' || att.status === 'on leave') onLeaveCountStat++;
+           continue;
+        }
+        
+        const onLeave = leaveRequests.find(lr => {
+          const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
+          const isApproved = lr.status === 'approved';
+          const overlaps = lr.fromDate <= d && lr.toDate >= d;
+          return isMatch && isApproved && overlaps;
+        });
+        
+        if (onLeave) {
+          onLeaveCountStat++;
+        } else {
+          absent++;
+        }
+      }
+    }
+    return { presentCount: present, absentCount: absent, lateCount: late, onLeaveCount: onLeaveCountStat };
+  }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, thisMonth, today, possibleIds]);
 
   const rowsPerPage = 15;
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
@@ -335,7 +386,14 @@ export default function AttendanceList() {
                 <Input label="Search" placeholder="Employee Name" value={search} onChange={(event) => setSearch(event.target.value)} />
               </div>
             )}
-            <Select label="Status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <Select label="Status" value={statusFilter} onChange={(event) => {
+              const val = event.target.value;
+              setStatusFilter(val);
+              if (val) {
+                setDate('');
+                setMonth(thisMonth);
+              }
+            }}>
               <option value="">All</option>
               <option value="present">Present</option>
               <option value="absent">Absent</option>
@@ -400,7 +458,7 @@ export default function AttendanceList() {
       </Modal>
 
       {isEmployee && (
-        <div className="grid gap-4 grid-cols-3">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <Card className="p-4 flex flex-col items-center justify-center bg-success-50 border-success-100 text-success-900">
             <div className="text-sm font-medium uppercase tracking-wider">Present</div>
             <div className="text-3xl font-bold mt-1">{presentCount}</div>
@@ -408,6 +466,10 @@ export default function AttendanceList() {
           <Card className="p-4 flex flex-col items-center justify-center bg-warning-50 border-warning-100 text-warning-900">
             <div className="text-sm font-medium uppercase tracking-wider">Late</div>
             <div className="text-3xl font-bold mt-1">{lateCount}</div>
+          </Card>
+          <Card className="p-4 flex flex-col items-center justify-center bg-primary-50 border-primary-100 text-primary-900">
+            <div className="text-sm font-medium uppercase tracking-wider">On Leave</div>
+            <div className="text-3xl font-bold mt-1">{onLeaveCount}</div>
           </Card>
           <Card className="p-4 flex flex-col items-center justify-center bg-danger-50 border-danger-100 text-danger-900">
             <div className="text-sm font-medium uppercase tracking-wider">Absent</div>
