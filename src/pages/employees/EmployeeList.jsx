@@ -408,7 +408,7 @@ function LeaveHistoryModal({ employee, open, onClose }) {
 }
 
 // Component: Edit Employee Modal
-function EditEmployeeModal({ employee, departments, managers, existingEmails = [], existingPhones = [], open, onClose, onSave }) {
+function EditEmployeeModal({ employee, departments, managers, existingEmails = [], existingPhones = [], existingEmployeeIds = [], open, onClose, onSave }) {
   const [formData, setFormData] = useState(employee || {});
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -497,13 +497,26 @@ function EditEmployeeModal({ employee, departments, managers, existingEmails = [
       isValid = false;
     }
 
+    const otherEmployeeIds = existingEmployeeIds.filter(id => id !== employee?.employeeId);
+    if (formData.employeeId && otherEmployeeIds.includes(formData.employeeId.trim())) {
+      newErrors['employeeId'] = 'This Employee ID is already in use by another employee';
+      isValid = false;
+    }
+
     if (formData.dob) {
       const [year, month, day] = formData.dob.split('-');
       const parsedDob = new Date(year, month - 1, day);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      
+      const eighteenYearsAgo = new Date(today);
+      eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+      
       if (parsedDob >= today) {
         newErrors['dob'] = 'Date of birth cannot be today or in the future';
+        isValid = false;
+      } else if (parsedDob > eighteenYearsAgo) {
+        newErrors['dob'] = 'Employee must be at least 18 years old';
         isValid = false;
       }
     }
@@ -564,7 +577,7 @@ function EditEmployeeModal({ employee, departments, managers, existingEmails = [
             <Input label="Last Name" error={errors.lastName} value={formData.lastName || ''} onChange={(e) => handleChange('lastName', e.target.value)} required />
             <Input label="Email" type="email" error={errors.email} value={formData.email || ''} onChange={(e) => handleChange('email', e.target.value)} required />
             <Input label="Phone" type="tel" error={errors.phone} value={formData.phone || ''} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} pattern="[0-9]{10}" />
-            <Input label="Date of Birth" type="date" error={errors.dob} value={formData.dob || ''} onChange={(e) => handleChange('dob', e.target.value)} />
+            <Input label="Date of Birth" type="date" error={errors.dob} value={formData.dob || ''} max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]} onChange={(e) => handleChange('dob', e.target.value)} />
             <Select label="Gender" error={errors.gender} value={formData.gender || ''} onChange={(e) => handleChange('gender', e.target.value)}>
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
@@ -682,7 +695,7 @@ function EditEmployeeModal({ employee, departments, managers, existingEmails = [
 }
 
 // Component: Add Employee Modal
-function AddEmployeeModal({ departments, managers, existingEmails = [], existingPhones = [], open, onClose, onSave }) {
+function AddEmployeeModal({ departments, managers, existingEmails = [], existingPhones = [], existingEmployeeIds = [], open, onClose, onSave }) {
   const [currentTab, setCurrentTab] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -836,8 +849,15 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         const parsedDob = new Date(year, month - 1, day);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        
+        const eighteenYearsAgo = new Date(today);
+        eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
+        
         if (parsedDob >= today) {
           newErrors['dob'] = 'Date of birth cannot be today or in the future';
+          isValid = false;
+        } else if (parsedDob > eighteenYearsAgo) {
+          newErrors['dob'] = 'Employee must be at least 18 years old';
           isValid = false;
         }
       }
@@ -848,6 +868,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       required.forEach(k => {
         if (!formData[k]) { newErrors[k] = 'This field is required'; isValid = false; }
       });
+      if (formData.employeeId && existingEmployeeIds.includes(formData.employeeId.trim())) {
+        newErrors['employeeId'] = 'This Employee ID is already in use';
+        isValid = false;
+      }
     }
     if (tabIndex === 2) {
       const required = ['basicSalary', 'hra', 'da', 'travelAllowance', 'bankAccount', 'ifsc', 'bankName', 'casualLeaves', 'paidLeaves', 'sickLeaves'];
@@ -980,7 +1004,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
                 const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                 handleChange('phone', val);
               }} pattern="[0-9]{10}" title="Please enter exactly 10 digits" />
-              <Input label="Date of Birth *" type="date" error={errors.dob} value={formData.dob} max={new Date().toISOString().split('T')[0]} onChange={(e) => handleChange('dob', e.target.value)} />
+              <Input label="Date of Birth *" type="date" error={errors.dob} value={formData.dob} max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]} onChange={(e) => handleChange('dob', e.target.value)} />
               <Select label="Gender *" error={errors.gender} value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)}>
                 <option value="">Select Gender</option>
                 <option value="Male">Male</option>
@@ -1932,6 +1956,7 @@ export default function EmployeeList() {
         managers={managers}
         existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean)}
         existingPhones={employees.map(e => e.phone).filter(Boolean)}
+        existingEmployeeIds={employees.map(e => e.employeeId).filter(Boolean)}
         open={editModalOpen}
         onClose={() => {
           setEditModalOpen(false);
@@ -1944,6 +1969,7 @@ export default function EmployeeList() {
         managers={managers}
         existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean)}
         existingPhones={employees.map(e => e.phone).filter(Boolean)}
+        existingEmployeeIds={employees.map(e => e.employeeId).filter(Boolean)}
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         onSave={handleAddEmployee}

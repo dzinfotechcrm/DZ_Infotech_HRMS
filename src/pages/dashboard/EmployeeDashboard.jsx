@@ -45,9 +45,12 @@ export default function EmployeeDashboard() {
 
   const { items: allAttendance } = useSupabaseCollection('attendance', attendanceQuery);
   const { items: allLeaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
+  const { items: employees } = useSupabaseCollection('employees');
 
-  const attendance = allAttendance.filter((a) => a.employeeId === user?.uid).slice(0, 10);
-  const userLeaves = allLeaveRequests.filter((lr) => lr.employeeId === user?.uid);
+  const currentEmployee = employees.find(e => e.uid === user?.uid || e.email === user?.email);
+
+  const attendance = allAttendance.filter((a) => a.employeeId === user?.uid || (currentEmployee && a.employeeId === currentEmployee.id)).slice(0, 10);
+  const userLeaves = allLeaveRequests.filter((lr) => lr.employeeId === user?.uid || (currentEmployee && lr.employeeId === currentEmployee.id));
   const leaveRequests = userLeaves.slice(0, 5);
 
   const presentToday = attendance.some((entry) => entry.status === 'present' && formatDate(entry.date, 'yyyy-MM-dd') === formatDate(new Date(), 'yyyy-MM-dd'));
