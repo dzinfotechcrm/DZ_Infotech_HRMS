@@ -388,9 +388,16 @@ function EmployeePayrollView({ user, payroll, activeEmployees }) {
 
   const emp = useMemo(() => activeEmployees.find((e) => e.uid === user?.uid || (user?.email && e.email === user?.email) || e.id === user?.uid) || {}, [activeEmployees, user]);
 
+  const joinDateObj = useMemo(() => {
+    return emp.joinDate ? new Date(emp.joinDate) : emp.createdAt ? new Date(emp.createdAt) : new Date();
+  }, [emp]);
+  
+  const joinYear = joinDateObj.getFullYear();
+  const joinMonth = joinDateObj.getMonth() + 1;
+
   const userPayrolls = useMemo(() => {
     return payroll
-      .filter((p) => (p.employeeId === emp.uid || p.employeeId === emp.id) && (!emp.joinDate || isBefore(safeDate(p.createdAt), new Date(emp.joinDate))))
+      .filter((p) => p.employeeId === emp.uid || p.employeeId === emp.id)
       .sort((a, b) => {
         if (a.year !== b.year) return parseInt(b.year) - parseInt(a.year);
         return parseInt(b.month) - parseInt(a.month);
@@ -421,9 +428,9 @@ function EmployeePayrollView({ user, payroll, activeEmployees }) {
               <Select
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
-                className="w-32 shadow-sm"
+                className="w-36 shadow-sm"
               >
-                {MONTHS.map((m) => (
+                {MONTHS.filter(m => parseInt(filterYear) !== joinYear || parseInt(m.value) >= joinMonth).map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}
               </Select>
@@ -432,7 +439,7 @@ function EmployeePayrollView({ user, payroll, activeEmployees }) {
                 onChange={(e) => setFilterYear(e.target.value)}
                 className="w-28 shadow-sm"
               >
-                {YEARS.map((y) => (
+                {YEARS.filter(y => parseInt(y) >= joinYear).map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </Select>
@@ -643,7 +650,7 @@ export default function PayrollList() {
       ? activeEmployees
       : activeEmployees.filter((e) => e.uid === user?.uid || e.id === user?.uid)
     ).filter((e) => {
-      if (e.role === 'admin') return false; // admins manage payroll but don't receive it
+      if (String(e.role).toLowerCase() === 'admin' || String(e.role).toLowerCase() === 'agent') return false; // admins and agents are excluded from payroll
 
       // Filter out employees who joined AFTER the selected month/year
       const joinStr = e.joinDate || e.createdAt;
@@ -707,7 +714,7 @@ export default function PayrollList() {
   }, [rows, filterStatus, filterDept, filterType]);
 
   // ── Summary stats (reflect ALL active non-admin employees) ──────────────────
-  const totalEmployees = activeEmployees.filter((e) => e.role !== 'admin').length;
+  const totalEmployees = activeEmployees.filter((e) => String(e.role).toLowerCase() !== 'admin' && String(e.role).toLowerCase() !== 'agent').length;
   const totalCost = filtered.filter((r) => r._hasPayroll).reduce((s, r) => s + Number(r.netSalary || 0), 0);
   const paidCount = filtered.filter((r) => r.status === 'paid').length;
   const pendingCount = filtered.filter((r) => r.status === 'pending' || r.status === 'draft').length;
