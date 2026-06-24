@@ -172,7 +172,7 @@ export default function LeaveList() {
     );
   };
 
-  const [activeTab, setActiveTab] = useState(isAdmin ? 'approvalQueue' : 'my');
+  const [activeTab, setActiveTab] = useState(isAdmin || isManager ? 'approvalQueue' : 'my');
   const [adminStatusFilter, setAdminStatusFilter] = useState('all');
   const pendingLeavesCount = isAdmin
     ? leaveRequests.filter(req => String(req.status || '').toLowerCase().trim() === 'pending' && req.employeeId !== user?.uid).length
@@ -189,16 +189,6 @@ export default function LeaveList() {
         actions={(
           <div className="flex flex-wrap gap-2">
             {!isAdmin && <Link to="/leave/new"><Button>Apply Leave</Button></Link>}
-            {!isAdmin && (isManager || user?.role === 'hr') && (
-              <Link to="/leave/approval">
-                <Button variant="secondary" className="relative">
-                  Approval Queue
-                  {pendingLeavesCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-white" />
-                  )}
-                </Button>
-              </Link>
-            )}
           </div>
         )}
       />
@@ -271,26 +261,35 @@ export default function LeaveList() {
       )}
 
       {isManager && !isAdmin && (
-        <div className="flex gap-4 border-b border-neutral-200">
-          <button
-            type="button"
-            className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'my' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
-            onClick={() => setActiveTab('my')}
-          >
-            My Leaves
-          </button>
-          <button
-            type="button"
-            className={`flex items-center gap-2 pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'team' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
-            onClick={() => setActiveTab('team')}
-          >
-            Team Leaves
-            {pendingLeavesCount > 0 && (
-              <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'team' ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600'}`}>
-                {pendingLeavesCount}
-              </span>
-            )}
-          </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              className={`flex items-center gap-2 pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'approvalQueue' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+              onClick={() => setActiveTab('approvalQueue')}
+            >
+              Approval Queue
+              {pendingLeavesCount > 0 && (
+                <span className={`px-2 py-0.5 text-xs rounded-full ${activeTab === 'approvalQueue' ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                  {pendingLeavesCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'my' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+              onClick={() => setActiveTab('my')}
+            >
+              My Leaves
+            </button>
+            <button
+              type="button"
+              className={`pb-3 text-sm font-semibold transition-all border-b-2 ${activeTab === 'team' ? 'border-primary-600 text-primary-700' : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'}`}
+              onClick={() => setActiveTab('team')}
+            >
+              Team Leaves
+            </button>
+          </div>
         </div>
       )}
 
@@ -366,8 +365,8 @@ export default function LeaveList() {
         </div>
       )}
 
-      {/* Admin: Approval Queue */}
-      {isAdmin && activeTab === 'approvalQueue' && (
+      {/* Approval Queue */}
+      {(isAdmin || isManager) && activeTab === 'approvalQueue' && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
           <Card className="p-5">
             <LeaveApproval isTab={true} />

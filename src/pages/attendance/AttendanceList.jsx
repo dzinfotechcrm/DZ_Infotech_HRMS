@@ -135,8 +135,96 @@ export default function AttendanceList() {
     XLSX.writeFile(workbook, `${filename}-${todayExport}.xlsx`);
   }
 
+  const isMonthlySummary = !isEmployee && !date && month;
+
   const filtered = useMemo(() => {
     let baseList = sortedAttendance;
+
+    if (isMonthlySummary) {
+      const targetMonth = month;
+      const [y, m] = targetMonth.split('-');
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const lastDayOfMonth = `${y}-${m}-${String(daysInMonth).padStart(2, '0')}`;
+
+      const summaryMap = new Map();
+      const validEmps = employees.filter(emp => {
+        if (emp.role === 'admin' || String(emp.role).toLowerCase() === 'agent') return false;
+        if (emp.joinDate && emp.joinDate > lastDayOfMonth) return false;
+        return true;
+      });
+
+      for (const emp of validEmps) {
+        summaryMap.set(emp.uid || emp.id, {
+          id: `summary-${emp.uid || emp.id}-${targetMonth}`,
+          employeeId: emp.uid || emp.id,
+          date: `${targetMonth}-01`,
+          totalPresentDays: 0,
+          totalWorkingHours: 0,
+          anyStatus: new Set(),
+        });
+      }
+
+      const days = [];
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
+        if (d > today) break;
+        days.push(d);
+      }
+
+      for (const d of days) {
+        for (const emp of validEmps) {
+          if (emp.joinDate && d < emp.joinDate) continue;
+
+          const summary = summaryMap.get(emp.uid || emp.id);
+          if (!summary) continue;
+
+          const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === d);
+          if (att) {
+            summary.anyStatus.add((att.status || '').toLowerCase());
+            if ((att.status || '').toLowerCase() === 'present') {
+              summary.totalPresentDays++;
+              if (att.checkIn && att.checkOut) {
+                const parseTime = (timeStr) => {
+                  const parts = String(timeStr).split(':');
+                  if (parts.length >= 2) {
+                    const hh = parseInt(parts[0], 10);
+                    const mm = parseInt(parts[1], 10);
+                    return hh + (mm || 0) / 60;
+                  }
+                  return NaN;
+                };
+                const ci = parseTime(att.checkIn);
+                const co = parseTime(att.checkOut);
+                if (!isNaN(ci) && !isNaN(co)) {
+                  if (co >= ci) {
+                    summary.totalWorkingHours += (co - ci);
+                  } else {
+                    summary.totalWorkingHours += (24 - ci + co);
+                  }
+                }
+              }
+            }
+          } else {
+            const onLeave = leaveRequests.find(lr => {
+              const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
+              const isApproved = lr.status === 'approved';
+              const overlaps = lr.fromDate <= d && lr.toDate >= d;
+              return isMatch && isApproved && overlaps;
+            });
+            summary.anyStatus.add(onLeave ? 'on leave' : 'absent');
+          }
+        }
+      }
+
+      baseList = Array.from(summaryMap.values());
+
+      return baseList.filter((item) => {
+        const empName = getEmpName(item);
+        const employeeMatches = String(empName || item.employeeId || '').toLowerCase().includes(search.toLowerCase());
+        const matchesStatus = statusFilter ? Array.from(item.anyStatus).some(s => s === statusFilter.toLowerCase()) : true;
+        return employeeMatches && matchesStatus;
+      });
+    }
 
     if (date || month) {
       const datesToProcess = date ? [date] : (() => {
@@ -201,7 +289,7 @@ export default function AttendanceList() {
       const matchesStatus = statusFilter ? (item.status || '').toLowerCase() === statusFilter.toLowerCase() : true;
       return employeeMatches && matchesDate && matchesMonth && matchesStatus;
     });
-  }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, search, statusFilter, today]);
+  }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, search, statusFilter, today, isMonthlySummary]);
 
   const getExportRows = () => {
     let baseList = sortedAttendance;
@@ -314,41 +402,41 @@ export default function AttendanceList() {
 
   const { presentCount, absentCount, lateCount, onLeaveCount } = useMemo(() => {
     if (!isEmployee) return { presentCount: 0, absentCount: 0, lateCount: 0, onLeaveCount: 0 };
-    
+
     const targetMonth = month || (date ? date.substring(0, 7) : thisMonth);
     const [y, m] = targetMonth.split('-');
     const daysInMonth = new Date(y, m, 0).getDate();
-    
+
     let present = 0;
     let absent = 0;
     let late = 0;
     let onLeaveCountStat = 0;
-    
+
     const validEmps = employees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id));
-    
+
     for (let i = 1; i <= daysInMonth; i++) {
       const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
       if (d > today) break;
-      
+
       for (const emp of validEmps) {
         if (emp.joinDate && d < emp.joinDate) continue;
-        
+
         const att = sortedAttendance.find(a => (a.employeeId === emp.uid || a.employeeId === emp.id) && a.date === d);
         if (att) {
-           if (att.status === 'present') present++;
-           else if (att.status === 'absent') absent++;
-           else if (att.status === 'late') late++;
-           else if (att.status === 'On Leave' || att.status === 'on leave') onLeaveCountStat++;
-           continue;
+          if (att.status === 'present') present++;
+          else if (att.status === 'absent') absent++;
+          else if (att.status === 'late') late++;
+          else if (att.status === 'On Leave' || att.status === 'on leave') onLeaveCountStat++;
+          continue;
         }
-        
+
         const onLeave = leaveRequests.find(lr => {
           const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
           const isApproved = lr.status === 'approved';
           const overlaps = lr.fromDate <= d && lr.toDate >= d;
           return isMatch && isApproved && overlaps;
         });
-        
+
         if (onLeave) {
           onLeaveCountStat++;
         } else {
@@ -485,37 +573,48 @@ export default function AttendanceList() {
             ...(isEmployee ? [] : [{ key: 'employee', label: 'Employee' }]),
             ...(isEmployee ? [] : [{ key: 'department', label: 'Department' }]),
             ...(isEmployee ? [] : [{ key: 'role', label: 'Role' }]),
-            { key: 'status', label: 'Status' },
-            { key: 'checkIn', label: 'Check In' },
-            { key: 'checkOut', label: 'Check Out' },
-            { key: 'notes', label: 'Notes' }
+            ...(!isMonthlySummary ? [{ key: 'status', label: 'Status' }] : [{ key: 'totalPresentDays', label: 'Total Present Days' }]),
+            ...(!isMonthlySummary ? [{ key: 'checkIn', label: 'Check In' }] : []),
+            ...(!isMonthlySummary ? [{ key: 'checkOut', label: 'Check Out' }] : []),
+            ...(isMonthlySummary ? [{ key: 'totalWorkingHours', label: 'Total Working Hours This Month' }] : []),
+            ...(!isMonthlySummary ? [{ key: 'notes', label: 'Notes' }] : [])
           ]}
           data={paginatedData}
           renderRow={(item) => (
-            <tr key={item.id} className={item.status === 'present' ? 'bg-success-100/30' : item.status === 'late' ? 'bg-warning-100/40' : item.status === 'absent' ? 'bg-danger-100/30' : item.status === 'On Leave' ? 'bg-primary-50/50' : ''}>
-              <td className="px-4 py-3">{formatDate(item.date)}</td>
+            <tr key={item.id} className={!isMonthlySummary ? (item.status === 'present' ? 'bg-success-100/30' : item.status === 'late' ? 'bg-warning-100/40' : item.status === 'absent' ? 'bg-danger-100/30' : item.status === 'On Leave' ? 'bg-primary-50/50' : '') : ''}>
+              <td className="px-4 py-3">{!isMonthlySummary ? formatDate(item.date) : formatDate(item.date, 'MMM yyyy')}</td>
               {!isEmployee && <td className="px-4 py-3">{getEmpName(item)}</td>}
               {!isEmployee && <td className="px-4 py-3">{getEmpDept(item.employeeId)}</td>}
               {!isEmployee && <td className="px-4 py-3">{getEmpRole(item.employeeId)}</td>}
-              <td className="px-4 py-3"><Badge tone={item.status === 'present' ? 'success' : item.status === 'late' ? 'warning' : item.status === 'absent' ? 'danger' : item.status === 'On Leave' ? 'primary' : 'neutral'}>{item.status}</Badge></td>
-              <td className="px-4 py-3 whitespace-nowrap">{item.checkIn || '—'}</td>
-              <td className="px-4 py-3 whitespace-nowrap">{item.checkOut || '—'}</td>
-              <td className="px-4 py-3 min-w-[120px]">
-                {item.notes ? (
-                  <Button
-                    variant="secondary"
-                    className="py-1 px-3 text-xs"
-                    onClick={() => {
-                      setSelectedNote(item.notes);
-                      setNoteModalOpen(true);
-                    }}
-                  >
-                    View Note
-                  </Button>
-                ) : (
-                  '—'
-                )}
-              </td>
+              {!isMonthlySummary && (
+                <>
+                  <td className="px-4 py-3"><Badge tone={item.status === 'present' ? 'success' : item.status === 'late' ? 'warning' : item.status === 'absent' ? 'danger' : item.status === 'On Leave' ? 'primary' : 'neutral'}>{item.status}</Badge></td>
+                  <td className="px-4 py-3 whitespace-nowrap">{item.checkIn || '—'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{item.checkOut || '—'}</td>
+                  <td className="px-4 py-3 min-w-[120px]">
+                    {item.notes ? (
+                      <Button
+                        variant="secondary"
+                        className="py-1 px-3 text-xs"
+                        onClick={() => {
+                          setSelectedNote(item.notes);
+                          setNoteModalOpen(true);
+                        }}
+                      >
+                        View Note
+                      </Button>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                </>
+              )}
+              {isMonthlySummary && (
+                <>
+                  <td className="px-4 py-3">{item.totalPresentDays}</td>
+                  <td className="px-4 py-3">{Math.round(item.totalWorkingHours * 10) / 10} hrs</td>
+                </>
+              )}
             </tr>
           )}
         />
