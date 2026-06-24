@@ -382,7 +382,7 @@ function FilterSelect({ label, value, onChange, children }) {
 
 // ─── Employee Payroll View ───────────────────────────────────────────────────
 
-function EmployeePayrollView({ user, payroll, activeEmployees }) {
+function EmployeePayrollView({ user, payroll, activeEmployees, onOpenPayslip }) {
   const [filterMonth, setFilterMonth] = useState(CUR_MONTH);
   const [filterYear, setFilterYear] = useState(CUR_YEAR);
 
@@ -574,7 +574,15 @@ function EmployeePayrollView({ user, payroll, activeEmployees }) {
                         <td className="px-6 py-4">
                           <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 flex gap-2">
+                          <Button
+                            variant="secondary"
+                            className="!px-3 !py-1.5 text-xs bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 shadow-none flex items-center gap-1.5"
+                            onClick={() => onOpenPayslip({ ...row, _emp: emp })}
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                            View
+                          </Button>
                           <Button
                             variant="secondary"
                             className="!px-3 !py-1.5 text-xs bg-primary-50 text-primary-700 hover:bg-primary-100 border-none shadow-none flex items-center gap-1.5"
@@ -835,7 +843,16 @@ export default function PayrollList() {
   const hasFilters = filterMonth !== CUR_MONTH || filterYear !== CUR_YEAR || filterStatus || filterDept || filterType;
 
   if (!adminView) {
-    return <EmployeePayrollView user={user} payroll={payroll} activeEmployees={activeEmployees} />;
+    return (
+      <>
+        <EmployeePayrollView user={user} payroll={payroll} activeEmployees={activeEmployees} onOpenPayslip={setPayslipRow} />
+        <PayslipModal
+          open={!!payslipRow}
+          onClose={() => setPayslipRow(null)}
+          row={payslipRow}
+        />
+      </>
+    );
   }
 
   return (

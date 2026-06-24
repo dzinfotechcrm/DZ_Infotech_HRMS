@@ -131,6 +131,9 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   
   doc.text(`Paid Leaves:`, pageWidth / 2 + 10, 195);
   doc.text(`${payroll.paidLeaveDays ?? 0}`, pageWidth / 2 + 100, 195);
+  
+  doc.text(`Absent Days:`, pageWidth / 2 + 10, 210);
+  doc.text(`${payroll.absentDays ?? Math.max(0, (payroll.workingDays || 22) - (payroll.presentDays || 0))}`, pageWidth / 2 + 100, 210);
 
   const resolveObj = (val) => {
     if (typeof val === 'object' && val !== null) {
