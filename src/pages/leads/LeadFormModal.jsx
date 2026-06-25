@@ -10,6 +10,7 @@ const STAGES = [
   'Contacted',
   'Demo Scheduled',
   'Meeting Scheduled',
+  'Meeting Completed',
   'Proposal Sent',
   'Negotiation',
   'Won',
