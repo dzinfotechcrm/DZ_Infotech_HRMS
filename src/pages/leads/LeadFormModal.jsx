@@ -16,6 +16,11 @@ const STAGES = [
   'Lost'
 ];
 
+const SERVICES_LIST = [
+  'Static Website', 'Dynamic Website', 'Ecommerce Website',
+  'CRM', 'ERP', 'AI Chatbot', 'AI Automation', 'ConTrack'
+];
+
 const INITIAL_STATE = {
   leadId: '',
   companyName: '',
@@ -25,7 +30,7 @@ const INITIAL_STATE = {
   email: '',
   address: '',
   industry: '',
-  serviceInterested: '',
+  serviceInterested: [],
   expectedValue: '',
   leadSource: 'Website',
   assignedTo: '',
@@ -42,7 +47,12 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
 
   useEffect(() => {
     if (lead) {
-      setFormData(lead);
+      setFormData({
+        ...lead,
+        serviceInterested: typeof lead.serviceInterested === 'string'
+          ? (lead.serviceInterested ? lead.serviceInterested.split(',').map(s => s.trim()) : [])
+          : (Array.isArray(lead.serviceInterested) ? lead.serviceInterested : [])
+      });
     } else {
       let maxId = 0;
       leads.forEach(l => {
@@ -72,11 +82,20 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleToggleService = (service) => {
+    const currentServices = Array.isArray(formData.serviceInterested) ? formData.serviceInterested : [];
+    if (currentServices.includes(service)) {
+      handleChange('serviceInterested', currentServices.filter(s => s !== service));
+    } else {
+      handleChange('serviceInterested', [...currentServices, service]);
+    }
+  };
+
   const validate = () => {
     const newErrors = {};
     let isValid = true;
 
-    const required = ['companyName', 'contactPerson', 'phone', 'email', 'stage', 'assignedTo', 'nextFollowUp'];
+    const required = ['companyName', 'contactPerson', 'stage', 'assignedTo', 'nextFollowUp'];
     required.forEach((k) => {
       if (!formData[k] || String(formData[k]).trim() === '') {
         newErrors[k] = 'This field is required';
@@ -96,6 +115,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
     try {
       const payload = {
         ...formData,
+        serviceInterested: Array.isArray(formData.serviceInterested) ? formData.serviceInterested.join(', ') : formData.serviceInterested,
         expectedValue: parseFloat(formData.expectedValue) || 0,
         probability: parseInt(formData.probability) || 0,
       };
@@ -130,9 +150,9 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
             <Input label="Lead ID" value={formData.leadId} disabled />
             <Input label="Company Name *" error={errors.companyName} value={formData.companyName} onChange={(e) => handleChange('companyName', e.target.value)} />
             <Input label="Contact Person *" error={errors.contactPerson} value={formData.contactPerson} onChange={(e) => handleChange('contactPerson', e.target.value)} />
-            <Input label="Phone *" error={errors.phone} value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
+            <Input label="Phone" error={errors.phone} value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
             <Input label="WhatsApp" value={formData.whatsapp} onChange={(e) => handleChange('whatsapp', e.target.value.replace(/\D/g, '').slice(0, 10))} />
-            <Input label="Email *" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
+            <Input label="Email" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
             <div className="sm:col-span-2 lg:col-span-3">
               <Input label="Address" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} />
             </div>
@@ -144,11 +164,32 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
           <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Business Details</h4>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Industry" value={formData.industry} onChange={(e) => handleChange('industry', e.target.value)} />
-            <Input label="Service Interested" value={formData.serviceInterested} onChange={(e) => handleChange('serviceInterested', e.target.value)} />
             <Input label="Expected Project Value (₹)" type="number" min="0" value={formData.expectedValue} onChange={(e) => handleChange('expectedValue', e.target.value)} />
             <Select label="Lead Source" value={formData.leadSource} onChange={(e) => handleChange('leadSource', e.target.value)}>
               {['Website', 'LinkedIn', 'Referral', 'Cold Outreach', 'Ads', 'Inbound', 'Outbound', 'PA'].map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
+            <div className="sm:col-span-2 mt-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Services Interested</label>
+              <div className="flex flex-wrap gap-2">
+                {SERVICES_LIST.map(service => {
+                  const currentServices = Array.isArray(formData.serviceInterested) ? formData.serviceInterested : [];
+                  const isSelected = currentServices.includes(service);
+                  return (
+                    <button
+                      key={service}
+                      type="button"
+                      onClick={() => handleToggleService(service)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${isSelected
+                          ? 'bg-primary-50 border-primary-500 text-primary-700'
+                          : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                        }`}
+                    >
+                      {service}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
