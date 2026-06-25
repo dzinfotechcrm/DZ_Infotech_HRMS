@@ -21,7 +21,7 @@ export default function Profile() {
   const employee = employees[0];
   const editableAll = isAdminLike(user?.role);
   const [preview, setPreview] = useState('');
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
 
   useEffect(() => {
     if (employee) {
@@ -35,7 +35,7 @@ export default function Profile() {
       if (preview) {
         photoURL = await uploadFile(`profile-photos/${user.uid}/${Date.now()}.png`, await (await fetch(preview)).blob(), { contentType: 'image/png' });
       }
-      
+
       // Do not spread `...employee` here because it contains flattened fields
       // (like 'aadhar') which are not valid top-level columns in Supabase.
       // phone and photoURL are also NOT top-level columns, so they must 
@@ -80,13 +80,13 @@ export default function Profile() {
 
       <Card className="p-6">
         <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
-          <Input label="Phone" {...register('phone')} disabled={!editableAll && user?.role === 'employee'} />
-          <Input 
-            label="Address" 
-            value={employee?.address ? (typeof employee.address === 'string' ? employee.address : [employee.address.line1, employee.address.city, employee.address.state, employee.address.pincode].filter(Boolean).join(', ')) : ''} 
-            readOnly 
-            disabled 
-            className="bg-neutral-50" 
+          <Input label="Phone" type="tel" maxLength={10} {...register('phone', { pattern: { value: /^[0-9]{10}$/, message: 'Phone must be exactly 10 digits' } })} error={errors.phone?.message} disabled={!editableAll && user?.role === 'employee'} />
+          <Input
+            label="Address"
+            value={employee?.address ? (typeof employee.address === 'string' ? employee.address : [employee.address.line1, employee.address.city, employee.address.state, employee.address.pincode].filter(Boolean).join(', ')) : ''}
+            readOnly
+            disabled
+            className="bg-neutral-50"
           />
 
           <Input label="Upload Photo (preview only)" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) { setPreview(URL.createObjectURL(file)); } }} />
