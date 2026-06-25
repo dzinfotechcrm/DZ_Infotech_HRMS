@@ -37,7 +37,7 @@ const INITIAL_STATE = {
   assignedTo: '',
   stage: 'New Lead',
   nextFollowUp: '',
-  probability: '',
+  interestLevel: '',
   notes: ''
 };
 
@@ -75,10 +75,6 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
   }, [lead, open, leads]);
 
   const handleChange = (field, value) => {
-    if (field === 'probability') {
-      if (Number(value) > 100) value = '100';
-      if (Number(value) < 0) value = '0';
-    }
     setErrors((prev) => ({ ...prev, [field]: undefined }));
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -118,7 +114,6 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
         ...formData,
         serviceInterested: Array.isArray(formData.serviceInterested) ? formData.serviceInterested.join(', ') : formData.serviceInterested,
         expectedValue: parseFloat(formData.expectedValue) || 0,
-        probability: parseInt(formData.probability) || 0,
       };
 
       // Strip virtual fields added by the data mapper
@@ -215,7 +210,12 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
               value={formData.nextFollowUp} 
               onChange={(e) => handleChange('nextFollowUp', e.target.value)} 
             />
-            <Input label="Probability (%)" type="number" min="0" max="100" value={formData.probability} onChange={(e) => handleChange('probability', e.target.value)} />
+            <Select label="Interest Level" value={formData.interestLevel} onChange={(e) => handleChange('interestLevel', e.target.value)}>
+              <option value="">Select Interest Level</option>
+              <option value="Very Interested">Very Interested</option>
+              <option value="Interested">Interested</option>
+              <option value="Not Interested">Not Interested</option>
+            </Select>
             <div className="sm:col-span-2 lg:col-span-3 mt-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
               <textarea

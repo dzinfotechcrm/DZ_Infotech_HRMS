@@ -58,7 +58,7 @@ export default function LeadsPipeline() {
   const [filterSource, setFilterSource] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
   const [filterFollowUp, setFilterFollowUp] = useState('');
-  const [sortProbability, setSortProbability] = useState('');
+  const [filterInterest, setFilterInterest] = useState('');
 
   const filteredLeads = useMemo(() => {
     let result = [...leads];
@@ -73,14 +73,12 @@ export default function LeadsPipeline() {
       result = result.filter(l => l.nextFollowUp && l.nextFollowUp.startsWith(filterFollowUp));
     }
     
-    if (sortProbability === 'desc') {
-      result.sort((a, b) => (b.probability || 0) - (a.probability || 0));
-    } else if (sortProbability === 'asc') {
-      result.sort((a, b) => (a.probability || 0) - (b.probability || 0));
+    if (filterInterest) {
+      result = result.filter(l => l.interestLevel === filterInterest);
     }
     
     return result;
-  }, [leads, filterSource, filterAssignee, filterFollowUp, sortProbability]);
+  }, [leads, filterSource, filterAssignee, filterFollowUp, filterInterest]);
 
   const createClientFromLead = async (lead, initialStatus = 'Active') => {
     try {
@@ -243,7 +241,7 @@ export default function LeadsPipeline() {
                       setFilterSource('');
                       setFilterAssignee('');
                       setFilterFollowUp('');
-                      setSortProbability('');
+                      setFilterInterest('');
                     }}
                     className="text-xs text-primary-600 hover:text-primary-700 font-medium"
                   >
@@ -284,13 +282,14 @@ export default function LeadsPipeline() {
                   />
 
                   <Select 
-                    label="Probability"
-                    value={sortProbability}
-                    onChange={(e) => setSortProbability(e.target.value)}
+                    label="Interest Level"
+                    value={filterInterest}
+                    onChange={(e) => setFilterInterest(e.target.value)}
                   >
-                    <option value="">None</option>
-                    <option value="desc">High to Low</option>
-                    <option value="asc">Low to High</option>
+                    <option value="">All Levels</option>
+                    <option value="Very Interested">Very Interested</option>
+                    <option value="Interested">Interested</option>
+                    <option value="Not Interested">Not Interested</option>
                   </Select>
                 </div>
               </div>
@@ -376,9 +375,13 @@ export default function LeadsPipeline() {
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="font-semibold text-neutral-900 truncate pr-2">{lead.companyName}</div>
-                        {lead.probability ? (
-                          <div className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {lead.probability}%
+                        {lead.interestLevel ? (
+                          <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                            lead.interestLevel === 'Very Interested' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            lead.interestLevel === 'Interested' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            'bg-neutral-50 text-neutral-700 border-neutral-200'
+                          }`}>
+                            {lead.interestLevel}
                           </div>
                         ) : null}
                       </div>
@@ -427,7 +430,7 @@ export default function LeadsPipeline() {
                   <th className="px-6 py-4 font-semibold">Contact</th>
                   <th className="px-6 py-4 font-semibold text-center">Stage</th>
                   <th className="px-6 py-4 font-semibold text-right">Value</th>
-                  <th className="px-6 py-4 font-semibold text-right">Probability</th>
+                  <th className="px-6 py-4 font-semibold text-right">Interest Level</th>
                   <th className="px-6 py-4 font-semibold text-center">Assigned To</th>
                   <th className="px-6 py-4 font-semibold text-center">Next Follow-Up</th>
                 </tr>
@@ -466,7 +469,7 @@ export default function LeadsPipeline() {
                           {formatCurrency(lead.expectedValue || 0)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600 text-right">
-                          {lead.probability ? `${lead.probability}%` : '-'}
+                          {lead.interestLevel || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex justify-center">
