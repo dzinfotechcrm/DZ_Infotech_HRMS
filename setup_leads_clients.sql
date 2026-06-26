@@ -17,6 +17,7 @@ CREATE TABLE leads (
   "stage" TEXT,
   "nextFollowUp" TEXT,
   "probability" NUMERIC,
+  "interestLevel" TEXT,
   "notes" TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
