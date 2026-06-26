@@ -29,9 +29,9 @@ export default function WonModal({ open, onClose, onSubmit, leadName }) {
         Please provide the following details for <strong>{leadName}</strong> before marking them as Won.
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-slate-900">
-        <Select 
-          label="Has Advance Payment Been Received? *" 
-          required 
+        <Select
+          label="Has Advance Payment Been Received? *"
+          required
           value={formData.advancePaymentReceived}
           onChange={(e) => setFormData({ ...formData, advancePaymentReceived: e.target.value })}
         >

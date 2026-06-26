@@ -43,9 +43,8 @@ export default function ContactedDetailsModal({ open, onClose, onSubmit, leadNam
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-slate-900">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Basic Requirements *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Basic Requirements</label>
           <textarea
-            required
             rows="2"
             className="block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
             value={formData.basicRequirements}
@@ -54,9 +53,8 @@ export default function ContactedDetailsModal({ open, onClose, onSubmit, leadNam
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Business Details *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Business Details</label>
           <textarea
-            required
             rows="2"
             className="block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
             value={formData.businessDetails}
@@ -64,26 +62,24 @@ export default function ContactedDetailsModal({ open, onClose, onSubmit, leadNam
             placeholder="Information about their business"
           />
         </div>
-        <Input 
-          label="Service Required *" 
-          required 
+        <Input
+          label="Service Required"
           value={formData.serviceRequired}
           onChange={(e) => setFormData({ ...formData, serviceRequired: e.target.value })}
           placeholder="e.g. ERP, CRM, Website"
         />
-        <Input 
-          label="Budget (Optional)" 
+        <Input
+          label="Budget"
           type="number"
           min="0"
           value={formData.budget}
           onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
           placeholder="Expected budget"
         />
-        <Input 
-          label="Timeline (in days) *" 
+        <Input
+          label="Timeline (in days)"
           type="number"
           min="1"
-          required 
           value={formData.timeline}
           onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
           placeholder="e.g. 30"

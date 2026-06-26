@@ -48,14 +48,14 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
         Please provide the following details for <strong>{leadName}</strong> before moving them to Meeting Completed.
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-slate-900 h-[65vh] overflow-y-auto px-1">
-        <Input 
-          label="Who Attended? *" 
-          required 
+        <Input
+          label="Who Attended? *"
+          required
           value={formData.attendedBy}
           onChange={(e) => setFormData({ ...formData, attendedBy: e.target.value })}
           placeholder="e.g. John Doe, Jane Smith"
         />
-        
+
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Notes *</label>
           <textarea
@@ -93,17 +93,16 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input 
-            label="Quotation Estimate (₹) *" 
+          <Input
+            label="Quotation Estimate (₹)"
             type="number"
             min="0"
-            required 
             value={formData.quotationEstimate}
             onChange={(e) => setFormData({ ...formData, quotationEstimate: e.target.value })}
             placeholder="e.g. 50000"
           />
-          <Input 
-            label="Negotiated Amount (₹)" 
+          <Input
+            label="Negotiated Amount (₹)"
             type="number"
             min="0"
             value={formData.negotiatedAmount}
@@ -111,7 +110,7 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
             placeholder="e.g. 45000"
           />
         </div>
-        
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
             label="Next Follow-Up Date *"
@@ -121,9 +120,9 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
             value={formData.nextFollowUp}
             onChange={(e) => setFormData({ ...formData, nextFollowUp: e.target.value })}
           />
-          <Select 
-            label="Interest Level *" 
-            required 
+          <Select
+            label="Interest Level *"
+            required
             value={formData.interestLevel}
             onChange={(e) => setFormData({ ...formData, interestLevel: e.target.value })}
           >
@@ -132,7 +131,7 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
             <option value="Not Interested">Not Interested</option>
           </Select>
         </div>
-        
+
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="secondary" onClick={onClose} type="button">Cancel</Button>
           <Button type="submit">Submit & Update</Button>

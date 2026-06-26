@@ -40,40 +40,39 @@ export default function NegotiationModal({ open, onClose, onSubmit, leadName }) 
         Please provide the following details for <strong>{leadName}</strong> before moving them to Negotiation.
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-slate-900">
-        <Input 
-          label="Current Price (₹) *" 
+        <Input
+          label="Current Price (₹) *"
           type="number"
           min="0"
-          required 
+          required
           value={formData.currentPrice}
           onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
           placeholder="e.g. 50000"
         />
 
-        <Input 
-          label="Client Counter Offer (₹) *" 
+        <Input
+          label="Client Counter Offer (₹) *"
           type="number"
           min="0"
-          required 
+          required
           value={formData.clientCounterOffer}
           onChange={(e) => setFormData({ ...formData, clientCounterOffer: e.target.value })}
           placeholder="e.g. 40000"
         />
 
-        <Input 
-          label="Latest Offer (₹) *" 
+        <Input
+          label="Latest Offer (₹) *"
           type="number"
           min="0"
-          required 
+          required
           value={formData.latestOffer}
           onChange={(e) => setFormData({ ...formData, latestOffer: e.target.value })}
           placeholder="e.g. 45000"
         />
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Reason for Discount *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Reason for Discount</label>
           <textarea
-            required
             rows="3"
             className="block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
             value={formData.discountReason}

@@ -31,10 +31,10 @@ export default function DemoPreparationModal({ open, onClose, onSubmit, leadName
         Please provide the following details for <strong>{leadName}</strong> before moving them to Demo Preparation.
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-slate-900">
-        <Input 
-          label="Demo Website URL *" 
+        <Input
+          label="Demo Website URL *"
           type="url"
-          required 
+          required
           value={formData.demoWebsite}
           onChange={(e) => setFormData({ ...formData, demoWebsite: e.target.value })}
           placeholder="https://demo.example.com"

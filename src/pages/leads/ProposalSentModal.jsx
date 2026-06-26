@@ -30,14 +30,14 @@ export default function ProposalSentModal({ open, onClose, onSubmit, leadName })
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { ...formData };
-    
+
     // Convert numeric fields
     if (payload.amcIncluded === 'Yes' && payload.amcAmount) {
       payload.amcAmount = Number(payload.amcAmount);
     } else {
       payload.amcAmount = null; // Clear if No
     }
-    
+
     if (payload.quotationAmount) {
       payload.quotationAmount = Number(payload.quotationAmount);
     } else {
@@ -67,30 +67,29 @@ export default function ProposalSentModal({ open, onClose, onSubmit, leadName })
           />
         </div>
 
-        <Input 
-          label="Quotation Amount (₹) *" 
+        <Input
+          label="Quotation Amount (₹) *"
           type="number"
           min="0"
-          required 
+          required
           value={formData.quotationAmount}
           onChange={(e) => setFormData({ ...formData, quotationAmount: e.target.value })}
           placeholder="e.g. 50000"
         />
 
-        <Input 
-          label="Timeline (in days) *" 
+        <Input
+          label="Timeline (in days) *"
           type="number"
           min="1"
-          required 
+          required
           value={formData.proposalTimeline}
           onChange={(e) => setFormData({ ...formData, proposalTimeline: e.target.value })}
           placeholder="e.g. 30"
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select 
-            label="AMC Included? *" 
-            required 
+          <Select
+            label="AMC Included?"
             value={formData.amcIncluded}
             onChange={(e) => setFormData({ ...formData, amcIncluded: e.target.value })}
           >
@@ -99,11 +98,10 @@ export default function ProposalSentModal({ open, onClose, onSubmit, leadName })
           </Select>
 
           {formData.amcIncluded === 'Yes' && (
-            <Input 
-              label="AMC Amount (₹) *" 
+            <Input
+              label="AMC Amount (₹)"
               type="number"
               min="0"
-              required 
               value={formData.amcAmount}
               onChange={(e) => setFormData({ ...formData, amcAmount: e.target.value })}
               placeholder="e.g. 10000"
@@ -119,7 +117,7 @@ export default function ProposalSentModal({ open, onClose, onSubmit, leadName })
           value={formData.nextFollowUp}
           onChange={(e) => setFormData({ ...formData, nextFollowUp: e.target.value })}
         />
-        
+
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="secondary" onClick={onClose} type="button">Cancel</Button>
           <Button type="submit">Submit & Update</Button>

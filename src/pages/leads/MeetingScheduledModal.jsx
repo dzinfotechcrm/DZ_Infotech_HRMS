@@ -39,26 +39,26 @@ export default function MeetingScheduledModal({ open, onClose, onSubmit, leadNam
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-slate-900">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input 
-            label="Meeting Date *" 
+          <Input
+            label="Meeting Date *"
             type="date"
-            required 
+            required
             value={formData.meetingDate}
             onChange={(e) => setFormData({ ...formData, meetingDate: e.target.value })}
             min={new Date().toISOString().split('T')[0]}
           />
-          <Input 
-            label="Meeting Time *" 
+          <Input
+            label="Meeting Time *"
             type="time"
-            required 
+            required
             value={formData.meetingTime}
             onChange={(e) => setFormData({ ...formData, meetingTime: e.target.value })}
           />
         </div>
-        
-        <Select 
-          label="Meeting Type *" 
-          required 
+
+        <Select
+          label="Meeting Type *"
+          required
           value={formData.meetingType}
           onChange={(e) => setFormData({ ...formData, meetingType: e.target.value })}
         >
@@ -66,8 +66,8 @@ export default function MeetingScheduledModal({ open, onClose, onSubmit, leadNam
           <option value="Offline">Offline</option>
         </Select>
 
-        <Input 
-          label="Meeting Reminder" 
+        <Input
+          label="Meeting Reminder"
           type="text"
           value={formData.meetingReminder}
           onChange={(e) => setFormData({ ...formData, meetingReminder: e.target.value })}
@@ -82,7 +82,7 @@ export default function MeetingScheduledModal({ open, onClose, onSubmit, leadNam
           value={formData.nextFollowUp}
           onChange={(e) => setFormData({ ...formData, nextFollowUp: e.target.value })}
         />
-        
+
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="secondary" onClick={onClose} type="button">Cancel</Button>
           <Button type="submit">Submit & Update</Button>
