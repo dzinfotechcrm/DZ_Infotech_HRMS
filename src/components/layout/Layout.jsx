@@ -43,16 +43,16 @@ export default function Layout() {
   }
 
   return (
-    <div className="page-shell flex h-screen overflow-hidden">
+    <div className="page-shell flex h-screen w-full overflow-hidden">
       <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} user={user} isAdminLikeRole={isAdminLike(user?.role)} />
-      <div className="flex flex-1 flex-col h-screen overflow-hidden lg:ml-0">
+      <div className="flex flex-1 flex-col h-screen min-w-0 overflow-hidden lg:ml-0">
         <Topbar
           title={getTitle(location.pathname)}
           onMenuClick={() => setMenuOpen(true)}
           user={user}
           onLogout={handleLogout}
         />
-        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-6 lg:px-8">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 py-6 md:px-6 lg:px-8">
           <Outlet />
         </main>
       </div>

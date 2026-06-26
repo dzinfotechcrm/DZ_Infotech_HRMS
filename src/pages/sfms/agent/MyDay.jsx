@@ -154,7 +154,7 @@ export default function MyDay() {
           {/* Target Card */}
           <Card className="overflow-hidden">
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
                   <CurrencyRupeeIcon className="h-5 w-5 text-primary-600" />
                   Team Target ({new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })})
@@ -222,7 +222,7 @@ export default function MyDay() {
         {/* Sidebar Area */}
         <div className="space-y-6">
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
                 <PhoneIcon className="h-5 w-5 text-amber-500" />
                 Today's Follow-ups

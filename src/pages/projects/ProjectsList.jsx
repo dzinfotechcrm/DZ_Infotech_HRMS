@@ -135,9 +135,9 @@ export default function ProjectsList() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent text-neutral-900 -m-6 p-6 min-h-[calc(100vh-64px)]">
+    <div className="flex flex-col h-full bg-transparent text-neutral-900 min-h-[calc(100vh-64px)]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900 mb-1">Projects</h1>
           <p className="text-sm text-neutral-500">Workflow · tasks · health · timelines</p>
@@ -152,7 +152,7 @@ export default function ProjectsList() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Active Projects</div>
             <FolderIcon className="h-4 w-4 text-neutral-400" />
           </div>
@@ -165,7 +165,7 @@ export default function ProjectsList() {
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">On Track</div>
             <ChartBarIcon className="h-4 w-4 text-neutral-400" />
           </div>
@@ -176,7 +176,7 @@ export default function ProjectsList() {
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">At Risk</div>
             <ExclamationTriangleIcon className="h-4 w-4 text-neutral-400" />
           </div>
@@ -187,7 +187,7 @@ export default function ProjectsList() {
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Avg Cycle Time</div>
             <ClockIcon className="h-4 w-4 text-neutral-400" />
           </div>
@@ -266,7 +266,7 @@ export default function ProjectsList() {
                   {/* Progress visualization */}
                   <div className="mt-6">
                     {/* Top Continuous Bar & Percentage */}
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
                       <div className="relative flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
                         <div
                           className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${currentTheme.bg}`}

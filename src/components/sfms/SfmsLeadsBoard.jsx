@@ -138,20 +138,22 @@ export default function SfmsLeadsBoard({
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent text-neutral-900 -m-6 p-6 min-h-[calc(100vh-64px)]">
+    <div className="flex flex-col h-full bg-transparent text-neutral-900 w-full min-h-[calc(100vh-64px)]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900 mb-1">Leads ({leads.length})</h1>
           <p className="text-sm text-neutral-500">Pipeline · scoring · follow-ups · forecast</p>
         </div>
-        <div className="flex gap-3 items-center">
-          <Input 
-            placeholder="Search leads..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-64 bg-white"
-          />
+        <div className="flex flex-wrap gap-3 items-center w-full xl:w-auto">
+          <div className="w-full sm:w-auto flex-1 sm:flex-none">
+            <Input 
+              placeholder="Search leads..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64 bg-white"
+            />
+          </div>
 
           <div className="flex bg-neutral-100 p-1 rounded-xl">
             <button
@@ -170,13 +172,13 @@ export default function SfmsLeadsBoard({
           <div className="relative">
             <Button 
               variant="secondary" 
-              className={`bg-white border-neutral-200 gap-2 ${isFilterOpen ? 'ring-2 ring-primary-500/20 border-primary-500' : 'text-neutral-700 hover:bg-neutral-50'}`}
+              className={`bg-white border-neutral-200 gap-2 whitespace-nowrap ${isFilterOpen ? 'ring-2 ring-primary-500/20 border-primary-500' : 'text-neutral-700 hover:bg-neutral-50'}`}
               onClick={() => setIsFilterOpen(!isFilterOpen)}
             >
               <FunnelIcon className="h-4 w-4" /> Filter
             </Button>
             {isFilterOpen && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-neutral-200 rounded-xl shadow-soft p-4 z-50">
+              <div className="absolute right-0 sm:right-auto sm:left-0 top-full mt-2 w-72 bg-white border border-neutral-200 rounded-xl shadow-soft p-4 z-50">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-semibold text-neutral-900 text-sm">Filters</h3>
                   <button 
@@ -230,7 +232,7 @@ export default function SfmsLeadsBoard({
             )}
           </div>
           {onNewLead && (
-            <Button className="gap-2" onClick={onNewLead}>
+            <Button className="gap-2 whitespace-nowrap" onClick={onNewLead}>
               <PlusIcon className="h-4 w-4" /> New lead
             </Button>
           )}
@@ -238,7 +240,7 @@ export default function SfmsLeadsBoard({
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm">
           <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Leads this month</div>
           <div className="flex items-end justify-between">

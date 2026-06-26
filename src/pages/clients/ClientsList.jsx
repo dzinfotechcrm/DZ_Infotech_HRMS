@@ -61,10 +61,10 @@ export default function ClientsList() {
   const docsCount = totalClients * 7;
 
   return (
-    <div className="flex flex-col h-full bg-transparent text-neutral-900 -m-6 p-6 min-h-[calc(100vh-64px)]">
+    <div className="flex flex-col h-full bg-transparent text-neutral-900 min-h-[calc(100vh-64px)]">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900 mb-1">Clients</h1>
           <p className="text-sm text-neutral-500">All accounts · projects · LTV · ownership</p>
@@ -79,7 +79,7 @@ export default function ClientsList() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Total Clients</div>
             <BriefcaseIcon className="h-4 w-4 text-neutral-400" />
           </div>
@@ -92,7 +92,7 @@ export default function ClientsList() {
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Lifetime Value</div>
             <span className="text-neutral-400 font-medium">₹</span>
           </div>
@@ -105,7 +105,7 @@ export default function ClientsList() {
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">On AMC</div>
             <ShieldCheckIcon className="h-4 w-4 text-neutral-400" />
           </div>
@@ -116,7 +116,7 @@ export default function ClientsList() {
         </div>
 
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Docs on file</div>
             <DocumentTextIcon className="h-4 w-4 text-neutral-400" />
           </div>

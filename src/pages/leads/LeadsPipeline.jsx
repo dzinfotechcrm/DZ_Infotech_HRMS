@@ -350,15 +350,15 @@ export default function LeadsPipeline() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent text-neutral-900 -m-6 p-6 min-h-[calc(100vh-64px)]">
+    <div className="flex flex-col h-full bg-transparent text-neutral-900 min-h-[calc(100vh-64px)]">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900 mb-1">Leads</h1>
           <p className="text-sm text-neutral-500">Pipeline · scoring · follow-ups · forecast</p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap gap-3 items-center">
           <div className="flex bg-neutral-100 p-1 rounded-xl">
             <button
               onClick={() => setViewMode('kanban')}
