@@ -6,6 +6,13 @@ import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
+import ContactedDetailsModal from './ContactedDetailsModal';
+import DemoPreparationModal from './DemoPreparationModal';
+import MeetingScheduledModal from './MeetingScheduledModal';
+import MeetingCompletedModal from './MeetingCompletedModal';
+import ProposalSentModal from './ProposalSentModal';
+import NegotiationModal from './NegotiationModal';
+import WonModal from './WonModal';
 
 const STAGES = [
   'New Lead',
@@ -49,6 +56,13 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [confirmStageChange, setConfirmStageChange] = useState({ open: false, payload: null });
+  const [contactedDetailsModal, setContactedDetailsModal] = useState({ open: false, payload: null });
+  const [demoPrepModal, setDemoPrepModal] = useState({ open: false, payload: null });
+  const [meetingSchedModal, setMeetingSchedModal] = useState({ open: false, payload: null });
+  const [meetingCompletedModal, setMeetingCompletedModal] = useState({ open: false, payload: null });
+  const [proposalSentModal, setProposalSentModal] = useState({ open: false, payload: null });
+  const [negotiationModal, setNegotiationModal] = useState({ open: false, payload: null });
+  const [wonModal, setWonModal] = useState({ open: false, payload: null });
 
   useEffect(() => {
     if (lead) {
@@ -134,16 +148,66 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
     executeSave(payload);
   };
 
-  const executeSave = async (payloadToSave) => {
+  const executeSave = async (payloadToSave, extraDetails = null) => {
+    if (lead && lead.stage === 'New Lead' && payloadToSave.stage === 'Contacted' && !extraDetails) {
+      setConfirmStageChange({ open: false, payload: null });
+      setContactedDetailsModal({ open: true, payload: payloadToSave });
+      return;
+    }
+
+    if (lead && lead.stage === 'Contacted' && payloadToSave.stage === 'Demo Preparation' && !extraDetails) {
+      setConfirmStageChange({ open: false, payload: null });
+      setDemoPrepModal({ open: true, payload: payloadToSave });
+      return;
+    }
+
+    if (lead && lead.stage === 'Demo Preparation' && payloadToSave.stage === 'Meeting Scheduled' && !extraDetails) {
+      setConfirmStageChange({ open: false, payload: null });
+      setMeetingSchedModal({ open: true, payload: payloadToSave });
+      return;
+    }
+
+    if (lead && lead.stage === 'Meeting Scheduled' && payloadToSave.stage === 'Meeting Completed' && !extraDetails) {
+      setConfirmStageChange({ open: false, payload: null });
+      setMeetingCompletedModal({ open: true, payload: payloadToSave });
+      return;
+    }
+
+    if (lead && lead.stage === 'Meeting Completed' && payloadToSave.stage === 'Proposal Sent' && !extraDetails) {
+      setConfirmStageChange({ open: false, payload: null });
+      setProposalSentModal({ open: true, payload: payloadToSave });
+      return;
+    }
+
+    if (lead && lead.stage === 'Proposal Sent' && payloadToSave.stage === 'Negotiation' && !extraDetails) {
+      setConfirmStageChange({ open: false, payload: null });
+      setNegotiationModal({ open: true, payload: payloadToSave });
+      return;
+    }
+
+    if (lead && lead.stage === 'Negotiation' && payloadToSave.stage === 'Won' && !extraDetails) {
+      setConfirmStageChange({ open: false, payload: null });
+      setWonModal({ open: true, payload: payloadToSave });
+      return;
+    }
+
     setSaving(true);
     try {
-      await onSave(payloadToSave);
+      const finalPayload = extraDetails ? { ...payloadToSave, ...extraDetails } : payloadToSave;
+      await onSave(finalPayload);
       onClose();
     } catch (error) {
       toast.error(error.message || 'Failed to save lead');
     } finally {
       setSaving(false);
       setConfirmStageChange({ open: false, payload: null });
+      setContactedDetailsModal({ open: false, payload: null });
+      setDemoPrepModal({ open: false, payload: null });
+      setMeetingSchedModal({ open: false, payload: null });
+      setMeetingCompletedModal({ open: false, payload: null });
+      setProposalSentModal({ open: false, payload: null });
+      setNegotiationModal({ open: false, payload: null });
+      setWonModal({ open: false, payload: null });
     }
   };
 
@@ -265,6 +329,48 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
         onConfirm={() => executeSave(confirmStageChange.payload)}
         onCancel={() => setConfirmStageChange({ open: false, payload: null })}
         confirmText="Update Stage"
+      />
+      <ContactedDetailsModal
+        open={contactedDetailsModal.open}
+        onClose={() => setContactedDetailsModal({ open: false, payload: null })}
+        onSubmit={(details) => executeSave(contactedDetailsModal.payload, details)}
+        leadName={contactedDetailsModal.payload?.companyName || 'this lead'}
+      />
+      <DemoPreparationModal
+        open={demoPrepModal.open}
+        onClose={() => setDemoPrepModal({ open: false, payload: null })}
+        onSubmit={(details) => executeSave(demoPrepModal.payload, details)}
+        leadName={demoPrepModal.payload?.companyName || 'this lead'}
+      />
+      <MeetingScheduledModal
+        open={meetingSchedModal.open}
+        onClose={() => setMeetingSchedModal({ open: false, payload: null })}
+        onSubmit={(details) => executeSave(meetingSchedModal.payload, details)}
+        leadName={meetingSchedModal.payload?.companyName || 'this lead'}
+      />
+      <MeetingCompletedModal
+        open={meetingCompletedModal.open}
+        onClose={() => setMeetingCompletedModal({ open: false, payload: null })}
+        onSubmit={(details) => executeSave(meetingCompletedModal.payload, details)}
+        leadName={meetingCompletedModal.payload?.companyName || 'this lead'}
+      />
+      <ProposalSentModal
+        open={proposalSentModal.open}
+        onClose={() => setProposalSentModal({ open: false, payload: null })}
+        onSubmit={(details) => executeSave(proposalSentModal.payload, details)}
+        leadName={proposalSentModal.payload?.companyName || 'this lead'}
+      />
+      <NegotiationModal
+        open={negotiationModal.open}
+        onClose={() => setNegotiationModal({ open: false, payload: null })}
+        onSubmit={(details) => executeSave(negotiationModal.payload, details)}
+        leadName={negotiationModal.payload?.companyName || 'this lead'}
+      />
+      <WonModal
+        open={wonModal.open}
+        onClose={() => setWonModal({ open: false, payload: null })}
+        onSubmit={(details) => executeSave(wonModal.payload, details)}
+        leadName={wonModal.payload?.companyName || 'this lead'}
       />
     </>
   );

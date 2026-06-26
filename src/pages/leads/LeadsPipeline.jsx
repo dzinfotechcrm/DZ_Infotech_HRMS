@@ -9,6 +9,13 @@ import LeadFormModal from './LeadFormModal';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { toast } from 'react-hot-toast';
 import { formatDate } from '../../utils/dateHelpers';
+import ContactedDetailsModal from './ContactedDetailsModal';
+import DemoPreparationModal from './DemoPreparationModal';
+import MeetingScheduledModal from './MeetingScheduledModal';
+import MeetingCompletedModal from './MeetingCompletedModal';
+import ProposalSentModal from './ProposalSentModal';
+import NegotiationModal from './NegotiationModal';
+import WonModal from './WonModal';
 
 const STAGES = [
   'New Lead',
@@ -78,6 +85,13 @@ export default function LeadsPipeline() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [confirmDrop, setConfirmDrop] = useState({ open: false, leadId: null, stage: null });
+  const [contactedDetailsModal, setContactedDetailsModal] = useState({ open: false, lead: null, stage: null });
+  const [demoPrepModal, setDemoPrepModal] = useState({ open: false, lead: null, stage: null });
+  const [meetingSchedModal, setMeetingSchedModal] = useState({ open: false, lead: null, stage: null });
+  const [meetingCompletedModal, setMeetingCompletedModal] = useState({ open: false, lead: null, stage: null });
+  const [proposalSentModal, setProposalSentModal] = useState({ open: false, lead: null, stage: null });
+  const [negotiationModal, setNegotiationModal] = useState({ open: false, lead: null, stage: null });
+  const [wonModal, setWonModal] = useState({ open: false, lead: null, stage: null });
   const [filterSource, setFilterSource] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
   const [filterFollowUp, setFilterFollowUp] = useState('');
@@ -218,14 +232,81 @@ export default function LeadsPipeline() {
     }
   };
 
-  const executeDrop = async () => {
-    const { leadId, stage } = confirmDrop;
-    setConfirmDrop({ open: false, leadId: null, stage: null });
+  const executeDrop = async (extraDetails = null) => {
+    // If we have extraDetails, we are coming from one of the custom modals
+    let leadId = confirmDrop.leadId;
+    let stage = confirmDrop.stage;
+
+    if (extraDetails) {
+      if (contactedDetailsModal.open) {
+        leadId = contactedDetailsModal.lead?.id;
+        stage = contactedDetailsModal.stage;
+      } else if (demoPrepModal.open) {
+        leadId = demoPrepModal.lead?.id;
+        stage = demoPrepModal.stage;
+      } else if (meetingSchedModal.open) {
+        leadId = meetingSchedModal.lead?.id;
+        stage = meetingSchedModal.stage;
+      } else if (meetingCompletedModal.open) {
+        leadId = meetingCompletedModal.lead?.id;
+        stage = meetingCompletedModal.stage;
+      } else if (proposalSentModal.open) {
+        leadId = proposalSentModal.lead?.id;
+        stage = proposalSentModal.stage;
+      } else if (negotiationModal.open) {
+        leadId = negotiationModal.lead?.id;
+        stage = negotiationModal.stage;
+      } else if (wonModal.open) {
+        leadId = wonModal.lead?.id;
+        stage = wonModal.stage;
+      }
+    }
+    
+    if (!extraDetails) {
+      setConfirmDrop({ open: false, leadId: null, stage: null });
+    }
+    
     const lead = leads.find(l => l.id === leadId);
 
     if (lead && lead.stage !== stage) {
+      if (lead.stage === 'New Lead' && stage === 'Contacted' && !extraDetails) {
+        setContactedDetailsModal({ open: true, lead, stage });
+        return;
+      }
+
+      if (lead.stage === 'Contacted' && stage === 'Demo Preparation' && !extraDetails) {
+        setDemoPrepModal({ open: true, lead, stage });
+        return;
+      }
+
+      if (lead.stage === 'Demo Preparation' && stage === 'Meeting Scheduled' && !extraDetails) {
+        setMeetingSchedModal({ open: true, lead, stage });
+        return;
+      }
+
+      if (lead.stage === 'Meeting Scheduled' && stage === 'Meeting Completed' && !extraDetails) {
+        setMeetingCompletedModal({ open: true, lead, stage });
+        return;
+      }
+
+      if (lead.stage === 'Meeting Completed' && stage === 'Proposal Sent' && !extraDetails) {
+        setProposalSentModal({ open: true, lead, stage });
+        return;
+      }
+
+      if (lead.stage === 'Proposal Sent' && stage === 'Negotiation' && !extraDetails) {
+        setNegotiationModal({ open: true, lead, stage });
+        return;
+      }
+
+      if (lead.stage === 'Negotiation' && stage === 'Won' && !extraDetails) {
+        setWonModal({ open: true, lead, stage });
+        return;
+      }
+
       try {
-        await updateDocument('leads', lead.id, { stage });
+        const payload = extraDetails ? { stage, ...extraDetails } : { stage };
+        await updateDocument('leads', lead.id, payload);
         toast.success(`Moved to ${stage}`);
         if (stage === 'Won') {
           await createClientFromLead({ ...lead, stage }, 'Onboarding');
@@ -233,6 +314,16 @@ export default function LeadsPipeline() {
         refetch();
       } catch (err) {
         toast.error('Failed to move lead: ' + err.message);
+      } finally {
+        if (extraDetails) {
+          setContactedDetailsModal({ open: false, lead: null, stage: null });
+          setDemoPrepModal({ open: false, lead: null, stage: null });
+          setMeetingSchedModal({ open: false, lead: null, stage: null });
+          setMeetingCompletedModal({ open: false, lead: null, stage: null });
+          setProposalSentModal({ open: false, lead: null, stage: null });
+          setNegotiationModal({ open: false, lead: null, stage: null });
+          setWonModal({ open: false, lead: null, stage: null });
+        }
       }
     }
   };
@@ -612,9 +703,51 @@ export default function LeadsPipeline() {
         open={confirmDrop.open}
         title="Confirm Status Change"
         message={<span>Are you sure you want to move this lead to <strong>{confirmDrop.stage}</strong>?</span>}
-        onConfirm={executeDrop}
+        onConfirm={() => executeDrop()}
         onCancel={() => setConfirmDrop({ open: false, leadId: null, stage: null })}
         confirmText="Move Lead"
+      />
+      <ContactedDetailsModal
+        open={contactedDetailsModal.open}
+        onClose={() => setContactedDetailsModal({ open: false, lead: null, stage: null })}
+        onSubmit={(details) => executeDrop(details)}
+        leadName={contactedDetailsModal.lead?.companyName || 'this lead'}
+      />
+      <DemoPreparationModal
+        open={demoPrepModal.open}
+        onClose={() => setDemoPrepModal({ open: false, lead: null, stage: null })}
+        onSubmit={(details) => executeDrop(details)}
+        leadName={demoPrepModal.lead?.companyName || 'this lead'}
+      />
+      <MeetingScheduledModal
+        open={meetingSchedModal.open}
+        onClose={() => setMeetingSchedModal({ open: false, lead: null, stage: null })}
+        onSubmit={(details) => executeDrop(details)}
+        leadName={meetingSchedModal.lead?.companyName || 'this lead'}
+      />
+      <MeetingCompletedModal
+        open={meetingCompletedModal.open}
+        onClose={() => setMeetingCompletedModal({ open: false, lead: null, stage: null })}
+        onSubmit={(details) => executeDrop(details)}
+        leadName={meetingCompletedModal.lead?.companyName || 'this lead'}
+      />
+      <ProposalSentModal
+        open={proposalSentModal.open}
+        onClose={() => setProposalSentModal({ open: false, lead: null, stage: null })}
+        onSubmit={(details) => executeDrop(details)}
+        leadName={proposalSentModal.lead?.companyName || 'this lead'}
+      />
+      <NegotiationModal
+        open={negotiationModal.open}
+        onClose={() => setNegotiationModal({ open: false, lead: null, stage: null })}
+        onSubmit={(details) => executeDrop(details)}
+        leadName={negotiationModal.lead?.companyName || 'this lead'}
+      />
+      <WonModal
+        open={wonModal.open}
+        onClose={() => setWonModal({ open: false, lead: null, stage: null })}
+        onSubmit={(details) => executeDrop(details)}
+        leadName={wonModal.lead?.companyName || 'this lead'}
       />
     </div>
   );

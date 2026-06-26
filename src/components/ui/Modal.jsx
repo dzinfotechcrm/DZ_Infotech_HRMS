@@ -1,17 +1,26 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function Modal({ open, title, onClose, children, footer }) {
+export default function Modal({ open, title, onClose, children, footer, disableBackdropClick = false }) {
   useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && !disableBackdropClick) {
+        onClose();
+      }
+    };
+
     if (open) {
       document.body.style.overflow = 'hidden';
+      document.addEventListener('keydown', handleKeyDown);
     } else {
       document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKeyDown);
     }
     return () => {
       document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open]);
+  }, [open, onClose, disableBackdropClick]);
 
   if (!open) {
     return null;
@@ -23,7 +32,7 @@ export default function Modal({ open, title, onClose, children, footer }) {
       <div 
         className="fixed inset-0 backdrop-blur-sm"
         style={{ zIndex: 1000, background: 'rgba(0,0,0,0.5)' }}
-        onClick={onClose}
+        onClick={disableBackdropClick ? undefined : onClose}
       />
       
       {/* Modal Container */}
