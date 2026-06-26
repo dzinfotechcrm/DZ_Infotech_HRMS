@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { createDocument, updateDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
@@ -97,6 +97,22 @@ export default function LeadsPipeline() {
   const [filterFollowUp, setFilterFollowUp] = useState('');
   const [filterInterest, setFilterInterest] = useState('');
   const [sortBy, setSortBy] = useState('');
+
+  const filterRef = useRef(null);
+  const sortRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setIsFilterOpen(false);
+      }
+      if (sortRef.current && !sortRef.current.contains(event.target)) {
+        setIsSortOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const filteredLeads = useMemo(() => {
     let result = [...leads];
@@ -373,7 +389,7 @@ export default function LeadsPipeline() {
               <ListBulletIcon className="h-4 w-4" /> List
             </button>
           </div>
-          <div className="relative">
+          <div className="relative" ref={sortRef}>
             <Button
               variant="secondary"
               className={`bg-white border-neutral-200 gap-2 ${isSortOpen ? 'ring-2 ring-primary-500/20 border-primary-500' : 'text-neutral-700 hover:bg-neutral-50'}`}
@@ -413,7 +429,7 @@ export default function LeadsPipeline() {
               </div>
             )}
           </div>
-          <div className="relative">
+          <div className="relative" ref={filterRef}>
             <Button
               variant="secondary"
               className={`bg-white border-neutral-200 gap-2 ${isFilterOpen ? 'ring-2 ring-primary-500/20 border-primary-500' : 'text-neutral-700 hover:bg-neutral-50'}`}
@@ -528,7 +544,7 @@ export default function LeadsPipeline() {
 
       {/* Kanban Board vs List View */}
       {viewMode === 'kanban' ? (
-        <div className="flex-1 overflow-x-auto pb-4">
+        <div className="flex-1 overflow-x-auto pb-4 min-h-[500px]">
           <div className="flex gap-4 min-w-max h-full items-start">
             {STAGES.map((stage) => {
               const stageLeads = filteredLeads.filter(l => l.stage === stage);
@@ -617,7 +633,7 @@ export default function LeadsPipeline() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col mb-4">
+        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col mb-4 min-h-[500px]">
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead>

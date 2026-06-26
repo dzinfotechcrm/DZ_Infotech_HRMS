@@ -181,14 +181,14 @@ export default function ConTrackLeadsPipeline() {
 
       {/* Kanban Board */}
       {viewMode === 'kanban' && (
-        <div className="flex gap-4 overflow-x-auto pb-4 flex-1 h-[600px] snap-x">
+        <div className="flex gap-4 overflow-x-auto pb-4 flex-1 min-h-[500px] snap-x">
           {STAGES.map((stage) => {
             const stageLeads = leads.filter(l => l.status === stage);
             const stageValue = stageLeads.reduce((sum, l) => sum + (parseFloat(l.expectedValue) || 0), 0);
 
             return (
-              <div 
-                key={stage} 
+              <div
+                key={stage}
                 className="flex-shrink-0 w-80 bg-neutral-50/50 rounded-2xl border border-neutral-200 flex flex-col snap-start"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, stage)}
@@ -208,8 +208,8 @@ export default function ConTrackLeadsPipeline() {
                     </div>
                   ) : (
                     stageLeads.map(lead => (
-                      <div 
-                        key={lead.id} 
+                      <div
+                        key={lead.id}
                         className="bg-white border border-neutral-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing group relative"
                         draggable
                         onDragStart={(e) => handleDragStart(e, lead.id)}
@@ -222,7 +222,7 @@ export default function ConTrackLeadsPipeline() {
                           </span>
                         </div>
                         <p className="text-xs text-neutral-500 mb-3 line-clamp-1">{lead.contractorName} • {lead.city}</p>
-                        
+
                         <div className="flex justify-between items-center mt-3 pt-3 border-t border-neutral-100">
                           <span className="text-sm font-semibold text-neutral-900">{formatCurrencyShort(lead.expectedValue)}</span>
                           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-[9px] font-bold text-primary-700 border border-primary-200" title={lead.contactPerson}>
@@ -241,8 +241,8 @@ export default function ConTrackLeadsPipeline() {
 
       {/* List View */}
       {viewMode === 'list' && (
-        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 min-h-[500px]">
+          <div className="overflow-x-auto flex-1">
             <table className="min-w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 bg-neutral-50/50 text-xs uppercase tracking-wider text-neutral-500">
@@ -263,8 +263,8 @@ export default function ConTrackLeadsPipeline() {
                   </tr>
                 ) : (
                   leads.map((lead) => (
-                    <tr 
-                      key={lead.id} 
+                    <tr
+                      key={lead.id}
                       className="hover:bg-neutral-50 cursor-pointer transition-colors"
                       onClick={() => handleOpenModal(lead)}
                     >

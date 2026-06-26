@@ -51,14 +51,14 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-export default function SfmsLeadsBoard({ 
-  leads = [], 
-  teams = [], 
-  agents = [], 
+export default function SfmsLeadsBoard({
+  leads = [],
+  teams = [],
+  agents = [],
   meetings = [],
-  onLeadClick, 
-  onNewLead, 
-  onStageChange 
+  onLeadClick,
+  onNewLead,
+  onStageChange
 }) {
   const [viewMode, setViewMode] = useState('kanban');
 
@@ -71,7 +71,7 @@ export default function SfmsLeadsBoard({
 
   const filteredLeads = useMemo(() => {
     let result = [...leads];
-    
+
     if (filterSource) {
       result = result.filter(l => l.lead_source === filterSource);
     }
@@ -83,16 +83,16 @@ export default function SfmsLeadsBoard({
     }
     if (searchQuery) {
       const lower = searchQuery.toLowerCase();
-      result = result.filter(l => 
+      result = result.filter(l =>
         l.company_name?.toLowerCase().includes(lower) ||
         l.contact_person?.toLowerCase().includes(lower) ||
         l.phone?.includes(lower)
       );
     }
-    
+
     // Sort by created_at desc by default
     result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    
+
     return result;
   }, [leads, filterSource, filterTeam, filterAgent, searchQuery]);
 
@@ -133,7 +133,7 @@ export default function SfmsLeadsBoard({
     const leadMeetings = meetings.filter(m => m.lead_id === leadId && m.follow_up_date);
     if (leadMeetings.length === 0) return null;
     leadMeetings.sort((a, b) => new Date(a.follow_up_date) - new Date(b.follow_up_date));
-    const upcoming = leadMeetings.find(m => new Date(m.follow_up_date) >= new Date(new Date().setHours(0,0,0,0)));
+    const upcoming = leadMeetings.find(m => new Date(m.follow_up_date) >= new Date(new Date().setHours(0, 0, 0, 0)));
     return upcoming ? upcoming.follow_up_date : leadMeetings[leadMeetings.length - 1].follow_up_date;
   };
 
@@ -147,7 +147,7 @@ export default function SfmsLeadsBoard({
         </div>
         <div className="flex flex-wrap gap-3 items-center w-full xl:w-auto">
           <div className="w-full sm:w-auto flex-1 sm:flex-none">
-            <Input 
+            <Input
               placeholder="Search leads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -170,8 +170,8 @@ export default function SfmsLeadsBoard({
             </button>
           </div>
           <div className="relative">
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               className={`bg-white border-neutral-200 gap-2 whitespace-nowrap ${isFilterOpen ? 'ring-2 ring-primary-500/20 border-primary-500' : 'text-neutral-700 hover:bg-neutral-50'}`}
               onClick={() => setIsFilterOpen(!isFilterOpen)}
             >
@@ -181,7 +181,7 @@ export default function SfmsLeadsBoard({
               <div className="absolute right-0 sm:right-auto sm:left-0 top-full mt-2 w-72 bg-white border border-neutral-200 rounded-xl shadow-soft p-4 z-50">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-semibold text-neutral-900 text-sm">Filters</h3>
-                  <button 
+                  <button
                     onClick={() => {
                       setFilterSource('');
                       setFilterTeam('');
@@ -193,9 +193,9 @@ export default function SfmsLeadsBoard({
                     Clear all
                   </button>
                 </div>
-                
+
                 <div className="space-y-4">
-                  <Select 
+                  <Select
                     label="Lead Source"
                     value={filterSource}
                     onChange={(e) => setFilterSource(e.target.value)}
@@ -205,8 +205,8 @@ export default function SfmsLeadsBoard({
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </Select>
-                  
-                  <Select 
+
+                  <Select
                     label="Team"
                     value={filterTeam}
                     onChange={(e) => setFilterTeam(e.target.value)}
@@ -217,7 +217,7 @@ export default function SfmsLeadsBoard({
                     ))}
                   </Select>
 
-                  <Select 
+                  <Select
                     label="Agent"
                     value={filterAgent}
                     onChange={(e) => setFilterAgent(e.target.value)}
@@ -276,93 +276,93 @@ export default function SfmsLeadsBoard({
 
       {/* Kanban Board vs List View */}
       {viewMode === 'kanban' ? (
-        <div className="flex-1 overflow-x-auto pb-4">
+        <div className="flex-1 overflow-x-auto pb-4 min-h-[500px]">
           <div className="flex gap-4 min-w-max h-full items-start">
-          {STAGES.map((stage) => {
-            const stageLeads = filteredLeads.filter(l => l.stage === stage);
-            const stageValue = stageLeads.reduce((sum, l) => sum + (Number(l.expected_revenue) || 0), 0);
+            {STAGES.map((stage) => {
+              const stageLeads = filteredLeads.filter(l => l.stage === stage);
+              const stageValue = stageLeads.reduce((sum, l) => sum + (Number(l.expected_revenue) || 0), 0);
 
-            return (
-              <div
-                key={stage}
-                className="w-[300px] flex flex-col h-full bg-transparent"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, stage)}
-              >
-                {/* Stage Header */}
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${STAGE_COLORS[stage] || 'bg-slate-500'}`}></div>
-                    <span className="font-semibold text-sm text-neutral-900">{stage}</span>
-                    <span className="text-xs text-neutral-500 ml-1">{stageLeads.length}</span>
-                  </div>
-                  <div className="text-xs text-neutral-500 font-medium">
-                    {formatCurrency(stageValue)}
-                  </div>
-                </div>
-
-                {/* Cards Container */}
-                <div className="flex-1 overflow-y-auto space-y-3 px-1 pb-2">
-                  {stageLeads.map(lead => {
-                    const nextFollowUp = getLeadNextFollowUp(lead.id);
-                    return (
-                      <div
-                        key={lead.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, lead.id)}
-                        onClick={() => onLeadClick && onLeadClick(lead)}
-                        className="bg-white rounded-xl p-4 border border-neutral-200 cursor-pointer hover:border-primary-500/50 transition-colors shadow-sm hover:shadow-md"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-semibold text-neutral-900 truncate pr-2">{lead.company_name}</div>
-                          {lead.interest_level ? (
-                            <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
-                              ${lead.interest_level === 'Very Interested' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                                lead.interest_level === 'Interested' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
-                                'bg-slate-50 text-slate-700 border-slate-200'}`}
-                            >
-                              {lead.interest_level === 'Very Interested' ? 'Hot' : lead.interest_level === 'Interested' ? 'Warm' : 'Cold'}
-                            </div>
-                          ) : null}
-                        </div>
-                        <div className="text-xs text-neutral-500 mb-1">{lead.contact_person}</div>
-                        {nextFollowUp && (
-                          <div className="text-[10px] text-amber-600 font-medium mb-3 flex items-center gap-1">
-                            <CalendarIcon className="h-3 w-3" />
-                            Follow-up: {formatDate(nextFollowUp)}
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between mt-auto">
-                          <div className="text-sm font-semibold text-neutral-900">
-                            {formatCurrency(lead.expected_revenue || 0)}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-slate-500">{lead.lead_source}</span>
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${SOURCE_COLORS[lead.lead_source] || 'bg-slate-600'}`}>
-                              {lead.company_name?.substring(0, 2).toUpperCase()}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Empty drop zone placeholder */}
-                  {stageLeads.length === 0 && (
-                    <div className="h-24 rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 flex items-center justify-center text-xs text-neutral-400">
-                      Drop lead here
+              return (
+                <div
+                  key={stage}
+                  className="w-[300px] flex flex-col h-full bg-transparent"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, stage)}
+                >
+                  {/* Stage Header */}
+                  <div className="flex items-center justify-between mb-4 px-1">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${STAGE_COLORS[stage] || 'bg-slate-500'}`}></div>
+                      <span className="font-semibold text-sm text-neutral-900">{stage}</span>
+                      <span className="text-xs text-neutral-500 ml-1">{stageLeads.length}</span>
                     </div>
-                  )}
+                    <div className="text-xs text-neutral-500 font-medium">
+                      {formatCurrency(stageValue)}
+                    </div>
+                  </div>
+
+                  {/* Cards Container */}
+                  <div className="flex-1 overflow-y-auto space-y-3 px-1 pb-2">
+                    {stageLeads.map(lead => {
+                      const nextFollowUp = getLeadNextFollowUp(lead.id);
+                      return (
+                        <div
+                          key={lead.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, lead.id)}
+                          onClick={() => onLeadClick && onLeadClick(lead)}
+                          className="bg-white rounded-xl p-4 border border-neutral-200 cursor-pointer hover:border-primary-500/50 transition-colors shadow-sm hover:shadow-md"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-semibold text-neutral-900 truncate pr-2">{lead.company_name}</div>
+                            {lead.interest_level ? (
+                              <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
+                              ${lead.interest_level === 'Very Interested' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                  lead.interest_level === 'Interested' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                    'bg-slate-50 text-slate-700 border-slate-200'}`}
+                              >
+                                {lead.interest_level === 'Very Interested' ? 'Hot' : lead.interest_level === 'Interested' ? 'Warm' : 'Cold'}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="text-xs text-neutral-500 mb-1">{lead.contact_person}</div>
+                          {nextFollowUp && (
+                            <div className="text-[10px] text-amber-600 font-medium mb-3 flex items-center gap-1">
+                              <CalendarIcon className="h-3 w-3" />
+                              Follow-up: {formatDate(nextFollowUp)}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between mt-auto">
+                            <div className="text-sm font-semibold text-neutral-900">
+                              {formatCurrency(lead.expected_revenue || 0)}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-500">{lead.lead_source}</span>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${SOURCE_COLORS[lead.lead_source] || 'bg-slate-600'}`}>
+                                {lead.company_name?.substring(0, 2).toUpperCase()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Empty drop zone placeholder */}
+                    {stageLeads.length === 0 && (
+                      <div className="h-24 rounded-xl border border-dashed border-neutral-200 bg-neutral-50/50 flex items-center justify-center text-xs text-neutral-400">
+                        Drop lead here
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col mb-4">
+        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col mb-4 min-h-[500px]">
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -387,16 +387,16 @@ export default function SfmsLeadsBoard({
                   filteredLeads.map((lead) => {
                     const assigneeTeam = teams.find(t => t.id === lead.team_id);
                     const assigneeAgent = agents.find(a => a.id === lead.agent_id);
-                    const assigneeInitials = assigneeAgent 
-                      ? assigneeAgent.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase() 
+                    const assigneeInitials = assigneeAgent
+                      ? assigneeAgent.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
                       : (assigneeTeam ? 'T' : 'UN');
                     const assigneeName = assigneeAgent?.name || assigneeTeam?.name || 'Unassigned';
-                    
+
                     const nextFollowUp = getLeadNextFollowUp(lead.id);
 
                     return (
-                      <tr 
-                        key={lead.id} 
+                      <tr
+                        key={lead.id}
                         className="hover:bg-neutral-50 cursor-pointer transition-colors"
                         onClick={() => onLeadClick && onLeadClick(lead)}
                       >
