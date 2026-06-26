@@ -94,7 +94,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
     <>
       {open && <div className="fixed inset-0 z-30 bg-neutral-950/50 lg:hidden" onClick={onClose} />}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[260px] transform border-r border-primary-800/70 bg-primary-900 text-white transition-transform duration-300 lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static lg:flex lg:flex-col`}
+        className={`fixed inset-y-0 left-0 z-40 w-[260px] transform border-r border-primary-800/70 bg-primary-900 text-white transition-transform duration-300 flex flex-col lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static`}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
           <div className="flex items-center gap-3">
