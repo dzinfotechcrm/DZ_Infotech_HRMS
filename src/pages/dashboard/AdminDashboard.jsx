@@ -192,7 +192,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="p-5">
+        <Card className="p-5 min-w-0 overflow-hidden">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="section-title">Recent Leave Requests</h2>
@@ -212,14 +212,14 @@ export default function AdminDashboard() {
               <tr key={leaveRequest.id}>
                 <td className="px-4 py-3 font-medium text-neutral-900">{leaveRequest.employeeName || getEmpName(leaveRequest.employeeId)}</td>
                 <td className="px-4 py-3">{leaveRequest.leaveTypeName || leaveRequest.leaveType || leaveRequest.leaveTypeId}</td>
-                <td className="px-4 py-3">{formatDate(leaveRequest.fromDate)} - {formatDate(leaveRequest.toDate)}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{formatDate(leaveRequest.fromDate)} - {formatDate(leaveRequest.toDate)}</td>
                 <td className="px-4 py-3"><Badge tone={leaveRequest.status === 'approved' ? 'success' : leaveRequest.status === 'pending' ? 'warning' : 'danger'}>{leaveRequest.status}</Badge></td>
               </tr>
             )}
           />
         </Card>
 
-        <Card className="p-5">
+        <Card className="p-5 min-w-0 overflow-hidden">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="section-title">Recent Activity</h2>
@@ -227,9 +227,9 @@ export default function AdminDashboard() {
             </div>
             <ArrowTrendingUpIcon className="h-5 w-5 text-primary-600" />
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-x-auto pb-2">
             {recentActivity.map((activity, index) => (
-              <div key={`${activity.label}-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+              <div key={`${activity.label}-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 min-w-max md:min-w-0">
                 <div className="text-sm font-semibold text-neutral-900">{activity.label}</div>
                 <div className="mt-1 text-xs text-neutral-500">{activity.time}</div>
               </div>
