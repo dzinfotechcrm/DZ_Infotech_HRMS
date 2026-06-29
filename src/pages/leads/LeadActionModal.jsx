@@ -1,7 +1,7 @@
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 
-export default function LeadActionModal({ open, lead, onClose, onEditLead, onViewDetails }) {
+export default function LeadActionModal({ open, lead, onClose, onEditLead, onViewDetails, onDeleteLead }) {
   if (!open || !lead) return null;
 
   return (
@@ -18,6 +18,9 @@ export default function LeadActionModal({ open, lead, onClose, onEditLead, onVie
             View Stage Details
           </Button>
         )}
+        <Button variant="danger" onClick={onDeleteLead} className="w-full justify-center py-2.5 mt-2">
+          Delete Lead
+        </Button>
       </div>
     </Modal>
   );

@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
-import { createDocument, updateDocument } from '../../supabase/db';
+import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
@@ -83,6 +83,7 @@ export default function LeadsPipeline() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionModalOpen, setActionModalOpen] = useState(false);
   const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState({ open: false, leadId: null });
   const [selectedLead, setSelectedLead] = useState(null);
 
   // Filter & Sort State
@@ -210,7 +211,7 @@ export default function LeadsPipeline() {
 
   const handleOpenModal = (lead = null) => {
     setSelectedLead(lead);
-    if (lead && lead.stage !== 'New Lead') {
+    if (lead) {
       setActionModalOpen(true);
     } else {
       setIsModalOpen(true);
@@ -237,6 +238,19 @@ export default function LeadsPipeline() {
       console.error(err);
       toast.error('Database operation failed: ' + err.message);
       throw new Error('Database operation failed');
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!confirmDeleteModal.leadId) return;
+    try {
+      await removeDocument('leads', confirmDeleteModal.leadId);
+      refetch();
+      toast.success('Lead deleted successfully!');
+      setConfirmDeleteModal({ open: false, leadId: null });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete lead: ' + err.message);
     }
   };
 
@@ -785,11 +799,26 @@ export default function LeadsPipeline() {
           setActionModalOpen(false);
           setViewDetailsModalOpen(true);
         }}
+        onDeleteLead={() => {
+          setActionModalOpen(false);
+          setConfirmDeleteModal({ open: true, leadId: selectedLead.id });
+        }}
       />
       <LeadStageDetailsModal
         open={viewDetailsModalOpen}
         lead={selectedLead}
         onClose={() => setViewDetailsModalOpen(false)}
+      />
+
+      <ConfirmModal
+        open={confirmDeleteModal.open}
+        title="Delete Lead"
+        message="Are you sure you want to delete this lead? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={handleDeleteLead}
+        onCancel={() => setConfirmDeleteModal({ open: false, leadId: null })}
       />
     </div>
   );

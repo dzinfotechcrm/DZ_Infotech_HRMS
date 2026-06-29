@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Button from './Button';
 
-export default function ConfirmModal({ open, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel' }) {
+export default function ConfirmModal({ open, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', confirmVariant = 'primary' }) {
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
@@ -43,7 +43,7 @@ export default function ConfirmModal({ open, title, message, onConfirm, onCancel
           <Button variant="secondary" onClick={onCancel} type="button">
             {cancelText}
           </Button>
-          <Button onClick={onConfirm} type="button">
+          <Button variant={confirmVariant} onClick={onConfirm} type="button">
             {confirmText}
           </Button>
         </div>
