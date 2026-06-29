@@ -3,11 +3,16 @@ import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 
+const SERVICES_LIST = [
+  'Static Website', 'Dynamic Website', 'Ecommerce Website', 
+  'CRM', 'ERP', 'AI Chatbot', 'AI Automation'
+];
+
 export default function ContactedDetailsModal({ open, onClose, onSubmit, leadName }) {
   const [formData, setFormData] = useState({
     basicRequirements: '',
     businessDetails: '',
-    serviceRequired: '',
+    serviceRequired: [],
     budget: '',
     timeline: '',
     nextFollowUp: ''
@@ -18,7 +23,7 @@ export default function ContactedDetailsModal({ open, onClose, onSubmit, leadNam
       setFormData({
         basicRequirements: '',
         businessDetails: '',
-        serviceRequired: '',
+        serviceRequired: [],
         budget: '',
         timeline: '',
         nextFollowUp: ''
@@ -26,10 +31,21 @@ export default function ContactedDetailsModal({ open, onClose, onSubmit, leadNam
     }
   }, [open]);
 
+  const handleToggleService = (service) => {
+    setFormData(prev => {
+      const current = Array.isArray(prev.serviceRequired) ? prev.serviceRequired : [];
+      if (current.includes(service)) {
+        return { ...prev, serviceRequired: current.filter(s => s !== service) };
+      }
+      return { ...prev, serviceRequired: [...current, service] };
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({
       ...formData,
+      serviceRequired: Array.isArray(formData.serviceRequired) ? formData.serviceRequired.join(', ') : formData.serviceRequired,
       budget: formData.budget ? Number(formData.budget) : null
     });
   };
@@ -62,12 +78,28 @@ export default function ContactedDetailsModal({ open, onClose, onSubmit, leadNam
             placeholder="Information about their business"
           />
         </div>
-        <Input
-          label="Service Required"
-          value={formData.serviceRequired}
-          onChange={(e) => setFormData({ ...formData, serviceRequired: e.target.value })}
-          placeholder="e.g. ERP, CRM, Website"
-        />
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">Service Required</label>
+          <div className="flex flex-wrap gap-2">
+            {SERVICES_LIST.map(service => {
+              const currentServices = Array.isArray(formData.serviceRequired) ? formData.serviceRequired : [];
+              const isSelected = currentServices.includes(service);
+              return (
+                <button
+                  key={service}
+                  type="button"
+                  onClick={() => handleToggleService(service)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${isSelected
+                    ? 'bg-primary-50 border-primary-500 text-primary-700'
+                    : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                    }`}
+                >
+                  {service}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <Input
           label="Budget"
           type="number"

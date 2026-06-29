@@ -16,6 +16,8 @@ import MeetingCompletedModal from './MeetingCompletedModal';
 import ProposalSentModal from './ProposalSentModal';
 import NegotiationModal from './NegotiationModal';
 import WonModal from './WonModal';
+import LeadActionModal from './LeadActionModal';
+import LeadStageDetailsModal from './LeadStageDetailsModal';
 
 const STAGES = [
   'New Lead',
@@ -79,6 +81,8 @@ export default function LeadsPipeline() {
   const { items: clients, refetch: refetchClients } = useSupabaseCollection('clients');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actionModalOpen, setActionModalOpen] = useState(false);
+  const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
 
   // Filter & Sort State
@@ -206,7 +210,11 @@ export default function LeadsPipeline() {
 
   const handleOpenModal = (lead = null) => {
     setSelectedLead(lead);
-    setIsModalOpen(true);
+    if (lead && lead.stage !== 'New Lead') {
+      setActionModalOpen(true);
+    } else {
+      setIsModalOpen(true);
+    }
   };
 
   const handleSaveLead = async (formData) => {
@@ -277,11 +285,11 @@ export default function LeadsPipeline() {
         stage = wonModal.stage;
       }
     }
-    
+
     if (!extraDetails) {
       setConfirmDrop({ open: false, leadId: null, stage: null });
     }
-    
+
     const lead = leads.find(l => l.id === leadId);
 
     if (lead && lead.stage !== stage) {
@@ -418,9 +426,8 @@ export default function LeadsPipeline() {
                         setSortBy(option.value);
                         setIsSortOpen(false);
                       }}
-                      className={`text-left px-4 py-2 text-sm hover:bg-neutral-50 transition-colors ${
-                        sortBy === option.value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-neutral-700'
-                      }`}
+                      className={`text-left px-4 py-2 text-sm hover:bg-neutral-50 transition-colors ${sortBy === option.value ? 'bg-primary-50 text-primary-700 font-medium' : 'text-neutral-700'
+                        }`}
                     >
                       {option.label}
                     </button>
@@ -764,6 +771,25 @@ export default function LeadsPipeline() {
         onClose={() => setWonModal({ open: false, lead: null, stage: null })}
         onSubmit={(details) => executeDrop(details)}
         leadName={wonModal.lead?.companyName || 'this lead'}
+      />
+      
+      <LeadActionModal
+        open={actionModalOpen}
+        lead={selectedLead}
+        onClose={() => setActionModalOpen(false)}
+        onEditLead={() => {
+          setActionModalOpen(false);
+          setIsModalOpen(true);
+        }}
+        onViewDetails={() => {
+          setActionModalOpen(false);
+          setViewDetailsModalOpen(true);
+        }}
+      />
+      <LeadStageDetailsModal
+        open={viewDetailsModalOpen}
+        lead={selectedLead}
+        onClose={() => setViewDetailsModalOpen(false)}
       />
     </div>
   );
