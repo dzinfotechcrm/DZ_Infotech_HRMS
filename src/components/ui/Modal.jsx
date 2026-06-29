@@ -29,14 +29,14 @@ export default function Modal({ open, title, onClose, children, footer, disableB
   const modalContent = (
     <>
       {/* Modal Overlay */}
-      <div 
+      <div
         className="fixed inset-0 backdrop-blur-sm"
         style={{ zIndex: 1000, background: 'rgba(0,0,0,0.5)' }}
         onClick={disableBackdropClick ? undefined : onClose}
       />
-      
+
       {/* Modal Container */}
-      <div 
+      <div
         className="fixed bg-white rounded-2xl shadow-soft flex flex-col"
         style={{
           top: '50%',
@@ -58,11 +58,11 @@ export default function Modal({ open, title, onClose, children, footer, disableB
             </button>
           </div>
         </div>
-        
+
         <div className="overflow-y-auto px-6 py-5 flex-1">
           {children}
         </div>
-        
+
         {footer && (
           <div className="border-t border-neutral-200 px-6 py-4 flex-shrink-0">
             {footer}

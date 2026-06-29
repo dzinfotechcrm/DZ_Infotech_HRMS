@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 
-export default function LeadStageDetailsModal({ open, lead, onClose }) {
+export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead }) {
   const [currentTab, setCurrentTab] = useState(0);
 
   if (!open || !lead) return null;
@@ -82,7 +82,12 @@ export default function LeadStageDetailsModal({ open, lead, onClose }) {
         </div>
 
         <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 min-h-[220px]">
-          <h4 className="font-semibold text-lg text-slate-800 mb-6">{lead.companyName}</h4>
+          <div className="flex justify-between items-start mb-6">
+            <h4 className="font-semibold text-lg text-slate-800">{lead.companyName}</h4>
+            <Button variant="secondary" onClick={onEditLead} className="text-xs py-1.5 px-3">
+              Edit Basic Info
+            </Button>
+          </div>
           
           {(() => {
             const hasUniqueData = uniqueStageKeys[currentTab].some(key => extraFields.includes(key));

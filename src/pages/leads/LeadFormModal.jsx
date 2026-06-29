@@ -52,7 +52,7 @@ const INITIAL_STATE = {
 
 const TABS = ['Basic Information', 'Business Details', 'Sales Pipeline Info'];
 
-export default function LeadFormModal({ lead, leads = [], employees, open, onClose, onSave }) {
+export default function LeadFormModal({ lead, leads = [], employees, open, onClose, onSave, onDeleteLead }) {
   const { user } = useAuth();
   const [formData, setFormData] = useState(INITIAL_STATE);
   const [saving, setSaving] = useState(false);
@@ -380,9 +380,16 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
           )}
 
           <div className="flex gap-3 border-t border-slate-200 pt-6 mt-8">
-            <Button variant="secondary" className="mr-auto" onClick={onClose} disabled={saving} type="button">
-              Cancel
-            </Button>
+            <div className="mr-auto flex gap-3">
+              <Button variant="secondary" onClick={onClose} disabled={saving} type="button">
+                Cancel
+              </Button>
+              {lead && onDeleteLead && (
+                <Button variant="danger" onClick={onDeleteLead} disabled={saving} type="button">
+                  Delete Lead
+                </Button>
+              )}
+            </div>
 
             {currentTab > 0 && (
               <Button variant="secondary" onClick={() => setCurrentTab(c => c - 1)} type="button">

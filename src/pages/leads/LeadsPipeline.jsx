@@ -212,7 +212,7 @@ export default function LeadsPipeline() {
   const handleOpenModal = (lead = null) => {
     setSelectedLead(lead);
     if (lead) {
-      setActionModalOpen(true);
+      setViewDetailsModalOpen(true);
     } else {
       setIsModalOpen(true);
     }
@@ -735,6 +735,10 @@ export default function LeadsPipeline() {
         employees={employees}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveLead}
+        onDeleteLead={() => {
+          setIsModalOpen(false);
+          setConfirmDeleteModal({ open: true, leadId: selectedLead.id });
+        }}
       />
       <ConfirmModal
         open={confirmDrop.open}
@@ -787,27 +791,14 @@ export default function LeadsPipeline() {
         leadName={wonModal.lead?.companyName || 'this lead'}
       />
       
-      <LeadActionModal
-        open={actionModalOpen}
-        lead={selectedLead}
-        onClose={() => setActionModalOpen(false)}
-        onEditLead={() => {
-          setActionModalOpen(false);
-          setIsModalOpen(true);
-        }}
-        onViewDetails={() => {
-          setActionModalOpen(false);
-          setViewDetailsModalOpen(true);
-        }}
-        onDeleteLead={() => {
-          setActionModalOpen(false);
-          setConfirmDeleteModal({ open: true, leadId: selectedLead.id });
-        }}
-      />
       <LeadStageDetailsModal
         open={viewDetailsModalOpen}
         lead={selectedLead}
         onClose={() => setViewDetailsModalOpen(false)}
+        onEditLead={() => {
+          setViewDetailsModalOpen(false);
+          setIsModalOpen(true);
+        }}
       />
 
       <ConfirmModal
