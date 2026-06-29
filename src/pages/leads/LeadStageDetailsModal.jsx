@@ -1,9 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 
-export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead }) {
+export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead, onUpdateLead }) {
   const [currentTab, setCurrentTab] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({});
+
+  useEffect(() => {
+    setIsEditing(false);
+  }, [currentTab, open]);
+
+  useEffect(() => {
+    if (lead) {
+      setEditData(lead);
+    }
+  }, [lead, isEditing]);
+
+  const handleSave = () => {
+    const currentGroupFields = tabGroups[currentTab];
+    const updates = {};
+    currentGroupFields.forEach(k => {
+      if (editData[k] !== undefined && editData[k] !== lead[k]) {
+        updates[k] = editData[k];
+      }
+    });
+    
+    if (Object.keys(updates).length > 0 && onUpdateLead) {
+      onUpdateLead(lead.id, updates);
+    }
+    setIsEditing(false);
+  };
 
   if (!open || !lead) return null;
 
@@ -55,6 +82,8 @@ export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead 
     ['advancePaymentReceived']
   ];
 
+  const hasUniqueData = uniqueStageKeys[currentTab].some(key => extraFields.includes(key));
+
   return (
     <Modal open={open} onClose={onClose} title={`Stage Details`} size="max-w-4xl">
       <div className="space-y-6 text-slate-900">
@@ -84,28 +113,108 @@ export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead 
         <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 min-h-[220px]">
           <div className="flex justify-between items-start mb-6">
             <h4 className="font-semibold text-lg text-slate-800">{lead.companyName}</h4>
-            <Button variant="secondary" onClick={onEditLead} className="text-xs py-1.5 px-3">
-              Edit Basic Info
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="secondary" onClick={onEditLead} className="text-xs py-1.5 px-3">
+                Edit Basic Info
+              </Button>
+              {hasUniqueData && (
+                isEditing ? (
+                  <>
+                    <Button variant="secondary" onClick={() => setIsEditing(false)} className="text-xs py-1.5 px-3 border-slate-300 text-slate-600 hover:bg-slate-100">
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSave} className="text-xs py-1.5 px-3">
+                      Save Stage Info
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="secondary" onClick={() => setIsEditing(true)} className="text-xs py-1.5 px-3 border-primary-200 text-primary-700 hover:bg-primary-50">
+                    Edit Stage Info
+                  </Button>
+                )
+              )}
+            </div>
           </div>
           
           {(() => {
-            const hasUniqueData = uniqueStageKeys[currentTab].some(key => extraFields.includes(key));
-            
             if (!hasUniqueData) {
               return <p className="text-sm text-slate-500 italic mt-8 text-center">No details recorded for {TABS[currentTab]} yet.</p>;
             }
 
-            const currentGroupFields = tabGroups[currentTab].filter(key => extraFields.includes(key));
+            const currentGroupFields = tabGroups[currentTab];
+            const fieldsToRender = isEditing 
+              ? currentGroupFields 
+              : currentGroupFields.filter(key => extraFields.includes(key));
 
             return (
               <div className="grid gap-5 sm:grid-cols-2">
-                {currentGroupFields.map(key => (
+                {fieldsToRender.map(key => (
                   <div key={key} className="col-span-1">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{formatKey(key)}</div>
-                    <div className="text-sm text-slate-900 bg-white p-3 rounded-xl border border-slate-200 shadow-sm whitespace-pre-wrap">
-                      {Array.isArray(lead[key]) ? lead[key].join(', ') : String(lead[key])}
-                    </div>
+                    {isEditing ? (
+                      key.toLowerCase().includes('date') || key === 'nextFollowUp' ? (
+                        <input
+                          type="date"
+                          className="w-full text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none"
+                          value={editData[key] || ''}
+                          onChange={(e) => setEditData({...editData, [key]: e.target.value})}
+                        />
+                      ) : key.toLowerCase().includes('time') && key !== 'timeline' ? (
+                         <input
+                          type="time"
+                          className="w-full text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none"
+                          value={editData[key] || ''}
+                          onChange={(e) => setEditData({...editData, [key]: e.target.value})}
+                        />
+                      ) : key === 'budget' || key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.toLowerCase().includes('offer') || key === 'quotationEstimate' ? (
+                        <input
+                          type="number"
+                          className="w-full text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none"
+                          value={editData[key] || ''}
+                          onChange={(e) => setEditData({...editData, [key]: e.target.value ? Number(e.target.value) : ''})}
+                        />
+                      ) : key === 'interestLevel' ? (
+                        <select
+                          className="w-full text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none"
+                          value={editData[key] || ''}
+                          onChange={(e) => setEditData({...editData, [key]: e.target.value})}
+                        >
+                          <option value="">Select Level</option>
+                          <option value="Very Interested">Very Interested</option>
+                          <option value="Interested">Interested</option>
+                          <option value="Not Interested">Not Interested</option>
+                        </select>
+                      ) : key === 'meetingType' ? (
+                        <select
+                          className="w-full text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none"
+                          value={editData[key] || ''}
+                          onChange={(e) => setEditData({...editData, [key]: e.target.value})}
+                        >
+                          <option value="">Select Type</option>
+                          <option value="Online">Online</option>
+                          <option value="Offline">Offline</option>
+                        </select>
+                      ) : key === 'serviceRequired' ? (
+                         <input
+                          type="text"
+                          placeholder="Comma separated values"
+                          className="w-full text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none"
+                          value={Array.isArray(editData[key]) ? editData[key].join(', ') : editData[key] || ''}
+                          onChange={(e) => setEditData({...editData, [key]: e.target.value})}
+                        />
+                      ) : (
+                        <textarea
+                          rows="2"
+                          className="w-full text-sm text-slate-900 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none"
+                          value={editData[key] || ''}
+                          onChange={(e) => setEditData({...editData, [key]: e.target.value})}
+                        />
+                      )
+                    ) : (
+                      <div className="text-sm text-slate-900 bg-white p-3 rounded-xl border border-slate-200 shadow-sm whitespace-pre-wrap">
+                        {Array.isArray(lead[key]) ? lead[key].join(', ') : String(lead[key] || '-')}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -790,7 +790,7 @@ export default function LeadsPipeline() {
         onSubmit={(details) => executeDrop(details)}
         leadName={wonModal.lead?.companyName || 'this lead'}
       />
-      
+
       <LeadStageDetailsModal
         open={viewDetailsModalOpen}
         lead={selectedLead}
@@ -798,6 +798,16 @@ export default function LeadsPipeline() {
         onEditLead={() => {
           setViewDetailsModalOpen(false);
           setIsModalOpen(true);
+        }}
+        onUpdateLead={async (leadId, updates) => {
+          try {
+            await updateDocument('leads', leadId, updates);
+            toast.success('Stage details updated');
+            refetch();
+            setSelectedLead(prev => ({ ...prev, ...updates }));
+          } catch (err) {
+            toast.error('Failed to update details: ' + err.message);
+          }
         }}
       />
 
