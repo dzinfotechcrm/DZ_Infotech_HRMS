@@ -78,10 +78,9 @@ export default function ProposalSentModal({ open, onClose, onSubmit, leadName })
         />
 
         <Input
-          label="Timeline (in days) *"
+          label="Timeline (in days)"
           type="number"
           min="1"
-          required
           value={formData.proposalTimeline}
           onChange={(e) => setFormData({ ...formData, proposalTimeline: e.target.value })}
           placeholder="e.g. 30"

@@ -4,12 +4,17 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Button from '../../components/ui/Button';
 
+const SERVICES_LIST = [
+  'Static Website', 'Dynamic Website', 'Ecommerce Website',
+  'CRM', 'ERP', 'AI Chatbot', 'AI Automation'
+];
+
 export default function MeetingCompletedModal({ open, onClose, onSubmit, leadName }) {
   const [formData, setFormData] = useState({
     attendedBy: '',
     meetingNotes: '',
     servicesDiscussed: '',
-    interestedServices: '',
+    interestedServices: [],
     quotationEstimate: '',
     negotiatedAmount: '',
     nextFollowUp: '',
@@ -22,7 +27,7 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
         attendedBy: '',
         meetingNotes: '',
         servicesDiscussed: '',
-        interestedServices: '',
+        interestedServices: [],
         quotationEstimate: '',
         negotiatedAmount: '',
         nextFollowUp: '',
@@ -31,8 +36,21 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
     }
   }, [open]);
 
+  const handleToggleInterestedService = (service) => {
+    const currentServices = Array.isArray(formData.interestedServices) ? formData.interestedServices : [];
+    if (currentServices.includes(service)) {
+      setFormData({ ...formData, interestedServices: currentServices.filter(s => s !== service) });
+    } else {
+      setFormData({ ...formData, interestedServices: [...currentServices, service] });
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!formData.interestedServices || formData.interestedServices.length === 0) {
+      alert("Please select at least one interested service.");
+      return;
+    }
     onSubmit({
       ...formData,
       quotationEstimate: formData.quotationEstimate ? Number(formData.quotationEstimate) : null,
@@ -81,15 +99,26 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Interested Services *</label>
-          <textarea
-            required
-            rows="2"
-            className="block w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-            value={formData.interestedServices}
-            onChange={(e) => setFormData({ ...formData, interestedServices: e.target.value })}
-            placeholder="What services are they most likely to buy?"
-          />
+          <label className="block text-sm font-medium text-slate-700 mb-2">Interested Services *</label>
+          <div className="flex flex-wrap gap-2">
+            {SERVICES_LIST.map(service => {
+              const currentServices = Array.isArray(formData.interestedServices) ? formData.interestedServices : [];
+              const isSelected = currentServices.includes(service);
+              return (
+                <button
+                  key={service}
+                  type="button"
+                  onClick={() => handleToggleInterestedService(service)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${isSelected
+                    ? 'bg-primary-50 border-primary-500 text-primary-700'
+                    : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                    }`}
+                >
+                  {service}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
