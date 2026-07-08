@@ -224,13 +224,6 @@ export default function ProjectsList() {
                   className={`bg-white border ${project.status === 'Completed' ? 'border-emerald-200 opacity-75 hover:opacity-100' : 'border-neutral-200'} rounded-xl p-5 hover:border-primary-300 transition-colors cursor-pointer relative group`}
                   onClick={() => handleOpenModal(project)}
                 >
-                  <button
-                    onClick={(e) => handleDelete(e, project.id)}
-                    className="absolute top-4 right-4 text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <TrashIcon className="w-5 h-5" />
-                  </button>
-
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -260,6 +253,13 @@ export default function ProjectsList() {
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${currentTheme.badgeBg} ${currentTheme.badgeText} ${currentTheme.badgeBorder}`}>
                         {project.status}
                       </span>
+                      <button
+                        onClick={(e) => handleDelete(e, project.id)}
+                        className="text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 ml-1 hover:bg-red-50 rounded"
+                        title="Delete Project"
+                      >
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
 

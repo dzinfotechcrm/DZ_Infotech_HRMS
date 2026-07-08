@@ -48,6 +48,7 @@ const revenueNavigation = [
   { to: '/leads', label: 'Leads', icon: FunnelIcon, adminOnly: true },
   { to: '/clients', label: 'Clients', icon: BriefcaseIcon, adminOnly: true },
   { to: '/projects', label: 'Projects', icon: FolderIcon, adminOnly: true },
+  { to: '/finance', label: 'Finance', icon: BanknotesIconOutline, adminOnly: true },
   { to: '/amc', label: 'AMC', icon: ShieldCheckIcon, adminOnly: true },
   { to: '/bucket-settings', label: 'Bucket Settings', icon: Cog6ToothIcon, adminOnly: true },
 ];
