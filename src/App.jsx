@@ -27,6 +27,7 @@ const LeadsPipeline = lazy(() => import('./pages/leads/LeadsPipeline'));
 const ClientsList = lazy(() => import('./pages/clients/ClientsList'));
 const ProjectsList = lazy(() => import('./pages/projects/ProjectsList'));
 const AmcList = lazy(() => import('./pages/amc/AmcList'));
+const BucketSettings = lazy(() => import('./pages/revenue/BucketSettings'));
 
 // SFMS Routes
 const SfmsDashboard = lazy(() => import('./pages/sfms/Dashboard'));
@@ -105,6 +106,7 @@ export default function App() {
           <Route path="clients" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ClientsList /></ProtectedRoute>} />
           <Route path="projects" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ProjectsList /></ProtectedRoute>} />
           <Route path="amc" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><AmcList /></ProtectedRoute>} />
+          <Route path="bucket-settings" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><BucketSettings /></ProtectedRoute>} />
 
           <Route path="sfms/dashboard" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsDashboard /></ProtectedRoute>} />
           <Route path="sfms/teams" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsTeams /></ProtectedRoute>} />

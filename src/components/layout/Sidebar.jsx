@@ -49,6 +49,7 @@ const revenueNavigation = [
   { to: '/clients', label: 'Clients', icon: BriefcaseIcon, adminOnly: true },
   { to: '/projects', label: 'Projects', icon: FolderIcon, adminOnly: true },
   { to: '/amc', label: 'AMC', icon: ShieldCheckIcon, adminOnly: true },
+  { to: '/bucket-settings', label: 'Bucket Settings', icon: Cog6ToothIcon, adminOnly: true },
 ];
 
 const fieldSalesNavigation = [
