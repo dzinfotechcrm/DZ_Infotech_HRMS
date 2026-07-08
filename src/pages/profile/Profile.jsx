@@ -49,6 +49,7 @@ export default function Profile() {
       };
 
       await updateDocument('employees', employee.id, payload);
+      setPreview('');
       toast.success('Profile updated');
     } catch (error) {
       toast.error(error?.message || 'Unable to update profile');
