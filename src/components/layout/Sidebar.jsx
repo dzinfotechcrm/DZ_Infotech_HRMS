@@ -49,8 +49,6 @@ const revenueNavigation = [
   { to: '/clients', label: 'Clients', icon: BriefcaseIcon, adminOnly: true },
   { to: '/projects', label: 'Projects', icon: FolderIcon, adminOnly: true },
   { to: '/amc', label: 'AMC', icon: ShieldCheckIcon, adminOnly: true },
-  { to: '/contrack-leads', label: 'ConTrack Leads', icon: TruckIcon, adminOnly: true },
-  { to: '/contrack-revenue', label: 'ConTrack MRR', icon: ChartBarIcon, adminOnly: true },
 ];
 
 const fieldSalesNavigation = [
