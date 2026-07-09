@@ -1,35 +1,48 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { SIGNATURE_BASE64 } from '../../utils/constants';
+
+
+Font.register({
+  family: 'Arial',
+  fonts: [
+    { src: '/fonts/arial.ttf' },
+    { src: '/fonts/arialbd.ttf', fontWeight: 'bold' }
+  ]
+});
+Font.register({
+  family: 'Times-Roman',
+  src: '/fonts/times.ttf'
+});
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
+    padding: 54,
+    fontFamily: 'Arial',
     fontSize: 10,
-    lineHeight: 1.5,
+    lineHeight: 1.3,
     color: '#000',
   },
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     textAlign: 'center',
-    color: '#2F5496',
+    color: '#1f3864',
     marginBottom: 5,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     textAlign: 'center',
     color: '#C55A11',
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: '#C55A11',
     marginTop: 15,
     marginBottom: 5,
@@ -40,27 +53,29 @@ const styles = StyleSheet.create({
   subSectionTitle: {
     fontSize: 11,
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#2F5496',
+    fontFamily: 'Arial',
+    color: '#1f3864',
     marginTop: 10,
     marginBottom: 4,
   },
   text: {
-    marginBottom: 8,
+    marginBottom: 10,
     textAlign: 'justify',
   },
   bold: {
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
   },
   listItem: {
     flexDirection: 'row',
-    marginBottom: 4,
-    marginLeft: 10,
+    marginBottom: 6,
+    marginLeft: 18,
   },
   bulletPoint: {
     width: 25,
+    fontFamily: 'Times-Roman',
     fontSize: 10,
+    marginTop: 1,
   },
   listItemText: {
     flex: 1,
@@ -83,7 +98,7 @@ const styles = StyleSheet.create({
 });
 
 const NumberedItem = ({ prefix, title, children }) => (
-  <View style={styles.listItem}>
+  <View wrap={false} style={styles.listItem}>
     <Text style={styles.bulletPoint}>{prefix}</Text>
     <Text style={styles.listItemText}>
       {title && <Text style={styles.bold}>{title}: </Text>}
@@ -101,7 +116,7 @@ export const NDAPDF = ({ intern }) => {
   } = intern;
 
   // Format address nicely
-  const addressStr = address 
+  const addressStr = address
     ? `${address.line1 || ''}, ${address.city || ''}, ${address.state || ''} - ${address.pincode || ''}`.replace(/^[,\s]+|[,\s]+$/g, '').replace(/,\s*,/g, ',')
     : '____________________________________';
 
@@ -109,20 +124,24 @@ export const NDAPDF = ({ intern }) => {
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>NON-DISCLOSURE AGREEMENT</Text>
-        <Text style={styles.title}>(NDA)</Text>
+        <Text style={{ ...styles.title, fontSize: 12 }}>(NDA)</Text>
         <Text style={styles.subtitle}>{position}</Text>
 
         <Text style={styles.text}>
           This Non-Disclosure Agreement ("Agreement") is entered into on <Text style={styles.bold}>{nda_date}</Text>
         </Text>
 
-        <Text style={{ ...styles.text, ...styles.bold, marginTop: 10 }}>BETWEEN:</Text>
-        <Text style={styles.text}><Text style={styles.bold}>DZ Infotech ("Company" or "Disclosing Party")</Text></Text>
-        <Text style={styles.text}>Registered Office: Bhavnagar, Gujarat, India</Text>
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ ...styles.text, ...styles.bold, marginTop: 10, marginBottom: 20 }}>BETWEEN:</Text>
+          <Text style={{ ...styles.text, marginBottom: 2 }}><Text style={styles.bold}>DZ Infotech ("Company" or "Disclosing Party")</Text></Text>
+          <Text style={{ ...styles.text, marginBottom: 0 }}>Registered Office: Bhavnagar, Gujarat, India</Text>
+        </View>
 
-        <Text style={{ ...styles.text, ...styles.bold, marginTop: 10 }}>AND</Text>
-        <Text style={styles.text}><Text style={styles.bold}>{full_name} ("Intern" or "Receiving Party")</Text></Text>
-        <Text style={styles.text}>Address: {addressStr}</Text>
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ ...styles.text, ...styles.bold, marginBottom: 20 }}>AND</Text>
+          <Text style={{ ...styles.text, marginBottom: 2 }}><Text style={styles.bold}>{full_name} ("Intern" or "Receiving Party")</Text></Text>
+          <Text style={{ ...styles.text, marginBottom: 0 }}>Address: {addressStr}</Text>
+        </View>
 
         <Text style={{ ...styles.text, ...styles.bold, marginTop: 15 }}>RECITALS:</Text>
         <Text style={styles.text}>WHEREAS the Company is engaged in software development and provides construction management solutions under the brand name "Contrack";</Text>
@@ -254,20 +273,31 @@ export const NDAPDF = ({ intern }) => {
         </NumberedItem>
 
         <Text style={styles.sectionTitle}>8. GENERAL PROVISIONS</Text>
-        <Text style={styles.subSectionTitle}>8.1 Governing Law</Text>
-        <Text style={styles.text}>This Agreement shall be governed by and construed in accordance with the laws of India.</Text>
-        
-        <Text style={styles.subSectionTitle}>8.2 Jurisdiction</Text>
-        <Text style={styles.text}>Any disputes arising out of or relating to this Agreement shall be subject to the exclusive jurisdiction of the courts in Bhavnagar, Gujarat, India.</Text>
-        
-        <Text style={styles.subSectionTitle}>8.3 Entire Agreement</Text>
-        <Text style={styles.text}>This Agreement, together with the Internship Offer Letter, constitutes the entire agreement between the parties with respect to the subject matter hereof.</Text>
-        
-        <Text style={styles.subSectionTitle}>8.4 Amendments</Text>
-        <Text style={styles.text}>This Agreement may not be amended except by a written instrument signed by authorized representatives of both parties.</Text>
-        
-        <Text style={styles.subSectionTitle}>8.5 Survival</Text>
-        <Text style={styles.text}>The obligations and restrictions set forth in this Agreement shall survive the termination or expiration of the internship.</Text>
+
+        <View wrap={false}>
+          <Text style={styles.subSectionTitle}>8.1 Governing Law</Text>
+          <Text style={styles.text}>This Agreement shall be governed by and construed in accordance with the laws of India.</Text>
+        </View>
+
+        <View wrap={false}>
+          <Text style={styles.subSectionTitle}>8.2 Jurisdiction</Text>
+          <Text style={styles.text}>Any disputes arising out of or relating to this Agreement shall be subject to the exclusive jurisdiction of the courts in Bhavnagar, Gujarat, India.</Text>
+        </View>
+
+        <View wrap={false}>
+          <Text style={styles.subSectionTitle}>8.3 Entire Agreement</Text>
+          <Text style={styles.text}>This Agreement, together with the Internship Offer Letter, constitutes the entire agreement between the parties with respect to the subject matter hereof.</Text>
+        </View>
+
+        <View wrap={false}>
+          <Text style={styles.subSectionTitle}>8.4 Amendments</Text>
+          <Text style={styles.text}>This Agreement may not be amended except by a written instrument signed by authorized representatives of both parties.</Text>
+        </View>
+
+        <View wrap={false}>
+          <Text style={styles.subSectionTitle}>8.5 Survival</Text>
+          <Text style={styles.text}>The obligations and restrictions set forth in this Agreement shall survive the termination or expiration of the internship.</Text>
+        </View>
 
         <Text style={styles.sectionTitle}>9. ACKNOWLEDGMENT AND REPRESENTATIONS</Text>
         <Text style={styles.text}>The Intern hereby acknowledges, represents, and warrants that:</Text>
@@ -276,31 +306,41 @@ export const NDAPDF = ({ intern }) => {
         <NumberedItem prefix="mm)">The Intern fully understands the serious consequences of breaching this Agreement;</NumberedItem>
         <NumberedItem prefix="nn)">The Intern has the legal capacity and authority to enter into this Agreement.</NumberedItem>
 
-        <Text style={{ ...styles.text, ...styles.bold, marginTop: 20 }}>
-          IN WITNESS WHEREOF, the parties have executed this Non-Disclosure Agreement as of the date first written above.
-        </Text>
+        <View wrap={false}>
+          <Text style={{ ...styles.text, ...styles.bold, marginTop: 20 }}>
+            IN WITNESS WHEREOF, the parties have executed this Non-Disclosure Agreement as of the date first written above.
+          </Text>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 40 }}>
-          {/* Company Signature */}
-          <View style={{ width: '45%' }}>
-            <Text style={{ ...styles.text, ...styles.bold }}>FOR DZ INFOTECH (COMPANY):</Text>
-            <View style={styles.signatureBlock}>
-              <Text style={{ marginBottom: 5 }}>Signature:</Text>
-              <Image src={SIGNATURE_BASE64} style={styles.signatureImage} />
-              <Text style={styles.text}>Name: <Text style={styles.bold}>Soumyarajsinh Zala</Text></Text>
-              <Text style={styles.text}>Designation: Co-Founder</Text>
-              <Text style={styles.text}>Date: {nda_date}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 30 }}>
+            {/* Company Signature */}
+            <View style={{ width: '45%' }}>
+              <Text style={{ ...styles.text, ...styles.bold }}>FOR DZ INFOTECH (COMPANY):</Text>
+              <View style={styles.signatureBlock}>
+                <View style={{ height: 60, position: 'relative', marginBottom: 10 }}>
+                  <Text style={{ position: 'absolute', top: 0, left: 0 }}>Signature:</Text>
+                  <Image src={SIGNATURE_BASE64} style={{ width: 100, height: 50, position: 'absolute', bottom: 0, left: 0 }} />
+                </View>
+                <Text style={styles.text}>Name: <Text style={styles.bold}>Soumyarajsinh Zala</Text></Text>
+                <Text style={styles.text}>Designation: Co-Founder</Text>
+                <Text style={styles.text}>Date: {nda_date}</Text>
+              </View>
             </View>
-          </View>
 
-          {/* Intern Signature */}
-          <View style={{ width: '45%' }}>
-            <Text style={{ ...styles.text, ...styles.bold }}>INTERN (RECEIVING PARTY):</Text>
-            <View style={styles.signatureBlock}>
-              <Text style={{ marginBottom: 40 }}>Signature: _______________________________</Text>
-              <Text style={styles.text}>Name: <Text style={styles.bold}>{full_name}</Text></Text>
-              <Text style={styles.text}>Role: {position}</Text>
-              <Text style={styles.text}>Date: _______________________________</Text>
+            {/* Intern Signature */}
+            <View style={{ width: '45%' }}>
+              <Text style={{ ...styles.text, ...styles.bold }}>INTERN (RECEIVING PARTY):</Text>
+              <View style={styles.signatureBlock}>
+                <View style={{ height: 60, position: 'relative', marginBottom: 10 }}>
+                  <Text style={{ position: 'absolute', top: 0, left: 0 }}>Signature:</Text>
+                  <View style={{ position: 'absolute', bottom: 5, left: 0, width: 200, borderBottomWidth: 1, borderBottomColor: '#000' }} />
+                </View>
+                <Text style={styles.text}>Name: <Text style={styles.bold}>{full_name}</Text></Text>
+                <Text style={styles.text}>Role: {position}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 8 }}>
+                  <Text style={{ marginBottom: 0 }}>Date: </Text>
+                  <View style={{ width: 150, borderBottomWidth: 1, borderBottomColor: '#000', marginLeft: 5 }} />
+                </View>
+              </View>
             </View>
           </View>
         </View>

@@ -7,7 +7,7 @@ import Button from '../../components/ui/Button';
 import { formatDate } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
 
-export default function AddInternModal({ departments, managers, existingEmails = [], open, onClose, onSave }) {
+export default function AddInternModal({ intern, departments, managers, existingEmails = [], open, onClose, onSave }) {
   const [saving, setSaving] = useState(false);
 
   const defaultStartDate = formatDate(new Date(), 'yyyy-MM-dd');
@@ -19,6 +19,8 @@ export default function AddInternModal({ departments, managers, existingEmails =
     // Identity & Contact
     full_name: '',
     first_name: '',
+    middle_name: '',
+    last_name: '',
     email: '',
     phone: '',
     photo_url: '',
@@ -61,11 +63,28 @@ export default function AddInternModal({ departments, managers, existingEmails =
   };
 
   useEffect(() => {
-    if (!open) {
-      setFormData(initialFormState);
+    if (open) {
+      if (intern) {
+        let fn = intern.first_name || '';
+        let mn = intern.middle_name || '';
+        let ln = intern.last_name || '';
+        if (!fn && !ln && intern.full_name) {
+          const parts = intern.full_name.split(' ');
+          fn = parts[0] || '';
+          if (parts.length > 2) {
+            mn = parts.slice(1, -1).join(' ');
+            ln = parts[parts.length - 1];
+          } else if (parts.length === 2) {
+            ln = parts[1];
+          }
+        }
+        setFormData({ ...initialFormState, ...intern, first_name: fn, middle_name: mn, last_name: ln });
+      } else {
+        setFormData(initialFormState);
+      }
       setErrors({});
     }
-  }, [open]);
+  }, [open, intern]);
 
   useEffect(() => {
     if (formData.start_date && formData.end_date) {
@@ -93,7 +112,7 @@ export default function AddInternModal({ departments, managers, existingEmails =
     let isValid = true;
 
     const required = [
-      'full_name', 'email', 'position', 'start_date', 'end_date',
+      'first_name', 'last_name', 'full_name', 'email', 'position', 'start_date', 'end_date',
       'offer_date', 'acceptance_deadline', 'working_hours'
     ];
 
@@ -114,7 +133,8 @@ export default function AddInternModal({ departments, managers, existingEmails =
       isValid = false;
     }
 
-    if (existingEmails.includes(formData.email.trim().toLowerCase())) {
+    const isEditingSelf = intern && intern.email && intern.email.toLowerCase() === formData.email.trim().toLowerCase();
+    if (!isEditingSelf && existingEmails.includes(formData.email.trim().toLowerCase())) {
       newErrors.email = 'This email is already in use';
       isValid = false;
     }
@@ -135,7 +155,11 @@ export default function AddInternModal({ departments, managers, existingEmails =
 
     setSaving(true);
     try {
-      const dataToSave = { ...formData };
+      const dataToSave = {};
+      Object.keys(initialFormState).forEach(key => {
+        dataToSave[key] = formData[key];
+      });
+
       if (!dataToSave.is_paid) {
         dataToSave.stipend_amount = null;
       }
@@ -147,8 +171,8 @@ export default function AddInternModal({ departments, managers, existingEmails =
       }
 
       await onSave(dataToSave);
-      toast.success('Intern added successfully! Documents are generating...');
-      setFormData(initialFormState);
+      toast.success(intern ? 'Intern updated successfully!' : 'Intern added successfully! Documents are generating...');
+      if (!intern) setFormData(initialFormState);
       onClose();
     } catch (error) {
       console.error(error);
@@ -161,20 +185,40 @@ export default function AddInternModal({ departments, managers, existingEmails =
   if (!open) return null;
 
   return (
-    <Modal open={open} title="Add New Intern" onClose={onClose} size="max-w-4xl">
+    <Modal open={open} title={intern ? "Edit Intern" : "Add New Intern"} onClose={onClose} size="max-w-4xl">
       <form onSubmit={handleSubmit} className="space-y-8 h-[75vh] overflow-y-auto px-2 pb-4">
 
         {/* SECTION A: Identity & Contact */}
         <div>
           <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Identity & Contact</h4>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Full Name (As on legal docs)" error={errors.full_name} value={formData.full_name} onChange={(e) => {
-              handleChange('full_name', e.target.value);
-              if (!formData.first_name && e.target.value) {
-                handleChange('first_name', e.target.value.split(' ')[0]);
-              }
-            }} required />
-            <Input label="Preferred / First Name" error={errors.first_name} value={formData.first_name} onChange={(e) => handleChange('first_name', e.target.value)} required />
+            <div className="sm:col-span-2 grid gap-4 sm:grid-cols-3">
+              <Input label="First Name" error={errors.first_name} value={formData.first_name} onChange={(e) => {
+                const val = e.target.value;
+                handleChange('first_name', val);
+                handleChange('full_name', [val, formData.middle_name, formData.last_name].filter(Boolean).join(' '));
+              }} required />
+              <Input label="Middle Name" error={errors.middle_name} value={formData.middle_name} onChange={(e) => {
+                const val = e.target.value;
+                handleChange('middle_name', val);
+                handleChange('full_name', [formData.first_name, val, formData.last_name].filter(Boolean).join(' '));
+              }} />
+              <Input label="Last Name" error={errors.last_name} value={formData.last_name} onChange={(e) => {
+                const val = e.target.value;
+                handleChange('last_name', val);
+                handleChange('full_name', [formData.first_name, formData.middle_name, val].filter(Boolean).join(' '));
+              }} required />
+            </div>
+            <div className="sm:col-span-2">
+              <Input 
+                label="Full Name (As on legal docs)" 
+                error={errors.full_name} 
+                value={formData.full_name} 
+                readOnly 
+                disabled 
+                className="bg-slate-50 cursor-not-allowed text-slate-500" 
+              />
+            </div>
             <Input label="Email" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} required />
             <Input label="Phone" type="tel" error={errors.phone} value={formData.phone} onChange={(e) => {
               const val = e.target.value.replace(/\D/g, '');
@@ -189,11 +233,9 @@ export default function AddInternModal({ departments, managers, existingEmails =
         <div>
           <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Internship Details</h4>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Position / Role Title" placeholder="e.g. Full Stack Developer Intern" error={errors.position} value={formData.position} onChange={(e) => handleChange('position', e.target.value)} required />
-            <Select label="Department" error={errors.department_id} value={formData.department_id} onChange={(e) => handleChange('department_id', e.target.value)}>
-              <option value="">Select Department</option>
-              {departments.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
-            </Select>
+            <div className="sm:col-span-2">
+              <Input label="Position / Role Title" placeholder="e.g. Full Stack Developer Intern" error={errors.position} value={formData.position} onChange={(e) => handleChange('position', e.target.value)} required />
+            </div>
             <Input label="Start Date" type="date" error={errors.start_date} value={formData.start_date} onChange={(e) => handleChange('start_date', e.target.value)} required />
             <Input label="End Date" type="date" error={errors.end_date} value={formData.end_date} onChange={(e) => handleChange('end_date', e.target.value)} required />
             <Input label="Duration Text" placeholder="e.g. 2 months" error={errors.duration_text} value={formData.duration_text} onChange={(e) => handleChange('duration_text', e.target.value)} required />

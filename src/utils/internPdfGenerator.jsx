@@ -20,19 +20,21 @@ export async function generateAndUploadInternDocuments(intern) {
   const ndaBlob = await pdf(<NDAPDF intern={intern} />).toBlob();
 
   // 2. Define filenames
-  const safeName = (intern.full_name || 'Intern').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-  const offerLetterPath = `${intern.id}/${safeName}_offer_letter_${timestamp}.pdf`;
-  const ndaPath = `${intern.id}/${safeName}_nda_${timestamp}.pdf`;
+  const firstName = (intern.first_name || 'First').trim().replace(/\s+/g, '_');
+  const lastName = (intern.last_name || 'Last').trim().replace(/\s+/g, '_');
+  const safeName = `${firstName}_${lastName}`;
+  const offerLetterPath = `${intern.id}/${safeName}_Offer_Letter.pdf`;
+  const ndaPath = `${intern.id}/${safeName}_NDA.pdf`;
 
   // 3. Upload to Supabase Storage 'intern_documents' bucket
   const [offerResult, ndaResult] = await Promise.all([
     supabase.storage.from('intern_documents').upload(offerLetterPath, offerLetterBlob, {
       contentType: 'application/pdf',
-      upsert: false, // We use timestamps to avoid conflicts
+      upsert: true, 
     }),
     supabase.storage.from('intern_documents').upload(ndaPath, ndaBlob, {
       contentType: 'application/pdf',
-      upsert: false,
+      upsert: true,
     })
   ]);
 

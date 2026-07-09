@@ -6,6 +6,8 @@ CREATE TABLE interns (
   uid UUID REFERENCES auth.users(id), -- If they log in
   full_name TEXT NOT NULL,
   first_name TEXT NOT NULL,
+  middle_name TEXT,
+  last_name TEXT,
   email TEXT UNIQUE NOT NULL,
   phone TEXT,
   address JSONB, -- { line1, city, state, pincode }

@@ -99,7 +99,6 @@ export async function syncAuthenticatedUser(supabaseUser) {
       employee_id: internSnap.id,
       employee_linked: true,
       is_active: internSnap.status === 'Active' || internSnap.status === 'active',
-      status: (internSnap.status === 'Active' || internSnap.status === 'active') ? 'active' : 'inactive',
       last_login: new Date().toISOString(),
     };
 
@@ -115,6 +114,7 @@ export async function syncAuthenticatedUser(supabaseUser) {
       ...userPayload,
       uid: supabaseUser.id,
       isActive: userPayload.is_active,
+      status: userPayload.is_active ? 'active' : 'inactive',
     };
   }
 
@@ -141,7 +141,6 @@ export async function syncAuthenticatedUser(supabaseUser) {
     employee_id: employeeSnap.id || '',
     employee_linked: true,
     is_active: employeeSnap.status === 'active' || employeeSnap.status === 'Active',
-    status: (employeeSnap.status === 'active' || employeeSnap.status === 'Active') ? 'active' : 'inactive',
     last_login: new Date().toISOString(),
   };
 
@@ -160,6 +159,6 @@ export async function syncAuthenticatedUser(supabaseUser) {
     role: userPayload.role,
     employeeId: userPayload.employee_id,
     isActive: userPayload.is_active,
-    status: employeeSnap.status || 'active',
+    status: userPayload.is_active ? 'active' : 'inactive',
   };
 }

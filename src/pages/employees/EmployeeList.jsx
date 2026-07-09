@@ -1248,7 +1248,7 @@ export default function EmployeeList() {
   const [search, setSearch] = useState(searchParams.get('department') || '');
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('employees');
   const [attendanceDate, setAttendanceDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
   const [sortBy, setSortBy] = useState('firstName');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -1272,6 +1272,7 @@ export default function EmployeeList() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const [addInternModalOpen, setAddInternModalOpen] = useState(false);
+  const [editInternModalOpen, setEditInternModalOpen] = useState(false);
   const [internDetailModalOpen, setInternDetailModalOpen] = useState(false);
   const [selectedIntern, setSelectedIntern] = useState(null);
 
@@ -1285,7 +1286,7 @@ export default function EmployeeList() {
   const { items: allDepartments, loading: departmentsLoading } = useSupabaseCollection('departments', useMemo(() => (base) => query(base, orderBy('name')), []));
   const attendanceQuery = useMemo(() => (base) => query(base, where('date', '==', attendanceDate)), [attendanceDate]);
   const { items: attendanceRecords } = useSupabaseCollection('attendance', attendanceQuery);
-  const { items: interns, loading: internsLoading, refetch: refetchInterns } = useSupabaseCollection('interns', employeesQuery);
+  const { items: interns, loading: internsLoading, refetch: refetchInterns } = useSupabaseCollection('interns');
 
   // Enrich employees with department names
   const enrichedEmployees = useMemo(
@@ -1341,7 +1342,7 @@ export default function EmployeeList() {
   const groupedEmployees = useMemo(() => {
     const managers = enrichedEmployees.filter((e) => e.role?.toLowerCase() === 'manager' || e.designation?.toLowerCase() === 'manager');
     const regularEmployees = enrichedEmployees.filter((e) => e.role?.toLowerCase() !== 'manager' && e.designation?.toLowerCase() !== 'manager');
-    
+
     // Enrich interns with department names
     const enrichedInterns = interns.map((intern) => {
       let dept = allDepartments.find((d) => d.id === intern.department_id);
@@ -1380,9 +1381,8 @@ export default function EmployeeList() {
         const tab = activeTab.toLowerCase();
         const matchesTab =
           tab === 'all' ||
-          (tab === 'managers' && (employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager')) ||
-          (tab === 'employees' && employee.role?.toLowerCase() !== 'manager' && employee.designation?.toLowerCase() !== 'manager') ||
-          (tab === 'interns' && employee.designation?.toLowerCase().includes('intern'));
+          (tab === 'employees' && !employee.isIntern) ||
+          (tab === 'interns' && employee.isIntern);
 
         return matchesText && matchesStatus && matchesDepartment && matchesTab;
       });
@@ -1619,15 +1619,25 @@ export default function EmployeeList() {
     try {
       const docRef = await createDocument('interns', internData);
       const generatedIntern = { ...internData, id: docRef.id };
-      
+
       const { offerLetterPath, ndaPath } = await generateAndUploadInternDocuments(generatedIntern);
-      
+
       await updateDocument('interns', docRef.id, {
         offer_letter_pdf_url: offerLetterPath,
         nda_pdf_url: ndaPath,
         document_status: 'pending_signature',
       });
-      
+
+      refetchInterns();
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleEditIntern = async (internData) => {
+    try {
+      await updateDocument('interns', selectedIntern.id, internData);
+      setEditInternModalOpen(false);
       refetchInterns();
     } catch (error) {
       throw error;
@@ -1647,7 +1657,7 @@ export default function EmployeeList() {
       toast.success('Documents regenerated successfully!', { id: toastId });
       refetchInterns();
       if (selectedIntern && selectedIntern.id === internId) {
-        setSelectedIntern(prev => ({...prev, offer_letter_pdf_url: offerLetterPath, nda_pdf_url: ndaPath}));
+        setSelectedIntern(prev => ({ ...prev, offer_letter_pdf_url: offerLetterPath, nda_pdf_url: ndaPath }));
       }
     } catch (error) {
       toast.error(error.message || 'Failed to regenerate documents', { id: toastId });
@@ -1662,7 +1672,7 @@ export default function EmployeeList() {
       toast.success('Signed document cleared.');
       refetchInterns();
       if (selectedIntern && selectedIntern.id === internId) {
-        setSelectedIntern(prev => ({...prev, [docType]: null}));
+        setSelectedIntern(prev => ({ ...prev, [docType]: null }));
       }
     } catch (error) {
       toast.error('Failed to clear document');
@@ -1683,7 +1693,7 @@ export default function EmployeeList() {
     setSearch('');
     setStatusFilter('all');
     setDepartmentFilter('all');
-    setActiveTab('all');
+    setActiveTab('employees');
     setAttendanceDate(formatDate(new Date(), 'yyyy-MM-dd'));
     setPage(1);
   };
@@ -1739,7 +1749,7 @@ export default function EmployeeList() {
                     </div>
                     {isAdminLike(user?.role) && (
                       <div className="flex items-center gap-1">
-                        {!employee.department_id /* employee is not an intern if they dont have department_id as top level key */ ? (
+                        {!employee.isIntern ? (
                           <>
                             <button type="button" onClick={() => openEditModal(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit">
                               <PencilSquareIcon className="h-4 w-4" />
@@ -1748,15 +1758,24 @@ export default function EmployeeList() {
                               <TrashIcon className="h-4 w-4" />
                             </button>
                           </>
-                        ) : null}
+                        ) : (
+                          <>
+                            <button type="button" onClick={() => { setSelectedIntern(employee); setEditInternModalOpen(true); }} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit Intern">
+                              <PencilSquareIcon className="h-4 w-4" />
+                            </button>
+                            <button type="button" onClick={() => confirmDelete(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Delete">
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
 
                   <div className="mt-5 grid grid-cols-2 gap-3 text-sm flex-1">
                     <div>
-                      <p className="text-xs text-slate-400 font-medium">Department</p>
-                      <p className="font-medium text-slate-700 mt-0.5">{employee.department}</p>
+                      <p className="text-xs text-slate-400 font-medium">{employee.isIntern ? 'Duration / Mode' : 'Department'}</p>
+                      <p className="font-medium text-slate-700 mt-0.5">{employee.isIntern ? `${employee.duration_text || '—'} / ${employee.work_mode || '—'}` : (employee.department || '—')}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-400 font-medium">Status</p>
@@ -1767,15 +1786,15 @@ export default function EmployeeList() {
                       <p className="font-medium text-slate-700 mt-0.5 truncate" title={employee.email}>{employee.email}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400 font-medium">Join Date</p>
-                      <p className="font-medium text-slate-700 mt-0.5">{formatDate(employee.joinDate, 'dd MMM yy')}</p>
+                      <p className="text-xs text-slate-400 font-medium">{employee.isIntern ? 'Start Date' : 'Join Date'}</p>
+                      <p className="font-medium text-slate-700 mt-0.5">{formatDate(employee.isIntern ? employee.start_date : employee.joinDate, 'dd MMM yy')}</p>
                     </div>
                   </div>
 
                   <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <Button
                       variant="secondary"
-                      onClick={() => employee.department_id ? (setSelectedIntern(employee), setInternDetailModalOpen(true)) : openViewModal(employee)}
+                      onClick={() => employee.isIntern ? (setSelectedIntern(employee), setInternDetailModalOpen(true)) : openViewModal(employee)}
                       className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
                       title="View Profile"
                     >
@@ -1813,9 +1832,9 @@ export default function EmployeeList() {
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold text-slate-900">Employee</th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-900">Contact</th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-900">Department</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-900">{activeTab === 'interns' ? 'Duration / Mode' : 'Department'}</th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-900">Status</th>
-                    <th className="px-6 py-4 text-left font-semibold text-slate-900">Join Date</th>
+                    <th className="px-6 py-4 text-left font-semibold text-slate-900">{activeTab === 'interns' ? 'Start Date' : 'Join Date'}</th>
                     <th className="px-6 py-4 text-center font-semibold text-slate-900">Attendance</th>
                     <th className="px-6 py-4 text-right font-semibold text-slate-900">Actions</th>
                   </tr>
@@ -1844,22 +1863,31 @@ export default function EmployeeList() {
                           <p className="text-slate-900">{employee.email}</p>
                           <p className="text-xs text-slate-500">{employee.phone || '—'}</p>
                         </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-slate-700">{employee.department}</td>
+                        <td className="whitespace-nowrap px-6 py-4 text-slate-700">
+                          {employee.isIntern ? (
+                            <>
+                              <p className="text-slate-900">{employee.duration_text || '—'}</p>
+                              <p className="text-xs text-slate-500">{employee.work_mode || '—'}</p>
+                            </>
+                          ) : (
+                            employee.department || '—'
+                          )}
+                        </td>
                         <td className="whitespace-nowrap px-6 py-4">
                           <StatusBadge status={employee.status} />
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-slate-700">
-                          {formatDate(employee.joinDate, 'dd MMM yyyy')}
+                          {formatDate(employee.isIntern ? employee.start_date : employee.joinDate, 'dd MMM yyyy')}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-center">
                           {isAdminLike(user?.role) ? <AttendanceBadge status={attendanceStatus} /> : '—'}
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button type="button" onClick={() => employee.department_id ? (setSelectedIntern(employee), setInternDetailModalOpen(true)) : openViewModal(employee)} className="text-slate-400 hover:text-primary-600 transition" title="View Profile">
+                            <button type="button" onClick={() => employee.isIntern ? (setSelectedIntern(employee), setInternDetailModalOpen(true)) : openViewModal(employee)} className="text-slate-400 hover:text-primary-600 transition" title="View Profile">
                               <EyeIcon className="h-5 w-5" />
                             </button>
-                            {isAdminLike(user?.role) && !employee.department_id && (
+                            {isAdminLike(user?.role) && !employee.isIntern && (
                               <button type="button" onClick={() => {
                                 setSelectedEmployee(employee);
                                 setLeaveHistoryModalOpen(true);
@@ -1867,13 +1895,13 @@ export default function EmployeeList() {
                                 <CalendarDaysIcon className="h-5 w-5" />
                               </button>
                             )}
-                            {isAdminLike(user?.role) && !employee.department_id && (
-                              <button type="button" onClick={() => openEditModal(employee)} className="text-slate-400 hover:text-emerald-600 transition" title="Edit">
+                            {isAdminLike(user?.role) && (
+                              <button type="button" onClick={() => employee.isIntern ? (setSelectedIntern(employee), setEditInternModalOpen(true)) : openEditModal(employee)} className="text-slate-400 hover:text-emerald-600 transition" title="Edit">
                                 <PencilSquareIcon className="h-5 w-5" />
                               </button>
                             )}
-                            {isAdminLike(user?.role) && !employee.department_id && (
-                              <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="text-slate-400 hover:text-rose-600 transition disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
+                            {isAdminLike(user?.role) && (
+                              <button type="button" onClick={() => confirmDelete(employee)} disabled={!employee.isIntern && !canDeleteEmployee(employee)} className="text-slate-400 hover:text-rose-600 transition disabled:opacity-50 disabled:cursor-not-allowed" title={!employee.isIntern && !canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
                                 <TrashIcon className="h-5 w-5" />
                               </button>
                             )}
@@ -1891,15 +1919,9 @@ export default function EmployeeList() {
     );
   };
 
-  const hasResults = (
-    (groupedView && activeTab === 'all')
-      ? getFilteredEmployees(groupedEmployees.managers).length > 0 || getFilteredEmployees(groupedEmployees.employees).length > 0 || getFilteredEmployees(groupedEmployees.interns).length > 0
-      : activeTab === 'managers'
-        ? getFilteredEmployees(groupedEmployees.managers).length > 0
-        : activeTab === 'interns'
-          ? getFilteredEmployees(groupedEmployees.interns).length > 0
-          : getFilteredEmployees(groupedEmployees.employees).length > 0
-  );
+  const hasResults = activeTab === 'interns'
+    ? getFilteredEmployees(groupedEmployees.interns).length > 0
+    : getFilteredEmployees(groupedEmployees.managers).length > 0 || getFilteredEmployees(groupedEmployees.employees).length > 0;
 
   return (
     <div className="space-y-6">
@@ -1936,6 +1958,28 @@ export default function EmployeeList() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex space-x-1 rounded-xl bg-slate-100 p-1 w-full max-w-md mb-6">
+        <button
+          onClick={() => setActiveTab('employees')}
+          className={`flex-1 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all
+            ${activeTab === 'employees' 
+              ? 'bg-white text-indigo-700 shadow shadow-indigo-100/50' 
+              : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'}`}
+        >
+          Employee / Manager
+        </button>
+        <button
+          onClick={() => setActiveTab('interns')}
+          className={`flex-1 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all
+            ${activeTab === 'interns' 
+              ? 'bg-white text-indigo-700 shadow shadow-indigo-100/50' 
+              : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'}`}
+        >
+          Interns
+        </button>
       </div>
 
 
@@ -2002,8 +2046,8 @@ export default function EmployeeList() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
             <UserCircleIcon className="h-6 w-6 text-slate-400" />
           </div>
-          <h3 className="mt-4 text-sm font-semibold text-slate-900">No employees found</h3>
-          <p className="mt-1 text-sm text-slate-500">There are no employees or managers in the system.</p>
+          <h3 className="mt-4 text-sm font-semibold text-slate-900">{activeTab === 'interns' ? 'No Intern Found' : 'No employees found'}</h3>
+          <p className="mt-1 text-sm text-slate-500">{activeTab === 'interns' ? 'There are no interns in the system.' : 'There are no employees or managers in the system.'}</p>
           <div className="mt-6">
             {isAdminLike(user?.role) && (
               <Button onClick={() => setAddModalOpen(true)} className="gap-2">
@@ -2018,7 +2062,7 @@ export default function EmployeeList() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
             <UserCircleIcon className="h-6 w-6 text-slate-400" />
           </div>
-          <h3 className="mt-4 text-sm font-semibold text-slate-900">No employees found</h3>
+          <h3 className="mt-4 text-sm font-semibold text-slate-900">{activeTab === 'interns' ? 'No Intern Found' : 'No employees found'}</h3>
           <p className="mt-1 text-sm text-slate-500">We couldn't find anything matching your current filters.</p>
           <div className="mt-6">
             <Button variant="secondary" onClick={resetFilters}>
@@ -2028,18 +2072,13 @@ export default function EmployeeList() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {groupedView && activeTab === 'all' ? (
+          {activeTab === 'interns' ? (
+            renderTableSection('Interns', groupedEmployees.interns, totalInterns)
+          ) : (
             <>
               {renderTableSection('Managers', groupedEmployees.managers, totalManagers)}
               {renderTableSection('Employees', groupedEmployees.employees, totalEmployees)}
-              {renderTableSection('Interns', groupedEmployees.interns, totalInterns)}
             </>
-          ) : activeTab === 'managers' ? (
-            renderTableSection('Managers', groupedEmployees.managers, totalManagers)
-          ) : activeTab === 'interns' ? (
-            renderTableSection('Interns', groupedEmployees.interns, totalInterns)
-          ) : (
-            renderTableSection('Employees', groupedEmployees.employees, totalEmployees)
           )}
         </div>
       )}
@@ -2118,6 +2157,18 @@ export default function EmployeeList() {
         open={addInternModalOpen}
         onClose={() => setAddInternModalOpen(false)}
         onSave={handleAddIntern}
+      />
+      <AddInternModal
+        intern={selectedIntern}
+        departments={allDepartments}
+        managers={managers}
+        existingEmails={interns.map(i => (i.email || '').toLowerCase()).filter(Boolean)}
+        open={editInternModalOpen}
+        onClose={() => {
+          setEditInternModalOpen(false);
+          setSelectedIntern(null);
+        }}
+        onSave={handleEditIntern}
       />
       <InternDetailModal
         intern={selectedIntern}

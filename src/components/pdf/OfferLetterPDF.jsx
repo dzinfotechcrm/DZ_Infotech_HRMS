@@ -4,69 +4,83 @@ import { SIGNATURE_BASE64 } from '../../utils/constants';
 
 // Register font for better rendering (optional, using default Helvetica for now)
 
+
+Font.register({
+  family: 'Arial',
+  fonts: [
+    { src: '/fonts/arial.ttf' },
+    { src: '/fonts/arialbd.ttf', fontWeight: 'bold' }
+  ]
+});
+Font.register({
+  family: 'Times-Roman',
+  src: '/fonts/times.ttf'
+});
+
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    fontFamily: 'Helvetica',
+    padding: 54,
+    fontFamily: 'Arial',
     fontSize: 10,
-    lineHeight: 1.5,
+    lineHeight: 1.2,
     color: '#000',
   },
   header: {
     marginBottom: 20,
   },
   companyName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#2F5496',
+    fontFamily: 'Arial',
+    color: '#1f3864',
     textAlign: 'center',
+    lineHeight: 1.2,
+    marginBottom: 6,
   },
   companyAddress: {
     textAlign: 'center',
-    color: '#555',
+    color: '#444444',
   },
   title: {
     fontSize: 12,
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     marginTop: 10,
     marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: '#C55A11',
     marginTop: 15,
     marginBottom: 5,
-    paddingBottom: 2,
-    borderBottomWidth: 1,
-    borderBottomColor: '#C55A11',
   },
   subSectionTitle: {
     fontSize: 11,
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
-    color: '#2F5496',
+    fontFamily: 'Arial',
+    color: '#1f3864',
     marginTop: 10,
     marginBottom: 4,
   },
   text: {
-    marginBottom: 8,
+    marginBottom: 10,
     textAlign: 'justify',
   },
   bold: {
     fontWeight: 'bold',
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
   },
   listItem: {
     flexDirection: 'row',
     marginBottom: 4,
+    marginLeft: 18,
   },
   bulletPoint: {
     width: 15,
-    fontSize: 10,
+    fontFamily: 'Arial',
+    fontSize: 12,
   },
   listItemText: {
     flex: 1,
@@ -85,15 +99,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#000',
     marginBottom: 5,
+  },
+  signatureText: {
+    marginBottom: 2,
   }
 });
 
 const Bullet = ({ children }) => (
-  <View style={styles.listItem}>
+  <View wrap={false} style={styles.listItem}>
     <Text style={styles.bulletPoint}>•</Text>
     <Text style={styles.listItemText}>{children}</Text>
   </View>
 );
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
+};
 
 export const OfferLetterPDF = ({ intern }) => {
   const {
@@ -124,10 +150,10 @@ export const OfferLetterPDF = ({ intern }) => {
         </View>
 
         <View style={{ marginBottom: 15 }}>
-          <Text style={styles.text}>Date: {offer_date}</Text>
-          <Text>To,</Text>
-          <Text style={styles.bold}>{full_name}</Text>
-          <Text style={{ marginTop: 10 }}>Subject: Offer Letter for {position}</Text>
+          <Text style={{ marginBottom: 5 }}>Date: {formatDate(offer_date)}</Text>
+          <Text style={{ marginBottom: 2 }}>To,</Text>
+          <Text style={{ ...styles.bold, marginBottom: 5 }}>{full_name}</Text>
+          <Text style={{ marginTop: 10, fontFamily: 'Arial', fontWeight: 'bold' }}>Subject: Offer Letter for {position}</Text>
         </View>
 
         <Text style={styles.text}>Dear {first_name},</Text>
@@ -142,8 +168,8 @@ export const OfferLetterPDF = ({ intern }) => {
         
         <Text style={styles.subSectionTitle}>1.1 Position and Duration</Text>
         <Text style={styles.text}><Text style={styles.bold}>Position: </Text><Text style={{ color: '#C55A11', fontFamily: 'Helvetica-Bold' }}>{position}</Text></Text>
-        <Text style={styles.text}><Text style={styles.bold}>Start Date: </Text>{start_date}</Text>
-        <Text style={styles.text}><Text style={styles.bold}>End Date: </Text>{end_date}</Text>
+        <Text style={styles.text}><Text style={styles.bold}>Start Date: </Text>{formatDate(start_date)}</Text>
+        <Text style={styles.text}><Text style={styles.bold}>End Date: </Text>{formatDate(end_date)}</Text>
         <Text style={styles.text}><Text style={styles.bold}>Duration: </Text>{duration_text}</Text>
 
         <Text style={styles.subSectionTitle}>1.2 Work Mode and Schedule</Text>
@@ -293,7 +319,7 @@ export const OfferLetterPDF = ({ intern }) => {
 
         <Text style={styles.sectionTitle}>12. ACCEPTANCE</Text>
         <Text style={styles.text}>
-          Please sign and return a scanned copy of this offer letter along with the signed Non-Disclosure Agreement by <Text style={styles.bold}>{acceptance_deadline}</Text> to confirm your acceptance of this internship offer.
+          Please sign and return a scanned copy of this offer letter along with the signed Non-Disclosure Agreement by <Text style={styles.bold}>{formatDate(acceptance_deadline)}</Text> to confirm your acceptance of this internship offer.
         </Text>
         <Text style={styles.text}>
           If you have any questions or need clarification on any terms mentioned in this offer letter, please feel free to reach out to us before signing.
@@ -302,18 +328,18 @@ export const OfferLetterPDF = ({ intern }) => {
           We look forward to having you on board and working together to build great products!
         </Text>
 
-        <View style={styles.signatureBlock}>
+        <View wrap={false} style={styles.signatureBlock}>
           <Text style={styles.text}>Best Regards,</Text>
           <Image src={SIGNATURE_BASE64} style={styles.signatureImage} />
-          <Text style={styles.text}><Text style={styles.bold}>Soumyarajsinh Zala</Text></Text>
-          <Text style={styles.text}>Co-Founder</Text>
-          <Text style={styles.text}>DZ Infotech</Text>
-          <Text style={styles.text}>Dzinfotech10@gmail.com</Text>
-          <Text style={styles.text}>9327853727</Text>
+          <Text style={{ ...styles.signatureText, ...styles.bold }}>Soumyarajsinh Zala</Text>
+          <Text style={styles.signatureText}>Co-Founder</Text>
+          <Text style={styles.signatureText}>DZ Infotech</Text>
+          <Text style={styles.signatureText}>Dzinfotech10@gmail.com</Text>
+          <Text style={styles.signatureText}>9327853727</Text>
         </View>
 
-        <View style={{ ...styles.signatureBlock, marginTop: 40, borderTopWidth: 1, borderTopColor: '#2F5496', paddingTop: 20 }}>
-          <Text style={{ fontSize: 12, fontWeight: 'bold', fontFamily: 'Helvetica-Bold', textAlign: 'center', color: '#2F5496', marginBottom: 10 }}>ACCEPTANCE OF OFFER</Text>
+        <View wrap={false} style={{ ...styles.signatureBlock, marginTop: 40, borderTopWidth: 1, borderTopColor: '#1f3864', paddingTop: 20 }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', fontFamily: 'Arial', textAlign: 'center', color: '#1f3864', marginBottom: 10 }}>ACCEPTANCE OF OFFER</Text>
           <Text style={styles.text}>
             I, <Text style={styles.bold}>{full_name}</Text>, have read and understood all the terms and conditions mentioned in this offer letter. I hereby accept this internship offer and agree to abide by all the policies, guidelines, and terms stated above.
           </Text>
@@ -323,16 +349,16 @@ export const OfferLetterPDF = ({ intern }) => {
               <View style={styles.signatureLine} />
               <Text>Intern's Signature</Text>
             </View>
+            <View>
+              <View style={styles.signatureLine} />
+              <Text>Date</Text>
+            </View>
           </View>
           
           <View style={{ marginTop: 30, flexDirection: 'row', justifyContent: 'space-between' }}>
             <View>
-              <Text style={{ ...styles.text, ...styles.bold, borderBottomWidth: 1, width: 200, paddingBottom: 2 }}>{full_name}</Text>
-              <Text style={{marginTop: 5}}>Intern's Full Name</Text>
-            </View>
-            <View>
-              <View style={styles.signatureLine} />
-              <Text>Date</Text>
+              <Text style={{ ...styles.bold, borderBottomWidth: 1, borderBottomColor: '#000', width: 200, paddingBottom: 2, marginBottom: 5 }}>{full_name}</Text>
+              <Text>Intern's Full Name</Text>
             </View>
           </View>
         </View>

@@ -224,7 +224,7 @@ export default function LeaveForm({ mode = 'create' }) {
 
               return (
                 <option key={type.id} value={type.id} disabled={exhausted}>
-                  {type.name} {exhausted ? '(Exhausted)' : ''}
+                  {type.name} {remaining !== null ? `(${remaining} remaining)` : ''}
                 </option>
               );
             })}
