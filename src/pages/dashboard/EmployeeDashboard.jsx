@@ -13,6 +13,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import AttendanceControl from '../../components/dashboard/AttendanceControl';
+import InternDocumentsCard from '../../components/dashboard/InternDocumentsCard';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
   const tones = {
@@ -46,11 +47,15 @@ export default function EmployeeDashboard() {
   const { items: allAttendance } = useSupabaseCollection('attendance', attendanceQuery);
   const { items: allLeaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
   const { items: employees } = useSupabaseCollection('employees');
+  const { items: interns, refetch: refetchInterns } = useSupabaseCollection('interns');
 
   const currentEmployee = employees.find(e => e.uid === user?.uid || e.email === user?.email);
+  const currentIntern = interns.find(i => i.uid === user?.uid || i.email === user?.email || i.login_email === user?.email);
+  
+  const currentEntity = currentEmployee || currentIntern;
 
-  const attendance = allAttendance.filter((a) => a.employeeId === user?.uid || (currentEmployee && a.employeeId === currentEmployee.id)).slice(0, 10);
-  const userLeaves = allLeaveRequests.filter((lr) => lr.employeeId === user?.uid || (currentEmployee && lr.employeeId === currentEmployee.id));
+  const attendance = allAttendance.filter((a) => a.employeeId === user?.uid || (currentEntity && a.employeeId === currentEntity.id)).slice(0, 10);
+  const userLeaves = allLeaveRequests.filter((lr) => lr.employeeId === user?.uid || (currentEntity && lr.employeeId === currentEntity.id));
   const leaveRequests = userLeaves.slice(0, 5);
 
   const presentToday = attendance.some((entry) => entry.status === 'present' && formatDate(entry.date, 'yyyy-MM-dd') === formatDate(new Date(), 'yyyy-MM-dd'));
@@ -73,6 +78,10 @@ export default function EmployeeDashboard() {
       </div>
 
       <AttendanceControl user={user} />
+
+      {currentIntern && (
+        <InternDocumentsCard intern={currentIntern} onUpdate={refetchInterns} />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Today's Status" value={presentToday ? 'Present' : 'Not Marked'} icon={CheckCircleIcon} tone={presentToday ? "success" : "warning"} subtitle={presentToday ? "You're checked in today" : "Awaiting check-in"} />

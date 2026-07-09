@@ -1,0 +1,271 @@
+import { useState, useEffect } from 'react';
+import { differenceInDays, parseISO } from 'date-fns';
+import Modal from '../../components/ui/Modal';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
+import Button from '../../components/ui/Button';
+import { formatDate } from '../../utils/dateHelpers';
+import toast from 'react-hot-toast';
+
+export default function AddInternModal({ departments, managers, existingEmails = [], open, onClose, onSave }) {
+  const [saving, setSaving] = useState(false);
+
+  const defaultStartDate = formatDate(new Date(), 'yyyy-MM-dd');
+  const defaultEndDate = formatDate(new Date(new Date().setMonth(new Date().getMonth() + 2)), 'yyyy-MM-dd');
+  const defaultOfferDate = defaultStartDate;
+  const defaultAcceptanceDate = formatDate(new Date(new Date().setDate(new Date().getDate() + 2)), 'yyyy-MM-dd');
+
+  const initialFormState = {
+    // Identity & Contact
+    full_name: '',
+    first_name: '',
+    email: '',
+    phone: '',
+    photo_url: '',
+
+    // Internship Details
+    position: '',
+    department_id: '',
+    start_date: defaultStartDate,
+    end_date: defaultEndDate,
+    duration_text: '2 months',
+    is_paid: false,
+    stipend_amount: '',
+    work_mode: 'Remote',
+    working_days: 'Monday to Friday',
+    working_hours: 'Flexible with minimum 5-6 hours/day',
+    max_leave_per_month: '5',
+
+    // Offer Metadata
+    offer_date: defaultOfferDate,
+    acceptance_deadline: defaultAcceptanceDate,
+
+    // Certificate Block
+    certificate_eligible: true,
+    skills_technologies: '',
+
+    // NDA
+    nda_date: defaultOfferDate,
+
+    // System / Access
+    login_email: '',
+    status: 'Active',
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (field, value) => {
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  useEffect(() => {
+    if (!open) {
+      setFormData(initialFormState);
+      setErrors({});
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (formData.start_date && formData.end_date) {
+      try {
+        const start = parseISO(formData.start_date);
+        const end = parseISO(formData.end_date);
+        if (start && end && end >= start) {
+          const days = differenceInDays(end, start) + 1; // inclusive
+          let months = Math.round(days / 30);
+
+          if (months === 0) {
+            months = 1;
+          }
+          const text = months === 1 ? '1 month' : `${months} months`;
+          setFormData(prev => ({ ...prev, duration_text: text }));
+        }
+      } catch (e) {
+        // ignore date parsing errors
+      }
+    }
+  }, [formData.start_date, formData.end_date]);
+
+  const validate = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    const required = [
+      'full_name', 'email', 'position', 'start_date', 'end_date',
+      'offer_date', 'acceptance_deadline', 'working_hours'
+    ];
+
+    required.forEach(k => {
+      if (!formData[k] || String(formData[k]).trim() === '') {
+        newErrors[k] = 'This field is required';
+        isValid = false;
+      }
+    });
+
+    if (formData.is_paid && (!formData.stipend_amount || formData.stipend_amount <= 0)) {
+      newErrors.stipend_amount = 'Stipend amount is required for paid internships';
+      isValid = false;
+    }
+
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+      isValid = false;
+    }
+
+    if (existingEmails.includes(formData.email.trim().toLowerCase())) {
+      newErrors.email = 'This email is already in use';
+      isValid = false;
+    }
+
+    if (formData.phone && formData.phone.length !== 10) {
+      newErrors.phone = 'Phone number must be exactly 10 digits';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    if (!isValid) toast.error('Please fix the errors in the form.');
+    return isValid;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setSaving(true);
+    try {
+      const dataToSave = { ...formData };
+      if (!dataToSave.is_paid) {
+        dataToSave.stipend_amount = null;
+      }
+      if (!dataToSave.login_email) {
+        dataToSave.login_email = dataToSave.email;
+      }
+      if (dataToSave.department_id === '') {
+        dataToSave.department_id = null;
+      }
+
+      await onSave(dataToSave);
+      toast.success('Intern added successfully! Documents are generating...');
+      setFormData(initialFormState);
+      onClose();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || 'Failed to add intern');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <Modal open={open} title="Add New Intern" onClose={onClose} size="max-w-4xl">
+      <form onSubmit={handleSubmit} className="space-y-8 h-[75vh] overflow-y-auto px-2 pb-4">
+
+        {/* SECTION A: Identity & Contact */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Identity & Contact</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Full Name (As on legal docs)" error={errors.full_name} value={formData.full_name} onChange={(e) => {
+              handleChange('full_name', e.target.value);
+              if (!formData.first_name && e.target.value) {
+                handleChange('first_name', e.target.value.split(' ')[0]);
+              }
+            }} required />
+            <Input label="Preferred / First Name" error={errors.first_name} value={formData.first_name} onChange={(e) => handleChange('first_name', e.target.value)} required />
+            <Input label="Email" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} required />
+            <Input label="Phone" type="tel" error={errors.phone} value={formData.phone} onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, '');
+              if (val.length <= 10) {
+                handleChange('phone', val);
+              }
+            }} />
+          </div>
+        </div>
+
+        {/* SECTION B: Internship Details */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Internship Details</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Position / Role Title" placeholder="e.g. Full Stack Developer Intern" error={errors.position} value={formData.position} onChange={(e) => handleChange('position', e.target.value)} required />
+            <Select label="Department" error={errors.department_id} value={formData.department_id} onChange={(e) => handleChange('department_id', e.target.value)}>
+              <option value="">Select Department</option>
+              {departments.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
+            </Select>
+            <Input label="Start Date" type="date" error={errors.start_date} value={formData.start_date} onChange={(e) => handleChange('start_date', e.target.value)} required />
+            <Input label="End Date" type="date" error={errors.end_date} value={formData.end_date} onChange={(e) => handleChange('end_date', e.target.value)} required />
+            <Input label="Duration Text" placeholder="e.g. 2 months" error={errors.duration_text} value={formData.duration_text} onChange={(e) => handleChange('duration_text', e.target.value)} required />
+            <Input label="Max Leave per Month" type="number" error={errors.max_leave_per_month} value={formData.max_leave_per_month} onChange={(e) => handleChange('max_leave_per_month', e.target.value)} required />
+
+            <Select label="Work Mode" error={errors.work_mode} value={formData.work_mode} onChange={(e) => handleChange('work_mode', e.target.value)}>
+              <option value="Remote">Remote</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="On-site">On-site</option>
+            </Select>
+            <Input label="Working Days" error={errors.working_days} value={formData.working_days} onChange={(e) => handleChange('working_days', e.target.value)} required />
+            <div className="sm:col-span-2">
+              <Input label="Working Hours" error={errors.working_hours} value={formData.working_hours} onChange={(e) => handleChange('working_hours', e.target.value)} required />
+            </div>
+
+            <Select label="Compensation Type" value={formData.is_paid ? 'paid' : 'unpaid'} onChange={(e) => handleChange('is_paid', e.target.value === 'paid')}>
+              <option value="unpaid">Unpaid Internship</option>
+              <option value="paid">Paid Internship</option>
+            </Select>
+            {formData.is_paid && (
+              <Input label="Stipend Amount (Monthly)" type="number" error={errors.stipend_amount} value={formData.stipend_amount} onChange={(e) => handleChange('stipend_amount', e.target.value)} required={formData.is_paid} />
+            )}
+          </div>
+        </div>
+
+        {/* SECTION C & E: Offer Metadata & NDA */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Dates & Reporting</h4>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Input label="Offer Date" type="date" error={errors.offer_date} value={formData.offer_date} onChange={(e) => {
+              handleChange('offer_date', e.target.value);
+              handleChange('nda_date', e.target.value); // Sync NDA date by default
+            }} required />
+            <Input label="NDA Effective Date" type="date" error={errors.nda_date} value={formData.nda_date} onChange={(e) => handleChange('nda_date', e.target.value)} required />
+            <Input label="Acceptance Deadline" type="date" error={errors.acceptance_deadline} value={formData.acceptance_deadline} onChange={(e) => handleChange('acceptance_deadline', e.target.value)} required />
+          </div>
+        </div>
+
+        {/* SECTION D: Certificate Block */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Internship Certificate & Skills</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select label="Certificate Eligible?" value={formData.certificate_eligible ? 'true' : 'false'} onChange={(e) => handleChange('certificate_eligible', e.target.value === 'true')}>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </Select>
+            <Input label="Key Technologies / Skills" placeholder="e.g. React JS, Node JS" error={errors.skills_technologies} value={formData.skills_technologies} onChange={(e) => handleChange('skills_technologies', e.target.value)} />
+          </div>
+        </div>
+
+        {/* SECTION F: System / Access */}
+        <div>
+          <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">System Access</h4>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input label="Login Email / Username" placeholder="Defaults to personal email" error={errors.login_email} value={formData.login_email} onChange={(e) => handleChange('login_email', e.target.value)} />
+            <Select label="Status" error={errors.status} value={formData.status} onChange={(e) => handleChange('status', e.target.value)}>
+              <option value="Active">Active</option>
+              <option value="Completed">Completed</option>
+              <option value="Terminated">Terminated</option>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex gap-3 border-t border-slate-200 pt-4 mt-6">
+          <Button variant="secondary" className="flex-1" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" className="flex-1" disabled={saving}>
+            {saving ? 'Generating...' : 'Save & Generate Documents'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}

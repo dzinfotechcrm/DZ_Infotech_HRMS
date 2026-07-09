@@ -61,7 +61,61 @@ export async function syncAuthenticatedUser(supabaseUser) {
   }
 
   if (!employeeSnap) {
-    return null; // No employee record found
+    // If not found in employees, try interns
+    let { data: internSnap } = await supabase
+      .from('interns')
+      .select('*')
+      .eq('uid', supabaseUser.id)
+      .maybeSingle();
+
+    if (!internSnap) {
+      const { data: internByEmail } = await supabase
+        .from('interns')
+        .select('*')
+        .or(`email.eq.${supabaseUser.email},login_email.eq.${supabaseUser.email}`)
+        .maybeSingle();
+
+      if (internByEmail) {
+        await supabase
+          .from('interns')
+          .update({ uid: supabaseUser.id })
+          .eq('id', internByEmail.id);
+
+        internSnap = internByEmail;
+      }
+    }
+
+    if (!internSnap) {
+      return null; // No employee or intern record found
+    }
+
+    // Handle Intern payload
+    const userPayload = {
+      id: supabaseUser.id,
+      email: supabaseUser.email,
+      display_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
+      photo_url: supabaseUser.user_metadata?.avatar_url || '',
+      role: 'intern',
+      employee_id: internSnap.id,
+      employee_linked: true,
+      is_active: internSnap.status === 'Active' || internSnap.status === 'active',
+      status: (internSnap.status === 'Active' || internSnap.status === 'active') ? 'active' : 'inactive',
+      last_login: new Date().toISOString(),
+    };
+
+    if (!userSnap) {
+      await supabase.from('users').upsert([{ ...userPayload }], { onConflict: 'email' });
+    } else {
+      await supabase.from('users').update(userPayload).eq('id', supabaseUser.id);
+    }
+
+    return {
+      ...supabaseUser,
+      ...userSnap,
+      ...userPayload,
+      uid: supabaseUser.id,
+      isActive: userPayload.is_active,
+    };
   }
 
   // If role is agent, verify the agent still exists in sfms_agents
@@ -86,7 +140,8 @@ export async function syncAuthenticatedUser(supabaseUser) {
     role: employeeSnap.role || 'employee',
     employee_id: employeeSnap.id || '',
     employee_linked: true,
-    is_active: employeeSnap.status === 'active',
+    is_active: employeeSnap.status === 'active' || employeeSnap.status === 'Active',
+    status: (employeeSnap.status === 'active' || employeeSnap.status === 'Active') ? 'active' : 'inactive',
     last_login: new Date().toISOString(),
   };
 

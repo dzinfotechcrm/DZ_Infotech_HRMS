@@ -33,10 +33,15 @@ import toast from 'react-hot-toast';
 import { getBankOptions } from '../../data/banks';
 import * as XLSX from 'xlsx';
 
+import AddInternModal from './AddInternModal';
+import InternDetailModal from './InternDetailModal';
+import { generateAndUploadInternDocuments } from '../../utils/internPdfGenerator';
+
 const TABS = [
   { key: 'all', label: 'All' },
   { key: 'managers', label: 'Managers' },
   { key: 'employees', label: 'Employees' },
+  { key: 'interns', label: 'Interns' },
 ];
 
 const STATUS_OPTIONS = [
@@ -508,10 +513,10 @@ function EditEmployeeModal({ employee, departments, managers, existingEmails = [
       const parsedDob = new Date(year, month - 1, day);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const eighteenYearsAgo = new Date(today);
       eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
-      
+
       if (parsedDob >= today) {
         newErrors['dob'] = 'Date of birth cannot be today or in the future';
         isValid = false;
@@ -849,10 +854,10 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         const parsedDob = new Date(year, month - 1, day);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         const eighteenYearsAgo = new Date(today);
         eighteenYearsAgo.setFullYear(eighteenYearsAgo.getFullYear() - 18);
-        
+
         if (parsedDob >= today) {
           newErrors['dob'] = 'Date of birth cannot be today or in the future';
           isValid = false;
@@ -1266,6 +1271,10 @@ export default function EmployeeList() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
+  const [addInternModalOpen, setAddInternModalOpen] = useState(false);
+  const [internDetailModalOpen, setInternDetailModalOpen] = useState(false);
+  const [selectedIntern, setSelectedIntern] = useState(null);
+
   // Firestore Data
   const employeesQuery = useMemo(() => {
     if (!user) return undefined;
@@ -1276,6 +1285,7 @@ export default function EmployeeList() {
   const { items: allDepartments, loading: departmentsLoading } = useSupabaseCollection('departments', useMemo(() => (base) => query(base, orderBy('name')), []));
   const attendanceQuery = useMemo(() => (base) => query(base, where('date', '==', attendanceDate)), [attendanceDate]);
   const { items: attendanceRecords } = useSupabaseCollection('attendance', attendanceQuery);
+  const { items: interns, loading: internsLoading, refetch: refetchInterns } = useSupabaseCollection('interns', employeesQuery);
 
   // Enrich employees with department names
   const enrichedEmployees = useMemo(
@@ -1283,8 +1293,8 @@ export default function EmployeeList() {
       // Find current logged in employee's record to get their department
       const currentEmployee = employees.find((e) => e.uid === user?.uid || e.email === user?.email);
 
-      let filtered = employees.filter((emp) => 
-        emp.designation?.toLowerCase() !== 'admin' && 
+      let filtered = employees.filter((emp) =>
+        emp.designation?.toLowerCase() !== 'admin' &&
         emp.role !== 'admin' &&
         emp.role?.toLowerCase() !== 'agent' &&
         emp.designation?.toLowerCase() !== 'agent' &&
@@ -1331,8 +1341,28 @@ export default function EmployeeList() {
   const groupedEmployees = useMemo(() => {
     const managers = enrichedEmployees.filter((e) => e.role?.toLowerCase() === 'manager' || e.designation?.toLowerCase() === 'manager');
     const regularEmployees = enrichedEmployees.filter((e) => e.role?.toLowerCase() !== 'manager' && e.designation?.toLowerCase() !== 'manager');
-    return { managers, employees: regularEmployees };
-  }, [enrichedEmployees]);
+    
+    // Enrich interns with department names
+    const enrichedInterns = interns.map((intern) => {
+      let dept = allDepartments.find((d) => d.id === intern.department_id);
+      return {
+        ...intern,
+        isIntern: true,
+        department: dept?.name || '—',
+        // Map fields to match table expected keys
+        firstName: intern.first_name,
+        lastName: intern.full_name?.split(' ').slice(1).join(' ') || '',
+        email: intern.email,
+        phone: intern.phone,
+        designation: intern.position || 'Intern',
+        status: intern.status,
+        joinDate: intern.start_date,
+        photoURL: intern.photo_url,
+      };
+    });
+
+    return { managers, employees: regularEmployees, interns: enrichedInterns };
+  }, [enrichedEmployees, interns, allDepartments]);
 
   // Filter employees
   const getFilteredEmployees = useMemo(() => {
@@ -1351,7 +1381,8 @@ export default function EmployeeList() {
         const matchesTab =
           tab === 'all' ||
           (tab === 'managers' && (employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager')) ||
-          (tab === 'employees' && employee.role?.toLowerCase() !== 'manager' && employee.designation?.toLowerCase() !== 'manager');
+          (tab === 'employees' && employee.role?.toLowerCase() !== 'manager' && employee.designation?.toLowerCase() !== 'manager') ||
+          (tab === 'interns' && employee.designation?.toLowerCase().includes('intern'));
 
         return matchesText && matchesStatus && matchesDepartment && matchesTab;
       });
@@ -1386,6 +1417,7 @@ export default function EmployeeList() {
   // Count totals
   const totalManagers = groupedEmployees.managers.length;
   const totalEmployees = groupedEmployees.employees.length;
+  const totalInterns = groupedEmployees.interns.length;
   const presentToday = attendanceRecords.filter((r) => r.status?.toLowerCase() === 'present').length;
   const activeCount = enrichedEmployees.filter((e) => e.status?.toLowerCase() === 'active').length;
 
@@ -1412,12 +1444,16 @@ export default function EmployeeList() {
     if (!selectedEmployee) return;
     const employee = selectedEmployee;
     try {
-      await removeDocument('employees', employee.id);
+      if (employee.isIntern) {
+        await removeDocument('interns', employee.id);
+      } else {
+        await removeDocument('employees', employee.id);
+      }
 
       // Audit log
       try {
         await createDocument('auditLogs', {
-          action: 'Delete Employee',
+          action: employee.isIntern ? 'Delete Intern' : 'Delete Employee',
           data: {
             employeeId: employee.id,
             employeeName: `${employee.firstName} ${employee.lastName}`,
@@ -1433,9 +1469,14 @@ export default function EmployeeList() {
       toast.success(`${employee.firstName} ${employee.lastName} deleted.`);
       setDeleteModalOpen(false);
       setSelectedEmployee(null);
-      refetchEmployees();
+      if (employee.isIntern) {
+        refetchInterns();
+      } else {
+        refetchEmployees();
+      }
     } catch (error) {
-      toast.error(error.message || 'Unable to delete employee.');
+      console.error(error);
+      toast.error(error.message || `Unable to delete ${employee.isIntern ? 'intern' : 'employee'}.`);
     }
   };
 
@@ -1574,6 +1615,60 @@ export default function EmployeeList() {
     }
   };
 
+  const handleAddIntern = async (internData) => {
+    try {
+      const docRef = await createDocument('interns', internData);
+      const generatedIntern = { ...internData, id: docRef.id };
+      
+      const { offerLetterPath, ndaPath } = await generateAndUploadInternDocuments(generatedIntern);
+      
+      await updateDocument('interns', docRef.id, {
+        offer_letter_pdf_url: offerLetterPath,
+        nda_pdf_url: ndaPath,
+        document_status: 'pending_signature',
+      });
+      
+      refetchInterns();
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleRegenerateInternDocs = async (internId) => {
+    const toastId = toast.loading('Regenerating documents...');
+    try {
+      const intern = interns.find(i => i.id === internId);
+      if (!intern) throw new Error("Intern not found");
+      const { offerLetterPath, ndaPath } = await generateAndUploadInternDocuments(intern);
+      await updateDocument('interns', internId, {
+        offer_letter_pdf_url: offerLetterPath,
+        nda_pdf_url: ndaPath,
+      });
+      toast.success('Documents regenerated successfully!', { id: toastId });
+      refetchInterns();
+      if (selectedIntern && selectedIntern.id === internId) {
+        setSelectedIntern(prev => ({...prev, offer_letter_pdf_url: offerLetterPath, nda_pdf_url: ndaPath}));
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to regenerate documents', { id: toastId });
+    }
+  };
+
+  const handleClearSignedDoc = async (internId, docType) => {
+    try {
+      await updateDocument('interns', internId, {
+        [docType]: null,
+      });
+      toast.success('Signed document cleared.');
+      refetchInterns();
+      if (selectedIntern && selectedIntern.id === internId) {
+        setSelectedIntern(prev => ({...prev, [docType]: null}));
+      }
+    } catch (error) {
+      toast.error('Failed to clear document');
+    }
+  };
+
   // Pagination
   const toggleSort = (key) => {
     if (sortBy === key) {
@@ -1603,7 +1698,7 @@ export default function EmployeeList() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isLoading = employeesLoading || departmentsLoading;
+  const isLoading = employeesLoading || departmentsLoading || internsLoading;
 
   // Render table section
   const renderTableSection = (title, empList, count) => {
@@ -1644,12 +1739,16 @@ export default function EmployeeList() {
                     </div>
                     {isAdminLike(user?.role) && (
                       <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => openEditModal(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit">
-                          <PencilSquareIcon className="h-4 w-4" />
-                        </button>
-                        <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
+                        {!employee.department_id /* employee is not an intern if they dont have department_id as top level key */ ? (
+                          <>
+                            <button type="button" onClick={() => openEditModal(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" title="Edit">
+                              <PencilSquareIcon className="h-4 w-4" />
+                            </button>
+                            <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -1676,7 +1775,7 @@ export default function EmployeeList() {
                   <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <Button
                       variant="secondary"
-                      onClick={() => openViewModal(employee)}
+                      onClick={() => employee.department_id ? (setSelectedIntern(employee), setInternDetailModalOpen(true)) : openViewModal(employee)}
                       className="flex-1 justify-center py-2 text-xs h-auto bg-slate-50 hover:bg-slate-100"
                       title="View Profile"
                     >
@@ -1757,10 +1856,10 @@ export default function EmployeeList() {
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button type="button" onClick={() => openViewModal(employee)} className="text-slate-400 hover:text-primary-600 transition" title="View Profile">
+                            <button type="button" onClick={() => employee.department_id ? (setSelectedIntern(employee), setInternDetailModalOpen(true)) : openViewModal(employee)} className="text-slate-400 hover:text-primary-600 transition" title="View Profile">
                               <EyeIcon className="h-5 w-5" />
                             </button>
-                            {isAdminLike(user?.role) && (
+                            {isAdminLike(user?.role) && !employee.department_id && (
                               <button type="button" onClick={() => {
                                 setSelectedEmployee(employee);
                                 setLeaveHistoryModalOpen(true);
@@ -1768,12 +1867,12 @@ export default function EmployeeList() {
                                 <CalendarDaysIcon className="h-5 w-5" />
                               </button>
                             )}
-                            {isAdminLike(user?.role) && (
+                            {isAdminLike(user?.role) && !employee.department_id && (
                               <button type="button" onClick={() => openEditModal(employee)} className="text-slate-400 hover:text-emerald-600 transition" title="Edit">
                                 <PencilSquareIcon className="h-5 w-5" />
                               </button>
                             )}
-                            {isAdminLike(user?.role) && (
+                            {isAdminLike(user?.role) && !employee.department_id && (
                               <button type="button" onClick={() => confirmDelete(employee)} disabled={!canDeleteEmployee(employee)} className="text-slate-400 hover:text-rose-600 transition disabled:opacity-50 disabled:cursor-not-allowed" title={!canDeleteEmployee(employee) ? "Cannot delete manager while department has employees" : "Delete"}>
                                 <TrashIcon className="h-5 w-5" />
                               </button>
@@ -1794,10 +1893,12 @@ export default function EmployeeList() {
 
   const hasResults = (
     (groupedView && activeTab === 'all')
-      ? getFilteredEmployees(groupedEmployees.managers).length > 0 || getFilteredEmployees(groupedEmployees.employees).length > 0
+      ? getFilteredEmployees(groupedEmployees.managers).length > 0 || getFilteredEmployees(groupedEmployees.employees).length > 0 || getFilteredEmployees(groupedEmployees.interns).length > 0
       : activeTab === 'managers'
         ? getFilteredEmployees(groupedEmployees.managers).length > 0
-        : getFilteredEmployees(groupedEmployees.employees).length > 0
+        : activeTab === 'interns'
+          ? getFilteredEmployees(groupedEmployees.interns).length > 0
+          : getFilteredEmployees(groupedEmployees.employees).length > 0
   );
 
   return (
@@ -1822,10 +1923,16 @@ export default function EmployeeList() {
               </Button>
             )}
             {isAdminLike(user?.role) && (
-              <Button onClick={() => setAddModalOpen(true)} className="gap-2">
-                <PlusIcon className="h-4 w-4" />
-                Add Employee
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => setAddModalOpen(true)} className="gap-2">
+                  <PlusIcon className="h-4 w-4" />
+                  Add Employee
+                </Button>
+                <Button onClick={() => setAddInternModalOpen(true)} className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white border-transparent">
+                  <PlusIcon className="h-4 w-4" />
+                  Add Intern
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -1925,9 +2032,12 @@ export default function EmployeeList() {
             <>
               {renderTableSection('Managers', groupedEmployees.managers, totalManagers)}
               {renderTableSection('Employees', groupedEmployees.employees, totalEmployees)}
+              {renderTableSection('Interns', groupedEmployees.interns, totalInterns)}
             </>
           ) : activeTab === 'managers' ? (
             renderTableSection('Managers', groupedEmployees.managers, totalManagers)
+          ) : activeTab === 'interns' ? (
+            renderTableSection('Interns', groupedEmployees.interns, totalInterns)
           ) : (
             renderTableSection('Employees', groupedEmployees.employees, totalEmployees)
           )}
@@ -1999,6 +2109,27 @@ export default function EmployeeList() {
           Are you sure you want to delete <span className="font-semibold text-slate-900">{selectedEmployee?.firstName} {selectedEmployee?.lastName}</span>? This action cannot be undone.
         </p>
       </Modal>
+
+      {/* Intern Modals */}
+      <AddInternModal
+        departments={allDepartments}
+        managers={managers}
+        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean).concat(interns.map(i => i.email))}
+        open={addInternModalOpen}
+        onClose={() => setAddInternModalOpen(false)}
+        onSave={handleAddIntern}
+      />
+      <InternDetailModal
+        intern={selectedIntern}
+        managers={managers}
+        open={internDetailModalOpen}
+        onClose={() => {
+          setInternDetailModalOpen(false);
+          setSelectedIntern(null);
+        }}
+        onRegenerate={handleRegenerateInternDocs}
+        onClearSigned={handleClearSignedDoc}
+      />
     </div>
   );
 }
