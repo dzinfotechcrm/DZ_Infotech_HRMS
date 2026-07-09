@@ -241,7 +241,15 @@ export default function AddInternModal({ intern, departments, managers, existing
             <Input label="Duration Text" placeholder="e.g. 2 months" error={errors.duration_text} value={formData.duration_text} onChange={(e) => handleChange('duration_text', e.target.value)} required />
             <Input label="Max Leave per Month" type="number" error={errors.max_leave_per_month} value={formData.max_leave_per_month} onChange={(e) => handleChange('max_leave_per_month', e.target.value)} required />
 
-            <Select label="Work Mode" error={errors.work_mode} value={formData.work_mode} onChange={(e) => handleChange('work_mode', e.target.value)}>
+            <Select label="Work Mode" error={errors.work_mode} value={formData.work_mode} onChange={(e) => {
+              const val = e.target.value;
+              handleChange('work_mode', val);
+              if (val === 'On-site') {
+                handleChange('working_hours', 'As Per Company Policy(7 Hours/Day For Intern)');
+              } else {
+                handleChange('working_hours', 'Flexible with minimum 5-6 hours/day');
+              }
+            }}>
               <option value="Remote">Remote</option>
               <option value="Hybrid">Hybrid</option>
               <option value="On-site">On-site</option>
