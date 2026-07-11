@@ -4,6 +4,7 @@ export const ROLES = {
   manager: 'manager',
   employee: 'employee',
   agent: 'agent',
+  intern: 'intern',
 };
 
 export const ROLE_LABELS = {
@@ -12,6 +13,7 @@ export const ROLE_LABELS = {
   manager: 'Manager',
   employee: 'Employee',
   agent: 'Agent',
+  intern: 'Intern',
 };
 
 export const ROLE_COLORS = {
@@ -20,6 +22,7 @@ export const ROLE_COLORS = {
   manager: 'bg-indigo-100 text-indigo-700',
   employee: 'bg-neutral-100 text-neutral-700',
   agent: 'bg-emerald-100 text-emerald-700',
+  intern: 'bg-sky-100 text-sky-700',
 };
 
 export const PERMISSIONS = {

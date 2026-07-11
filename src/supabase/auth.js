@@ -90,10 +90,14 @@ export async function syncAuthenticatedUser(supabaseUser) {
     }
 
     // Handle Intern payload
+    const internName = internSnap.first_name && internSnap.last_name 
+      ? `${internSnap.first_name} ${internSnap.last_name}`
+      : internSnap.full_name || supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '';
+
     const userPayload = {
       id: supabaseUser.id,
       email: supabaseUser.email,
-      display_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
+      display_name: internName,
       photo_url: supabaseUser.user_metadata?.avatar_url || '',
       role: 'intern',
       employee_id: internSnap.id,
@@ -113,6 +117,8 @@ export async function syncAuthenticatedUser(supabaseUser) {
       ...userSnap,
       ...userPayload,
       uid: supabaseUser.id,
+      displayName: userPayload.display_name,
+      photoURL: userPayload.photo_url,
       isActive: userPayload.is_active,
       status: userPayload.is_active ? 'active' : 'inactive',
     };
@@ -132,10 +138,14 @@ export async function syncAuthenticatedUser(supabaseUser) {
     }
   }
 
+  const employeeName = employeeSnap.first_name && employeeSnap.last_name 
+    ? `${employeeSnap.first_name} ${employeeSnap.last_name}`
+    : supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '';
+
   const userPayload = {
     id: supabaseUser.id,
     email: supabaseUser.email,
-    display_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
+    display_name: employeeName,
     photo_url: supabaseUser.user_metadata?.avatar_url || '',
     role: employeeSnap.role || 'employee',
     employee_id: employeeSnap.id || '',
