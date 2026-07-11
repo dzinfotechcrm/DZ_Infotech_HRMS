@@ -415,6 +415,8 @@ function EmployeePayrollView({ user, payroll, activeEmployees, onOpenPayslip }) 
   const joinYear = joinDateObj.getFullYear();
   const joinMonth = joinDateObj.getMonth() + 1;
 
+  const isIntern = emp?.role?.toLowerCase() === 'intern';
+
   const userPayrolls = useMemo(() => {
     return payroll
       .filter((p) => p.employeeId === emp.uid || p.employeeId === emp.id)
@@ -474,7 +476,7 @@ function EmployeePayrollView({ user, payroll, activeEmployees, onOpenPayslip }) 
 
       {selectedPayroll ? (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className={`grid gap-4 sm:grid-cols-2 ${isIntern ? '' : 'xl:grid-cols-4'}`}>
             <SummaryCard
               icon={BanknotesIcon}
               label="Net Salary"
@@ -484,68 +486,87 @@ function EmployeePayrollView({ user, payroll, activeEmployees, onOpenPayslip }) 
             />
             <SummaryCard
               icon={BanknotesIcon}
-              label="Basic Salary"
+              label={isIntern ? "Stipend Amount" : "Basic Salary"}
               value={fmt(selectedPayroll.basicSalary)}
               sub="base pay"
               gradient="bg-gradient-to-br from-slate-700 to-slate-900"
             />
-            <SummaryCard
-              icon={BanknotesIcon}
-              label="Total Allowances"
-              value={fmt(resolveObj(selectedPayroll.allowances) + Number(selectedPayroll.hra || 0) + Number(selectedPayroll.da || 0))}
-              sub="added to base"
-              gradient="bg-gradient-to-br from-indigo-500 to-indigo-700"
-            />
-            <SummaryCard
-              icon={BanknotesIcon}
-              label="Total Deductions"
-              value={fmt(resolveObj(selectedPayroll.deductions) + Number(selectedPayroll.tax || 0) + getPFDeduction(selectedPayroll))}
-              sub="deducted from gross"
-              gradient="bg-gradient-to-br from-rose-500 to-rose-700"
-            />
+            {!isIntern && (
+              <>
+                <SummaryCard
+                  icon={BanknotesIcon}
+                  label="Total Allowances"
+                  value={fmt(resolveObj(selectedPayroll.allowances) + Number(selectedPayroll.hra || 0) + Number(selectedPayroll.da || 0))}
+                  sub="added to base"
+                  gradient="bg-gradient-to-br from-indigo-500 to-indigo-700"
+                />
+                <SummaryCard
+                  icon={BanknotesIcon}
+                  label="Total Deductions"
+                  value={fmt(resolveObj(selectedPayroll.deductions) + Number(selectedPayroll.tax || 0) + getPFDeduction(selectedPayroll))}
+                  sub="deducted from gross"
+                  gradient="bg-gradient-to-br from-rose-500 to-rose-700"
+                />
+              </>
+            )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          {isIntern ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
-              <div className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Earnings Breakdown</div>
+              <div className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Earnings</div>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-neutral-600">Basic Salary</span>
+                  <span className="text-neutral-600">Stipend Amount</span>
                   <span className="font-semibold text-neutral-900">{fmt(selectedPayroll.basicSalary)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">HRA</span>
-                  <span className="font-semibold text-neutral-900">{fmt(selectedPayroll.hra)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">DA</span>
-                  <span className="font-semibold text-neutral-900">{fmt(selectedPayroll.da)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Travel Allowance</span>
-                  <span className="font-semibold text-neutral-900">{fmt(resolveObj(selectedPayroll.allowances))}</span>
+                <div className="flex justify-between border-t border-emerald-200 pt-3 font-bold text-emerald-700">
+                  <span>Total Earnings</span><span>{fmt(selectedPayroll.basicSalary)}</span>
                 </div>
               </div>
             </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
+                <div className="mb-4 text-xs font-bold uppercase tracking-widest text-emerald-700">Earnings Breakdown</div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Basic Salary</span>
+                    <span className="font-semibold text-neutral-900">{fmt(selectedPayroll.basicSalary)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">HRA</span>
+                    <span className="font-semibold text-neutral-900">{fmt(selectedPayroll.hra)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">DA</span>
+                    <span className="font-semibold text-neutral-900">{fmt(selectedPayroll.da)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Travel Allowance</span>
+                    <span className="font-semibold text-neutral-900">{fmt(resolveObj(selectedPayroll.allowances))}</span>
+                  </div>
+                </div>
+              </div>
 
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6">
-              <div className="mb-4 text-xs font-bold uppercase tracking-widest text-rose-700">Deductions Breakdown</div>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">PF Deduction</span>
-                  <span className="font-semibold text-neutral-900">{fmt(getPFDeduction(selectedPayroll))}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Tax Deduction</span>
-                  <span className="font-semibold text-neutral-900">{fmt(selectedPayroll.tax)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Absent Deduction</span>
-                  <span className="font-semibold text-neutral-900">{fmt(resolveObj(selectedPayroll.deductions))}</span>
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6">
+                <div className="mb-4 text-xs font-bold uppercase tracking-widest text-rose-700">Deductions Breakdown</div>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">PF Deduction</span>
+                    <span className="font-semibold text-neutral-900">{fmt(getPFDeduction(selectedPayroll))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Tax Deduction</span>
+                    <span className="font-semibold text-neutral-900">{fmt(selectedPayroll.tax)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Absent Deduction</span>
+                    <span className="font-semibold text-neutral-900">{fmt(resolveObj(selectedPayroll.deductions))}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
           <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 px-8 py-6">
             <span className="text-lg font-bold text-white">Final Net Salary</span>
             <span className="text-3xl font-extrabold text-sky-300">{fmt(selectedPayroll.netSalary)}</span>
