@@ -1024,12 +1024,14 @@ export default function PayrollList() {
             ))}
           </FilterSelect>
 
-          <FilterSelect label="Department" value={filterDept} onChange={setFilterDept}>
-            <option value="">All Departments</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.name}>{d.name}</option>
-            ))}
-          </FilterSelect>
+          {empTypeTab === 'employees' && (
+            <FilterSelect label="Department" value={filterDept} onChange={setFilterDept}>
+              <option value="">All Departments</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.name}>{d.name}</option>
+              ))}
+            </FilterSelect>
+          )}
 
           {empTypeTab === 'employees' && (
             <FilterSelect label="Type" value={filterType} onChange={setFilterType}>
