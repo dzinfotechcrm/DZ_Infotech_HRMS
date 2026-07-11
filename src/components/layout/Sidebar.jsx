@@ -115,6 +115,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
           {!isAgent(user?.role) && hrmsNavigation.map((item) => {
             if (item.adminOnly && !isAdminLikeRole) return null;
             if (user?.role === 'intern' && item.to === '/employees') return null;
+            if (user?.role === 'intern' && item.to === '/payroll' && !user?.isPaid) return null;
             const Icon = item.icon;
             return (
               <NavLink

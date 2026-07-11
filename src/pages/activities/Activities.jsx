@@ -13,9 +13,11 @@ const PAGE_SIZE = 10;
 export default function Activities() {
   const employeesQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
+  const internsQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
 
   const { items: employees, loading: loadingEmployees } = useSupabaseCollection('employees', employeesQuery);
   const { items: leaveRequests, loading: loadingLeaves } = useSupabaseCollection('leaveRequests', leaveQuery);
+  const { items: interns, loading: loadingInterns } = useSupabaseCollection('interns', internsQuery);
 
   const [page, setPage] = useState(1);
   const [filterDate, setFilterDate] = useState('');
@@ -27,8 +29,16 @@ export default function Activities() {
   };
 
   const getEmpName = (id) => {
-    const emp = employees.find((e) => e.uid === id || e.id === id);
-    return emp ? `${emp.firstName} ${emp.lastName}`.trim() : id;
+    let emp = employees.find((e) => e.uid === id || e.id === id);
+    if (!emp) {
+      emp = interns.find((i) => i.uid === id || i.id === id);
+    }
+    if (emp) {
+      return `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim();
+    }
+    // If not found, check if the id looks like a UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    return isUUID ? 'Deleted Employee' : id;
   };
 
   const activities = useMemo(() => {
@@ -42,18 +52,37 @@ export default function Activities() {
           time: formatDate(employee.createdAt, 'dd MMM yyyy, hh:mm a'),
           ts: getTimestamp(employee.createdAt)
         })),
-      ...leaveRequests.map((leaveRequest) => ({
-        id: `leave-${leaveRequest.id}`,
-        type: 'leave',
-        label: leaveRequest.status === 'pending'
-          ? `New leave request submitted by ${leaveRequest.employeeName || getEmpName(leaveRequest.employeeId)}`
-          : `Leave request ${leaveRequest.status} for ${leaveRequest.employeeName || getEmpName(leaveRequest.employeeId)}`,
-        time: formatDate(leaveRequest.createdAt, 'dd MMM yyyy, hh:mm a'),
-        ts: getTimestamp(leaveRequest.createdAt)
-      })),
+      ...interns.map((intern) => ({
+          id: `intern-${intern.id}`,
+          type: 'employee',
+          label: `New intern onboarded: ${intern.firstName || intern.first_name || ''} ${intern.lastName || intern.last_name || ''}`.trim(),
+          time: formatDate(intern.createdAt, 'dd MMM yyyy, hh:mm a'),
+          ts: getTimestamp(intern.createdAt)
+        })),
+      ...leaveRequests
+        .filter(leaveRequest => {
+          return employees.some(e => e.uid === leaveRequest.employeeId || e.id === leaveRequest.employeeId) || 
+                 interns.some(i => i.uid === leaveRequest.employeeId || i.id === leaveRequest.employeeId);
+        })
+        .map((leaveRequest) => {
+          const isNameUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leaveRequest.employeeName || '');
+          const finalName = (leaveRequest.employeeName && !isNameUUID) 
+            ? leaveRequest.employeeName 
+            : getEmpName(leaveRequest.employeeId);
+            
+          return {
+            id: `leave-${leaveRequest.id}`,
+            type: 'leave',
+            label: leaveRequest.status === 'pending'
+              ? `New leave request submitted by ${finalName}`
+              : `Leave request ${leaveRequest.status} for ${finalName}`,
+            time: formatDate(leaveRequest.createdAt, 'dd MMM yyyy, hh:mm a'),
+            ts: getTimestamp(leaveRequest.createdAt)
+          };
+        }),
     ];
     return combined.sort((a, b) => b.ts - a.ts);
-  }, [employees, leaveRequests]);
+  }, [employees, interns, leaveRequests]);
 
   const filteredActivities = useMemo(() => {
     if (!filterDate) return activities;
@@ -72,7 +101,7 @@ export default function Activities() {
   const totalPages = Math.ceil(filteredActivities.length / PAGE_SIZE) || 1;
   const paginatedActivities = filteredActivities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const isLoading = loadingEmployees || loadingLeaves;
+  const isLoading = loadingEmployees || loadingLeaves || loadingInterns;
 
   return (
     <div className="space-y-6">

@@ -27,5 +27,10 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return <Navigate to="/access-denied" replace />;
   }
 
+  // Prevent unpaid interns from accessing payroll
+  if (location.pathname.startsWith('/payroll') && user.role === 'intern' && !user.isPaid) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return children;
 }

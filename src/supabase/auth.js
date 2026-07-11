@@ -121,6 +121,7 @@ export async function syncAuthenticatedUser(supabaseUser) {
       photoURL: userPayload.photo_url,
       isActive: userPayload.is_active,
       status: userPayload.is_active ? 'active' : 'inactive',
+      isPaid: internSnap.is_paid,
     };
   }
 
