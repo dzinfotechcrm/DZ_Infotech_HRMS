@@ -44,15 +44,19 @@ export default function InternDocumentsCard({ intern, onUpdate }) {
     const toastId = toast.loading('Uploading document...');
 
     try {
-      const safeName = (intern.full_name || 'Intern').replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-      const timestamp = Math.floor(Date.now() / 1000);
-      const filePath = `${intern.id}/${safeName}_signed_${docType === 'offer_letter' ? 'offer' : 'nda'}_${timestamp}.pdf`;
+      const firstName = (intern.first_name || 'First').trim().replace(/\s+/g, '_');
+      const lastName = (intern.last_name || 'Last').trim().replace(/\s+/g, '_');
+      const safeName = `${firstName}_${lastName}`;
+      const fileName = docType === 'offer_letter' 
+          ? `${safeName}_Signed_Offer_Letter.pdf` 
+          : `${safeName}_Signed_NDA.pdf`;
+      const filePath = `${intern.id}/${fileName}`;
 
       const { data, error } = await supabase.storage
         .from('intern_documents')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false,
+          upsert: true,
         });
 
       if (error) throw error;

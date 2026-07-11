@@ -27,6 +27,7 @@ export default function AttendanceList() {
   const [date, setDate] = useState(formatDate(new Date(), 'yyyy-MM-dd'));
   const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('employees');
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportScope, setExportScope] = useState('monthly');
@@ -42,12 +43,25 @@ export default function AttendanceList() {
   const thisMonth = formatDate(new Date(), 'yyyy-MM');
 
   const { items: employees } = useSupabaseCollection('employees');
+  const { items: interns } = useSupabaseCollection('interns');
   const { items: departments } = useSupabaseCollection('departments');
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
 
+  const allEmployees = useMemo(() => {
+    const mappedInterns = interns.map(i => ({
+      ...i,
+      firstName: i.first_name || i.firstName,
+      lastName: i.last_name || i.lastName,
+      role: 'intern',
+      departmentId: i.department_id || i.departmentId,
+      joinDate: i.start_date || i.joinDate,
+    }));
+    return [...employees, ...mappedInterns];
+  }, [employees, interns]);
+
   const currentEmployee = useMemo(() => {
-    return employees.find(e => e.uid === user?.uid || e.email === user?.email);
-  }, [employees, user]);
+    return allEmployees.find(e => e.uid === user?.uid || e.email === user?.email || e.login_email === user?.email);
+  }, [allEmployees, user]);
 
   const possibleIds = useMemo(() => {
     if (!user) return [];
@@ -82,14 +96,14 @@ export default function AttendanceList() {
 
   function getEmpName(item) {
     const id = item.employeeId;
-    const emp = employees.find(e => e.uid === id || e.id === id);
+    const emp = allEmployees.find(e => e.uid === id || e.id === id);
     if (emp && emp.firstName) return `${emp.firstName} ${emp.lastName || ''}`.trim();
     if (item.employeeName) return item.employeeName;
     return id;
   }
 
   function getEmpDept(id) {
-    const emp = employees.find(e => e.uid === id || e.id === id);
+    const emp = allEmployees.find(e => e.uid === id || e.id === id);
     if (!emp) return '—';
     if (emp.department) return emp.department;
     if (emp.departmentId && departments) {
@@ -100,7 +114,7 @@ export default function AttendanceList() {
   }
 
   function getEmpRole(id) {
-    const emp = employees.find(e => e.uid === id || e.id === id);
+    const emp = allEmployees.find(e => e.uid === id || e.id === id);
     if (!emp || !emp.role) return '—';
     return emp.role.charAt(0).toUpperCase() + emp.role.slice(1);
   }
@@ -147,7 +161,7 @@ export default function AttendanceList() {
       const lastDayOfMonth = `${y}-${m}-${String(daysInMonth).padStart(2, '0')}`;
 
       const summaryMap = new Map();
-      const validEmps = employees.filter(emp => {
+      const validEmps = allEmployees.filter(emp => {
         if (emp.role === 'admin' || String(emp.role).toLowerCase() === 'agent') return false;
         if (emp.joinDate && emp.joinDate > lastDayOfMonth) return false;
         return true;
@@ -241,8 +255,8 @@ export default function AttendanceList() {
 
       const virtualRows = [];
       const validEmps = isEmployee
-        ? employees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id))
-        : employees.filter(emp => emp.role !== 'admin' && String(emp.role).toLowerCase() !== 'agent');
+        ? allEmployees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id))
+        : allEmployees.filter(emp => emp.role !== 'admin' && String(emp.role).toLowerCase() !== 'agent');
 
       for (const d of datesToProcess) {
         for (const emp of validEmps) {
@@ -280,6 +294,12 @@ export default function AttendanceList() {
     return baseList.filter((item) => {
       const empRole = getEmpRole(item.employeeId);
       if (empRole.toLowerCase() === 'admin' || empRole.toLowerCase() === 'agent') return false;
+
+      if (!isEmployee) {
+        if (activeTab === 'interns' && empRole.toLowerCase() !== 'intern') return false;
+        if (activeTab === 'employees' && empRole.toLowerCase() === 'intern') return false;
+      }
+
       const empName = getEmpName(item);
       const employeeMatches = isEmployee ? true : String(empName || item.employeeId || '').toLowerCase().includes(search.toLowerCase());
       const itemDate = item.date || '';
@@ -289,7 +309,7 @@ export default function AttendanceList() {
       const matchesStatus = statusFilter ? (item.status || '').toLowerCase() === statusFilter.toLowerCase() : true;
       return employeeMatches && matchesDate && matchesMonth && matchesStatus;
     });
-  }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, search, statusFilter, today, isMonthlySummary]);
+  }, [sortedAttendance, employees, leaveRequests, isEmployee, date, month, search, statusFilter, today, isMonthlySummary, activeTab]);
 
   const getExportRows = () => {
     let baseList = sortedAttendance;
@@ -323,8 +343,8 @@ export default function AttendanceList() {
       if (datesToProcess.length > 0) {
         const virtualRows = [];
         const validEmps = isEmployee
-          ? employees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id))
-          : employees.filter(emp => emp.role !== 'admin' && String(emp.role).toLowerCase() !== 'agent');
+          ? allEmployees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id))
+          : allEmployees.filter(emp => emp.role !== 'admin' && String(emp.role).toLowerCase() !== 'agent');
 
         for (const d of datesToProcess) {
           for (const emp of validEmps) {
@@ -362,6 +382,12 @@ export default function AttendanceList() {
     return baseList.filter((item) => {
       const empRole = getEmpRole(item.employeeId);
       if (empRole.toLowerCase() === 'admin' || empRole.toLowerCase() === 'agent') return false;
+
+      if (!isEmployee) {
+        if (activeTab === 'interns' && empRole.toLowerCase() !== 'intern') return false;
+        if (activeTab === 'employees' && empRole.toLowerCase() === 'intern') return false;
+      }
+
       const empName = getEmpName(item);
       const employeeMatches = isEmployee ? true : String(empName || item.employeeId || '').toLowerCase().includes(search.toLowerCase());
       const itemDate = item.date || '';
@@ -412,7 +438,7 @@ export default function AttendanceList() {
     let late = 0;
     let onLeaveCountStat = 0;
 
-    const validEmps = employees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id));
+    const validEmps = allEmployees.filter(emp => possibleIds.includes(emp.uid) || possibleIds.includes(emp.id));
 
     for (let i = 1; i <= daysInMonth; i++) {
       const d = `${y}-${m}-${String(i).padStart(2, '0')}`;
@@ -505,6 +531,31 @@ export default function AttendanceList() {
           </div>
         </Card>
       </PageHeader>
+
+      {!isEmployee && (
+        <div className="flex bg-slate-100/80 p-1 rounded-xl w-fit mb-4 mt-6 border border-slate-200/60 shadow-sm">
+          <button
+            onClick={() => { setActiveTab('employees'); setCurrentPage(1); }}
+            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              activeTab === 'employees' 
+                ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+            }`}
+          >
+            Employee / Manager
+          </button>
+          <button
+            onClick={() => { setActiveTab('interns'); setCurrentPage(1); }}
+            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              activeTab === 'interns' 
+                ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+            }`}
+          >
+            Interns
+          </button>
+        </div>
+      )}
 
       <Modal
         open={exportModalOpen}

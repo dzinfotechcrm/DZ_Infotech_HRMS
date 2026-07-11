@@ -82,8 +82,17 @@ export function useSupabaseCollection(tableName, buildQuery) {
       )
       .subscribe();
 
+    // Local tab-to-tab realtime updates
+    const bc = new BroadcastChannel('app-updates');
+    bc.onmessage = (event) => {
+      if (event.data?.type === 'table-update' && event.data?.table === dbTableName) {
+        fetchData(true);
+      }
+    };
+
     return () => {
       isMounted = false;
+      bc.close();
       if (subscription) {
         supabase.removeChannel(subscription);
       }
@@ -170,8 +179,17 @@ export function useSupabaseDocument(tableName, id) {
       )
       .subscribe();
 
+    // Local tab-to-tab realtime updates
+    const bc = new BroadcastChannel('app-updates');
+    bc.onmessage = (event) => {
+      if (event.data?.type === 'table-update' && event.data?.table === tableName) {
+        fetchData(true);
+      }
+    };
+
     return () => {
       isMounted = false;
+      bc.close();
       if (subscription) {
         supabase.removeChannel(subscription);
       }

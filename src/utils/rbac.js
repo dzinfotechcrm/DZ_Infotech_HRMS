@@ -26,15 +26,15 @@ export const ROLE_COLORS = {
 };
 
 export const PERMISSIONS = {
-  dashboard: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  dashboard: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
   employees: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
   departments: [ROLES.admin],
-  attendance: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
-  leave: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
-  payroll: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
-  documents: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee],
+  attendance: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
+  leave: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
+  payroll: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
+  documents: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
   reports: [ROLES.admin, ROLES.hr, ROLES.manager],
-  profile: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.agent],
+  profile: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.agent, ROLES.intern],
   settings: [ROLES.admin],
   sfmsAgent: [ROLES.admin, ROLES.agent],
 };

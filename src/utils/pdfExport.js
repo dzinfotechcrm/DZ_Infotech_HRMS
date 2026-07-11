@@ -96,6 +96,8 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   doc.setLineWidth(1);
   doc.line(40, 100, pageWidth - 40, 100);
 
+  const isIntern = employee.role?.toLowerCase() === 'intern';
+
   // Employee Details Column
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
@@ -106,14 +108,19 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   doc.text(`Name:`, 40, 150);
   doc.text(`${employee.firstName} ${employee.lastName}`, 120, 150);
   
-  doc.text(`Employee ID:`, 40, 165);
-  doc.text(`${employee.employeeId || '—'}`, 120, 165);
-  
-  doc.text(`Department:`, 40, 180);
-  doc.text(`${finalDeptName || '—'}`, 120, 180);
-  
-  doc.text(`Designation:`, 40, 195);
-  doc.text(`${employee.designation || '—'}`, 120, 195);
+  if (isIntern) {
+    doc.text(`Role:`, 40, 165);
+    doc.text(`Intern`, 120, 165);
+  } else {
+    doc.text(`Employee ID:`, 40, 165);
+    doc.text(`${employee.employeeId || '—'}`, 120, 165);
+    
+    doc.text(`Department:`, 40, 180);
+    doc.text(`${finalDeptName || '—'}`, 120, 180);
+    
+    doc.text(`Designation:`, 40, 195);
+    doc.text(`${employee.designation || '—'}`, 120, 195);
+  }
 
   // Payslip Details Column
   doc.setFont('helvetica', 'bold');
@@ -145,67 +152,108 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   const fmtAmount = (val) => Number(val || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
   
   const basic = Number(payroll.basicSalary || 0);
-  const hra = Number(payroll.hra || basic * 0.4);
-  const da = Number(payroll.da || basic * 0.15);
-  const allowances = resolveObj(payroll.allowances);
+  const hra = isIntern ? 0 : Number(payroll.hra || basic * 0.4);
+  const da = isIntern ? 0 : Number(payroll.da || basic * 0.15);
+  const allowances = isIntern ? 0 : resolveObj(payroll.allowances);
   
-  const pf = employee.pfApplicable ? basic * 0.12 : 0;
-  const tax = Number(payroll.tax || 0);
-  const absentDed = resolveObj(payroll.deductions);
+  const pf = isIntern ? 0 : (employee.pfApplicable ? basic * 0.12 : 0);
+  const tax = isIntern ? 0 : Number(payroll.tax || 0);
+  const absentDed = isIntern ? 0 : resolveObj(payroll.deductions);
   
-  const totalEarnings = basic + hra + da + allowances;
+  const totalEarnings = isIntern ? basic : (basic + hra + da + allowances);
   const totalDeductions = pf + tax + absentDed;
   
   const tableY = 230;
   
-  // Earnings Table (Left Side)
-  autoTable(doc, {
-    startY: tableY,
-    head: [['Earnings', 'Amount (Rs.)']],
-    body: [
-      ['Basic Salary', fmtAmount(basic)],
-      ['HRA (40%)', fmtAmount(hra)],
-      ['DA (15%)', fmtAmount(da)],
-      ['Allowances', fmtAmount(allowances)],
-    ],
-    foot: [['Total Earnings', fmtAmount(totalEarnings)]],
-    theme: 'grid',
-    styles: { fontSize: 10, cellPadding: 6, textColor: [51, 65, 85] },
-    headStyles: { fillColor: [248, 250, 252], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
-    footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
-    columnStyles: {
-      0: { cellWidth: 150 },
-      1: { cellWidth: 90, halign: 'right' }
-    },
-    margin: { left: 40, right: pageWidth / 2 + 10 }
-  });
-  
-  const leftTableFinalY = doc.lastAutoTable.finalY;
+  let finalY = 0;
 
-  // Deductions Table (Right Side)
-  autoTable(doc, {
-    startY: tableY,
-    head: [['Deductions', 'Amount (Rs.)']],
-    body: [
-      ['PF Deduction (12%)', fmtAmount(pf)],
-      ['Tax (TDS)', fmtAmount(tax)],
-      ['Absent Deduction', fmtAmount(absentDed)],
-      ['', ''] 
-    ],
-    foot: [['Total Deductions', fmtAmount(totalDeductions)]],
-    theme: 'grid',
-    styles: { fontSize: 10, cellPadding: 6, textColor: [51, 65, 85] },
-    headStyles: { fillColor: [248, 250, 252], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
-    footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
-    columnStyles: {
-      0: { cellWidth: 150 },
-      1: { cellWidth: 90, halign: 'right' }
-    },
-    margin: { left: pageWidth / 2 + 10, right: 40 }
-  });
-  
-  const rightTableFinalY = doc.lastAutoTable.finalY;
-  const finalY = Math.max(leftTableFinalY, rightTableFinalY) + 30;
+  if (isIntern) {
+    autoTable(doc, {
+      startY: tableY,
+      head: [[
+        { content: 'Earnings', styles: { halign: 'left' } },
+        { content: 'Amount (Rs.)', styles: { halign: 'right' } }
+      ]],
+      body: [
+        ['Stipend Amount', fmtAmount(basic)],
+      ],
+      foot: [[
+        { content: 'Total Earnings', styles: { halign: 'left' } },
+        { content: fmtAmount(basic), styles: { halign: 'right' } }
+      ]],
+      theme: 'grid',
+      styles: { fontSize: 10, cellPadding: 6, textColor: [51, 65, 85] },
+      headStyles: { fillColor: [248, 250, 252], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
+      columnStyles: {
+        0: { cellWidth: 260 },
+        1: { cellWidth: 255, halign: 'right' }
+      },
+      margin: { left: 40, right: 40 }
+    });
+    finalY = doc.lastAutoTable.finalY + 30;
+  } else {
+    // Earnings Table (Left Side)
+    autoTable(doc, {
+      startY: tableY,
+      head: [[
+        { content: 'Earnings', styles: { halign: 'left' } },
+        { content: 'Amount (Rs.)', styles: { halign: 'right' } }
+      ]],
+      body: [
+        ['Basic Salary', fmtAmount(basic)],
+        ['HRA (40%)', fmtAmount(hra)],
+        ['DA (15%)', fmtAmount(da)],
+        ['Allowances', fmtAmount(allowances)],
+      ],
+      foot: [[
+        { content: 'Total Earnings', styles: { halign: 'left' } },
+        { content: fmtAmount(totalEarnings), styles: { halign: 'right' } }
+      ]],
+      theme: 'grid',
+      styles: { fontSize: 10, cellPadding: 6, textColor: [51, 65, 85] },
+      headStyles: { fillColor: [248, 250, 252], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
+      columnStyles: {
+        0: { cellWidth: 150 },
+        1: { cellWidth: 90, halign: 'right' }
+      },
+      margin: { left: 40, right: pageWidth / 2 + 10 }
+    });
+    
+    const leftTableFinalY = doc.lastAutoTable.finalY;
+
+    // Deductions Table (Right Side)
+    autoTable(doc, {
+      startY: tableY,
+      head: [[
+        { content: 'Deductions', styles: { halign: 'left' } },
+        { content: 'Amount (Rs.)', styles: { halign: 'right' } }
+      ]],
+      body: [
+        ['PF Deduction (12%)', fmtAmount(pf)],
+        ['Tax (TDS)', fmtAmount(tax)],
+        ['Absent Deduction', fmtAmount(absentDed)],
+        ['', ''] 
+      ],
+      foot: [[
+        { content: 'Total Deductions', styles: { halign: 'left' } },
+        { content: fmtAmount(totalDeductions), styles: { halign: 'right' } }
+      ]],
+      theme: 'grid',
+      styles: { fontSize: 10, cellPadding: 6, textColor: [51, 65, 85] },
+      headStyles: { fillColor: [248, 250, 252], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
+      columnStyles: {
+        0: { cellWidth: 150 },
+        1: { cellWidth: 90, halign: 'right' }
+      },
+      margin: { left: pageWidth / 2 + 10, right: 40 }
+    });
+    
+    const rightTableFinalY = doc.lastAutoTable.finalY;
+    finalY = Math.max(leftTableFinalY, rightTableFinalY) + 30;
+  }
 
   // Net Salary Box
   doc.setFillColor(241, 245, 249); // slate-100

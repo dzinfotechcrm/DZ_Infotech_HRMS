@@ -16,6 +16,11 @@ export async function createDocument(tableName, payload) {
     .single();
 
   if (error) throw error;
+  try {
+    const bc = new BroadcastChannel('app-updates');
+    bc.postMessage({ type: 'table-update', table: mapTableName(tableName) });
+    bc.close();
+  } catch (err) {}
   return data;
 }
 
@@ -31,6 +36,11 @@ export async function updateDocument(tableName, id, payload) {
     .single();
 
   if (error) throw error;
+  try {
+    const bc = new BroadcastChannel('app-updates');
+    bc.postMessage({ type: 'table-update', table: mapTableName(tableName) });
+    bc.close();
+  } catch (err) {}
   return data;
 }
 
@@ -48,6 +58,11 @@ export async function upsertDocument(tableName, id, payload) {
     .single();
 
   if (error) throw error;
+  try {
+    const bc = new BroadcastChannel('app-updates');
+    bc.postMessage({ type: 'table-update', table: mapTableName(tableName) });
+    bc.close();
+  } catch (err) {}
   return data;
 }
 
@@ -58,6 +73,11 @@ export async function removeDocument(tableName, id) {
     .eq('id', id);
 
   if (error) throw error;
+  try {
+    const bc = new BroadcastChannel('app-updates');
+    bc.postMessage({ type: 'table-update', table: mapTableName(tableName) });
+    bc.close();
+  } catch (err) {}
 }
 
 export async function fetchDocument(tableName, id) {

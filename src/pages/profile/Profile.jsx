@@ -18,37 +18,52 @@ export default function Profile() {
   const { user } = useAuth();
   const employeeQuery = useMemo(() => (base) => query(base, where('uid', '==', user?.uid)), [user?.uid]);
   const { items: employees } = useSupabaseCollection('employees', employeeQuery);
-  const employee = employees[0];
+  const { items: interns } = useSupabaseCollection('interns');
+
+  const employeeRecord = employees[0];
+  const internRecord = interns.find(i => i.uid === user?.uid || i.email === user?.email || i.login_email === user?.email);
+  
+  const employee = employeeRecord || internRecord;
+  const isIntern = !!internRecord && !employeeRecord;
+
   const editableAll = isAdminLike(user?.role);
   const [preview, setPreview] = useState('');
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
 
   useEffect(() => {
     if (employee) {
-      reset(employee);
+      reset({
+        ...employee,
+        firstName: employee.firstName || employee.first_name,
+        lastName: employee.lastName || employee.last_name,
+        photoURL: employee.photoURL || employee.photo_url,
+      });
     }
   }, [employee, reset]);
 
   async function onSubmit(values) {
     try {
-      let photoURL = employee?.photoURL || '';
+      let photoURL = employee?.photoURL || employee?.photo_url || '';
       if (preview) {
         photoURL = await uploadFile(`profile-photos/${user.uid}/${Date.now()}.png`, await (await fetch(preview)).blob(), { contentType: 'image/png' });
       }
 
-      // Do not spread `...employee` here because it contains flattened fields
-      // (like 'aadhar') which are not valid top-level columns in Supabase.
-      // phone and photoURL are also NOT top-level columns, so they must 
-      // ONLY go inside the `data` JSONB column.
-      const payload = {
-        data: {
-          ...(employee.data || {}),
+      if (isIntern) {
+        const payload = {
           phone: values.phone,
-          photoURL: photoURL
-        }
-      };
-
-      await updateDocument('employees', employee.id, payload);
+          photo_url: photoURL
+        };
+        await updateDocument('interns', employee.id, payload);
+      } else {
+        const payload = {
+          data: {
+            ...(employee.data || {}),
+            phone: values.phone,
+            photoURL: photoURL
+          }
+        };
+        await updateDocument('employees', employee.id, payload);
+      }
       setPreview('');
       toast.success('Profile updated');
     } catch (error) {
@@ -60,6 +75,8 @@ export default function Profile() {
     return <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div>;
   }
 
+  const currentPhoto = employee.photoURL || employee.photo_url;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -70,11 +87,11 @@ export default function Profile() {
       <Card className="p-6">
         <div className="flex items-center gap-4">
           <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-primary-100 text-2xl font-bold text-primary-700">
-            {employee.photoURL ? <img src={employee.photoURL} alt={employee.firstName} className="h-full w-full object-cover" /> : `${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`}
+            {currentPhoto ? <img src={currentPhoto} alt={employee.firstName || employee.first_name} className="h-full w-full object-cover" /> : `${(employee.firstName || employee.first_name)?.[0] || ''}${(employee.lastName || employee.last_name)?.[0] || ''}`}
           </div>
           <div>
-            <h1 className="page-title">{employee.firstName} {employee.lastName}</h1>
-            <div className="mt-2 flex gap-2"><Badge tone="primary">{employee.role}</Badge><Badge tone="accent">{employee.department || 'No department'}</Badge></div>
+            <h1 className="page-title">{employee.firstName || employee.first_name} {employee.lastName || employee.last_name}</h1>
+            <div className="mt-2 flex gap-2"><Badge tone="primary">{user?.role === 'intern' ? 'Intern' : employee.role}</Badge><Badge tone="accent">{employee.department || 'No department'}</Badge></div>
           </div>
         </div>
       </Card>

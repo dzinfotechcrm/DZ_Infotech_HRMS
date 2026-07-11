@@ -25,7 +25,10 @@ export default function LeaveForm({ mode = 'create' }) {
 
   const employeeQuery = useMemo(() => (base) => query(base, where('uid', '==', user?.uid || '')), [user]);
   const { items: currentEmployees } = useSupabaseCollection('employees', employeeQuery);
-  const currentEmployee = currentEmployees[0];
+  const { items: interns } = useSupabaseCollection('interns');
+
+  const currentEmployee = currentEmployees[0] || interns.find(i => i.uid === user?.uid || i.email === user?.email || i.login_email === user?.email);
+  const isIntern = !currentEmployees[0] && !!interns.find(i => i.uid === user?.uid || i.email === user?.email || i.login_email === user?.email);
 
   useEffect(() => {
     if (mode === 'edit' && id) {
@@ -105,47 +108,75 @@ export default function LeaveForm({ mode = 'create' }) {
       }
 
       const typeDoc = leaveTypes.find(t => t.id === values.leaveTypeId);
-      const leaveTypeName = typeDoc ? typeDoc.name : '';
+      const leaveTypeName = typeDoc ? typeDoc.name : (isIntern ? 'Intern Leave' : '');
       const totalDays = daysBetween(values.fromDate, values.toDate);
 
       // Quota validation
       if (currentEmployee) {
-        let remaining = null;
-        let quotaKey = null;
-        if (leaveTypeName === 'Casual Leave') quotaKey = 'casual_leaves';
-        else if (leaveTypeName === 'Paid Leave') quotaKey = 'paid_leaves';
-        else if (leaveTypeName === 'Medical Leave' || leaveTypeName === 'Sick Leave') quotaKey = 'sick_leaves';
+        if (isIntern) {
+          // Intern monthly limit check
+          const now = new Date(values.fromDate);
 
-        if (quotaKey) {
-          const total = Number(currentEmployee[`${quotaKey}_total`] || 0);
-          const used = Number(currentEmployee[`${quotaKey}_used`] || 0);
-          remaining = total - used;
-
-          let requestedDays = totalDays;
-          let oldDays = 0;
-          if (mode === 'edit' && id) {
-            const oldDoc = await fetchDocument('leaveRequests', id);
-            if (oldDoc.exists()) {
-              oldDays = oldDoc.data().totalDays || 0;
-            }
+          let existingLeaves = [];
+          if (employeeDbId) {
+            existingLeaves = await fetchCollection('leaveRequests', (base) =>
+              query(base, where('employeeId', '==', employeeDbId), where('status', 'in', ['approved', 'pending']))
+            );
           }
 
-          if (requestedDays - oldDays > remaining) {
-            toast.error(`You have only ${remaining} days remaining for ${leaveTypeName}.`);
+          const currentMonthLeaves = existingLeaves.filter(leave => {
+            if (mode === 'edit' && leave.id === id) return false;
+            const leaveDate = new Date(leave.data?.fromDate || leave.fromDate || leave.from_date);
+            return leaveDate.getMonth() === now.getMonth() && leaveDate.getFullYear() === now.getFullYear();
+          });
+
+          const used = currentMonthLeaves.reduce((acc, curr) => acc + (curr.totalDays || curr.data?.totalDays || 0), 0);
+          const total = Number(currentEmployee.max_leave_per_month || 0);
+          const remaining = total - used;
+
+          if (totalDays > remaining) {
+            toast.error(`You have only ${remaining} days remaining this month.`);
             return;
           }
+        } else {
+          // Employee bucket limit check
+          let remaining = null;
+          let quotaKey = null;
+          if (leaveTypeName === 'Casual Leave') quotaKey = 'casual_leaves';
+          else if (leaveTypeName === 'Paid Leave') quotaKey = 'paid_leaves';
+          else if (leaveTypeName === 'Medical Leave' || leaveTypeName === 'Sick Leave') quotaKey = 'sick_leaves';
 
-          await updateDocument('employees', currentEmployee.id, {
-            data: {
-              ...(currentEmployee.data || {}),
-              [`${quotaKey}_used`]: used + (requestedDays - oldDays)
+          if (quotaKey) {
+            const total = Number(currentEmployee[`${quotaKey}_total`] || 0);
+            const used = Number(currentEmployee[`${quotaKey}_used`] || 0);
+            remaining = total - used;
+
+            let requestedDays = totalDays;
+            let oldDays = 0;
+            if (mode === 'edit' && id) {
+              const oldDoc = await fetchDocument('leaveRequests', id);
+              if (oldDoc.exists()) {
+                oldDays = oldDoc.data().totalDays || 0;
+              }
             }
-          });
+
+            if (requestedDays - oldDays > remaining) {
+              toast.error(`You have only ${remaining} days remaining for ${leaveTypeName}.`);
+              return;
+            }
+
+            await updateDocument('employees', currentEmployee.id, {
+              data: {
+                ...(currentEmployee.data || {}),
+                [`${quotaKey}_used`]: used + (requestedDays - oldDays)
+              }
+            });
+          }
         }
       }
 
       const jsonData = {
-        leaveTypeId: values.leaveTypeId,
+        leaveTypeId: values.leaveTypeId || 'intern-leave',
         leaveTypeName,
         fromDate: values.fromDate,
         toDate: values.toDate,
@@ -209,26 +240,30 @@ export default function LeaveForm({ mode = 'create' }) {
           <p className="muted-text">Submit leave with attachment support and balance-aware approval flow.</p>
         </div>
         <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)}>
-          <Select label="Leave Type" {...register('leaveTypeId', { required: 'Leave type is required' })} error={errors.leaveTypeId?.message}>
-            <option value="">Select leave type</option>
-            {leaveTypes.map((type) => {
-              let exhausted = false;
-              let remaining = null;
-              if (currentEmployee) {
-                if (type.name === 'Casual Leave') remaining = (currentEmployee.casual_leaves_total || 0) - (currentEmployee.casual_leaves_used || 0);
-                else if (type.name === 'Paid Leave') remaining = (currentEmployee.paid_leaves_total || 0) - (currentEmployee.paid_leaves_used || 0);
-                else if (type.name === 'Medical Leave' || type.name === 'Sick Leave') remaining = (currentEmployee.sick_leaves_total || 0) - (currentEmployee.sick_leaves_used || 0);
+          {!isIntern ? (
+            <Select label="Leave Type" {...register('leaveTypeId', { required: 'Leave type is required' })} error={errors.leaveTypeId?.message}>
+              <option value="">Select leave type</option>
+              {leaveTypes.map((type) => {
+                let exhausted = false;
+                let remaining = null;
+                if (currentEmployee) {
+                  if (type.name === 'Casual Leave') remaining = (currentEmployee.casual_leaves_total || 0) - (currentEmployee.casual_leaves_used || 0);
+                  else if (type.name === 'Paid Leave') remaining = (currentEmployee.paid_leaves_total || 0) - (currentEmployee.paid_leaves_used || 0);
+                  else if (type.name === 'Medical Leave' || type.name === 'Sick Leave') remaining = (currentEmployee.sick_leaves_total || 0) - (currentEmployee.sick_leaves_used || 0);
 
-                if (remaining !== null && remaining <= 0) exhausted = true;
-              }
+                  if (remaining !== null && remaining <= 0) exhausted = true;
+                }
 
-              return (
-                <option key={type.id} value={type.id} disabled={exhausted}>
-                  {type.name} {remaining !== null ? `(${remaining} remaining)` : ''}
-                </option>
-              );
-            })}
-          </Select>
+                return (
+                  <option key={type.id} value={type.id} disabled={exhausted}>
+                    {type.name} {remaining !== null ? `(${remaining} remaining)` : ''}
+                  </option>
+                );
+              })}
+            </Select>
+          ) : (
+            <Input label="Leave Type" value="Intern Leave" disabled />
+          )}
           <Input type="file" label="Attachment (optional)" accept="application/pdf,image/*" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
           <Input
             type="date"

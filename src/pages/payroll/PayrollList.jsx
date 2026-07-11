@@ -162,20 +162,22 @@ function calcPayroll(employee, attendance, leaveRequests, leaveTypes, holidays, 
   //    non-unpaid leave are counted as absent.
   const absentDays = Math.max(0, workingDays - exactPresentDays - paidLeaveDays - halfDayCount);
 
-  const perDaySalary = workingDays > 0 ? base / workingDays : 0;
-  const absentDed = (absentDays * perDaySalary) + (halfDayCount * 0.5 * perDaySalary);
+  const isIntern = employee.role?.toLowerCase() === 'intern';
 
-  const hra = base * 0.4;
-  const da = base * 0.15;
-  const travelAllowance = Number(employee.travelAllowance || 0);
+  const perDaySalary = workingDays > 0 ? base / workingDays : 0;
+  const absentDed = isIntern ? 0 : ((absentDays * perDaySalary) + (halfDayCount * 0.5 * perDaySalary));
+
+  const hra = isIntern ? 0 : base * 0.4;
+  const da = isIntern ? 0 : base * 0.15;
+  const travelAllowance = isIntern ? 0 : Number(employee.travelAllowance || 0);
   const allowances = { travel: travelAllowance, food: 0, other: 0 };
   const totalAllowances = Object.values(allowances).reduce((s, v) => s + v, 0);
 
-  const deductions = { pf: employee.pfApplicable ? base * 0.12 : 0, esic: 0, absent: absentDed };
+  const deductions = { pf: isIntern ? 0 : (employee.pfApplicable ? base * 0.12 : 0), esic: 0, absent: absentDed };
   const totalDeductions = Object.values(deductions).reduce((s, v) => s + v, 0);
-  const tax = Math.max(0, (base + hra + da + totalAllowances - totalDeductions) * 0.1);
+  const tax = isIntern ? 0 : Math.max(0, (base + hra + da + totalAllowances - totalDeductions) * 0.1);
 
-  let netSalary = base + hra + da + totalAllowances - totalDeductions - tax;
+  let netSalary = isIntern ? base : (base + hra + da + totalAllowances - totalDeductions - tax);
   let requiresReview = false;
 
   if (netSalary < 0) {
@@ -269,16 +271,17 @@ function PayslipModal({ open, onClose, row }) {
   if (!row || !row._emp) return null;
   const { _emp: employee, ...payroll } = row;
 
+  const isIntern = employee.role?.toLowerCase() === 'intern';
   const basic = Number(payroll.basicSalary || 0);
-  const hra = Number(payroll.hra || basic * 0.4);
-  const da = Number(payroll.da || basic * 0.15);
-  const allowances = resolveObj(payroll.allowances) || 0;
-  const pf = employee.pfApplicable ? basic * 0.12 : 0;
-  const tds = Number(payroll.tax || 0);
-  const absentDed = payroll.deductions?.absent || 0;
-  const totalEarnings = basic + hra + da + allowances;
+  const hra = isIntern ? 0 : Number(payroll.hra || basic * 0.4);
+  const da = isIntern ? 0 : Number(payroll.da || basic * 0.15);
+  const allowances = isIntern ? 0 : (resolveObj(payroll.allowances) || 0);
+  const pf = isIntern ? 0 : (employee.pfApplicable ? basic * 0.12 : 0);
+  const tds = isIntern ? 0 : Number(payroll.tax || 0);
+  const absentDed = isIntern ? 0 : (payroll.deductions?.absent || 0);
+  const totalEarnings = isIntern ? basic : (basic + hra + da + allowances);
   const totalDeductions = pf + tds + absentDed;
-  const netSalary = Number(payroll.netSalary || totalEarnings - totalDeductions);
+  const netSalary = Number(payroll.netSalary || (totalEarnings - totalDeductions));
   const monthLabel = MONTHS.find((m) => m.value === payroll.month)?.label || payroll.month;
 
   return (
@@ -296,11 +299,13 @@ function PayslipModal({ open, onClose, row }) {
         </div>
       }
     >
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className={`mb-5 grid grid-cols-2 gap-3 ${isIntern ? '' : 'sm:grid-cols-4'}`}>
         {[
           { label: 'Employee', value: `${employee.firstName} ${employee.lastName}` },
-          { label: 'Emp ID', value: employee.employeeId || '—' },
-          { label: 'Department', value: employee.department || '—' },
+          ...(isIntern ? [] : [
+            { label: 'Emp ID', value: employee.employeeId || '—' },
+            { label: 'Department', value: employee.department || '—' },
+          ]),
           { label: 'Period', value: `${monthLabel} ${payroll.year}` },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
@@ -310,36 +315,51 @@ function PayslipModal({ open, onClose, row }) {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {isIntern ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
           <div className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-700">Earnings</div>
           <div className="space-y-2.5 text-sm">
-            {[['Basic Salary', basic], ['HRA (40%)', hra], ['DA (15%)', da], ['Travel Allowance', allowances]].map(([lbl, val]) => (
-              <div key={lbl} className="flex justify-between">
-                <span className="text-neutral-500">{lbl}</span>
-                <span className="font-semibold text-neutral-900">{fmt(val)}</span>
-              </div>
-            ))}
+            <div className="flex justify-between">
+              <span className="text-neutral-500">Stipend Amount</span>
+              <span className="font-semibold text-neutral-900">{fmt(basic)}</span>
+            </div>
             <div className="flex justify-between border-t border-emerald-200 pt-2.5 font-bold text-emerald-700">
-              <span>Total Earnings</span><span>{fmt(totalEarnings)}</span>
+              <span>Total Earnings</span><span>{fmt(basic)}</span>
             </div>
           </div>
         </div>
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
-          <div className="mb-3 text-xs font-bold uppercase tracking-widest text-rose-700">Deductions</div>
-          <div className="space-y-2.5 text-sm">
-            {[['PF (12%)', pf], ['TDS', tds], ['Absent Deduction', absentDed]].map(([lbl, val]) => (
-              <div key={lbl} className="flex justify-between">
-                <span className="text-neutral-500">{lbl}</span>
-                <span className="font-semibold text-neutral-900">{fmt(val)}</span>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-700">Earnings</div>
+            <div className="space-y-2.5 text-sm">
+              {[['Basic Salary', basic], ['HRA (40%)', hra], ['DA (15%)', da], ['Travel Allowance', allowances]].map(([lbl, val]) => (
+                <div key={lbl} className="flex justify-between">
+                  <span className="text-neutral-500">{lbl}</span>
+                  <span className="font-semibold text-neutral-900">{fmt(val)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between border-t border-emerald-200 pt-2.5 font-bold text-emerald-700">
+                <span>Total Earnings</span><span>{fmt(totalEarnings)}</span>
               </div>
-            ))}
-            <div className="flex justify-between border-t border-rose-200 pt-2.5 font-bold text-rose-700">
-              <span>Total Deductions</span><span>{fmt(totalDeductions)}</span>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <div className="mb-3 text-xs font-bold uppercase tracking-widest text-rose-700">Deductions</div>
+            <div className="space-y-2.5 text-sm">
+              {[['PF (12%)', pf], ['TDS', tds], ['Absent Deduction', absentDed]].map(([lbl, val]) => (
+                <div key={lbl} className="flex justify-between">
+                  <span className="text-neutral-500">{lbl}</span>
+                  <span className="font-semibold text-neutral-900">{fmt(val)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between border-t border-rose-200 pt-2.5 font-bold text-rose-700">
+                <span>Total Deductions</span><span>{fmt(totalDeductions)}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="mt-4 flex items-center justify-between rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-5">
         <span className="text-base font-bold text-white">Net Salary</span>
@@ -617,6 +637,7 @@ export default function PayrollList() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDept, setFilterDept] = useState('');   // department filter
   const [filterType, setFilterType] = useState('');   // 'manager' | 'employee'
+  const [empTypeTab, setEmpTypeTab] = useState('employees');
 
   const [payslipRow, setPayslipRow] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -630,7 +651,19 @@ export default function PayrollList() {
   const attendanceQuery = useMemo(() => (base) => query(base), []);
 
   const { items: payroll } = useSupabaseCollection('payroll', payrollQuery);
-  const { items: activeEmployees } = useSupabaseCollection('employees', activeEmpQuery);
+  const { items: employees } = useSupabaseCollection('employees', activeEmpQuery);
+  const { items: interns } = useSupabaseCollection('interns');
+  const activeEmployees = useMemo(() => {
+    const activeInterns = interns.filter(i => String(i.status).toLowerCase() === 'active').map(i => ({
+      ...i,
+      firstName: i.first_name || i.firstName,
+      lastName: i.last_name || i.lastName,
+      role: 'intern',
+      departmentId: i.department_id || i.departmentId,
+      basicSalary: i.stipend_amount || i.basicSalary || 0,
+    }));
+    return [...employees, ...activeInterns];
+  }, [employees, interns]);
   const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
   const { items: departments } = useSupabaseCollection('departments');
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
@@ -710,19 +743,29 @@ export default function PayrollList() {
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       const emp = r._emp || {};
+      const isIntern = emp.role?.toLowerCase() === 'intern';
+      if (empTypeTab === 'interns' && !isIntern) return false;
+      if (empTypeTab === 'employees' && isIntern) return false;
+
       if (filterStatus && r.status !== filterStatus) return false;
       if (filterDept && emp.department !== filterDept) return false;
-      if (filterType) {
+      if (filterType && empTypeTab === 'employees') {
         const isManager = emp.designation?.toLowerCase() === 'manager' || emp.role?.toLowerCase() === 'manager';
         if (filterType === 'manager' && !isManager) return false;
         if (filterType === 'employee' && isManager) return false;
       }
       return true;
     });
-  }, [rows, filterStatus, filterDept, filterType]);
+  }, [rows, filterStatus, filterDept, filterType, empTypeTab]);
 
   // ── Summary stats (reflect ALL active non-admin employees) ──────────────────
-  const totalEmployees = activeEmployees.filter((e) => String(e.role).toLowerCase() !== 'admin' && String(e.role).toLowerCase() !== 'agent').length;
+  const totalEmployees = activeEmployees.filter((e) => {
+    if (String(e.role).toLowerCase() === 'admin' || String(e.role).toLowerCase() === 'agent') return false;
+    const isIntern = String(e.role).toLowerCase() === 'intern';
+    if (empTypeTab === 'interns' && !isIntern) return false;
+    if (empTypeTab === 'employees' && isIntern) return false;
+    return true;
+  }).length;
   const totalCost = filtered.filter((r) => r._hasPayroll).reduce((s, r) => s + Number(r.netSalary || 0), 0);
   const paidCount = filtered.filter((r) => r.status === 'paid').length;
   const pendingCount = filtered.filter((r) => r.status === 'pending' || r.status === 'draft').length;
@@ -883,13 +926,38 @@ export default function PayrollList() {
         }
       />
 
+      {adminView && (
+        <div className="flex bg-slate-100/80 p-1 rounded-xl w-fit border border-slate-200/60 shadow-sm">
+          <button
+            onClick={() => setEmpTypeTab('employees')}
+            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              empTypeTab === 'employees' 
+                ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+            }`}
+          >
+            Employee / Manager
+          </button>
+          <button
+            onClick={() => setEmpTypeTab('interns')}
+            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              empTypeTab === 'interns' 
+                ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+            }`}
+          >
+            Interns
+          </button>
+        </div>
+      )}
+
       {/* ── Summary Cards ──────────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           icon={UsersIcon}
-          label="Total Employees"
+          label={empTypeTab === 'interns' ? 'Total Interns' : 'Total Employees'}
           value={totalEmployees}
-          sub="all active staff"
+          sub={empTypeTab === 'interns' ? 'all active interns' : 'all active staff'}
           gradient="bg-gradient-to-br from-indigo-600 to-indigo-800"
         />
         <SummaryCard
@@ -942,11 +1010,13 @@ export default function PayrollList() {
             ))}
           </FilterSelect>
 
-          <FilterSelect label="Type" value={filterType} onChange={setFilterType}>
-            <option value="">All Types</option>
-            <option value="manager">Manager</option>
-            <option value="employee">Employee</option>
-          </FilterSelect>
+          {empTypeTab === 'employees' && (
+            <FilterSelect label="Type" value={filterType} onChange={setFilterType}>
+              <option value="">All Types</option>
+              <option value="manager">Manager</option>
+              <option value="employee">Employee</option>
+            </FilterSelect>
+          )}
 
           {hasFilters && (
             <button
@@ -979,7 +1049,12 @@ export default function PayrollList() {
                   'Employee', 'Department', 'Basic Salary',
                   'Allowances', 'Deductions', 'Net Salary',
                   'Month / Year', 'Status', 'Processed At', 'Actions',
-                ].map((col) => (
+                ]
+                  .filter((col) => {
+                    if (empTypeTab === 'interns' && (col === 'Department' || col === 'Allowances' || col === 'Deductions')) return false;
+                    return true;
+                  })
+                  .map((col) => (
                   <th key={col} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest text-neutral-400">
                     {col}
                   </th>
@@ -989,7 +1064,7 @@ export default function PayrollList() {
             <tbody className="divide-y divide-neutral-100 bg-white">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={adminView ? 11 : 10} className="px-4 py-10 text-center text-neutral-400">
+                  <td colSpan={adminView ? (empTypeTab === 'interns' ? 8 : 11) : (empTypeTab === 'interns' ? 7 : 10)} className="px-4 py-10 text-center text-neutral-400">
                     No employees found.
                   </td>
                 </tr>
@@ -1024,15 +1099,15 @@ export default function PayrollList() {
                         <div className="font-semibold text-neutral-900">{emp.firstName} {emp.lastName}</div>
                         {emp.employeeId && <div className="text-xs text-neutral-400">{emp.employeeId}</div>}
                       </td>
-                      <td className="px-4 py-3 text-neutral-500">{emp.department || '—'}</td>
+                      {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-500">{emp.department || '—'}</td>}
                       <td className="px-4 py-3 font-medium">{fmt(row.basicSalary)}</td>
                       {/* Allowances / Deductions / Net — show placeholder dashes if pending */}
-                      <td className="px-4 py-3 text-emerald-700 font-medium">
+                      {empTypeTab !== 'interns' && <td className="px-4 py-3 text-emerald-700 font-medium">
                         {isPending ? <span className="text-neutral-300">—</span> : fmt(allowAmt)}
-                      </td>
-                      <td className="px-4 py-3 text-rose-600 font-medium">
+                      </td>}
+                      {empTypeTab !== 'interns' && <td className="px-4 py-3 text-rose-600 font-medium">
                         {isPending ? <span className="text-neutral-300">—</span> : fmt(dedAmt)}
-                      </td>
+                      </td>}
                       <td className="px-4 py-3 font-bold text-neutral-900">
                         {isPending ? <span className="text-xs text-neutral-400 font-normal">Not processed</span> : (
                           <div className="flex items-center gap-2">

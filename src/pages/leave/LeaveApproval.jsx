@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { EyeIcon } from '@heroicons/react/24/outline';
 import { query, orderBy } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import Card from '../../components/ui/Card';
@@ -15,23 +16,37 @@ import { isAdminLike } from '../../utils/rbac';
 import { daysBetween, formatDate } from '../../utils/dateHelpers';
 import { updateDocument, upsertDocument, fetchDocument } from '../../supabase/db';
 
-export default function LeaveApproval({ isTab = false }) {
+export default function LeaveApproval({ isTab = false, empTypeTab = 'employees' }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [comments, setComments] = useState({});
   const [confirmApprove, setConfirmApprove] = useState(null);
+  const [leaveReasonOpen, setLeaveReasonOpen] = useState(false);
+  const [leaveReasonItem, setLeaveReasonItem] = useState(null);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
   const { items: requests, error } = useSupabaseCollection('leaveRequests', leaveQuery);
   const { items: employees } = useSupabaseCollection('employees');
+  const { items: interns } = useSupabaseCollection('interns');
   const { items: departments } = useSupabaseCollection('departments');
 
+  const allEmployees = useMemo(() => {
+    const mappedInterns = interns.map(i => ({
+      ...i,
+      firstName: i.first_name || i.firstName,
+      lastName: i.last_name || i.lastName,
+      role: 'intern',
+      departmentId: i.department_id || i.departmentId,
+    }));
+    return [...employees, ...mappedInterns];
+  }, [employees, interns]);
+
   function getEmpName(id) {
-    const emp = employees.find(e => e.uid === id || e.id === id);
+    const emp = allEmployees.find(e => e.uid === id || e.id === id);
     return emp ? `${emp.firstName} ${emp.lastName}`.trim() : id;
   }
 
   function getEmpDetails(id) {
-    const emp = employees.find(e => e.uid === id || e.id === id);
+    const emp = allEmployees.find(e => e.uid === id || e.id === id);
     if (!emp) return { name: id, designation: '-', department: '-' };
     const dept = departments.find(d => d.id === emp.departmentId);
     return {
@@ -41,8 +56,25 @@ export default function LeaveApproval({ isTab = false }) {
     };
   }
 
-  const currentEmployee = employees.find((e) => e.uid === user?.uid || e.email === user?.email);
+  const currentEmployee = allEmployees.find((e) => e.uid === user?.uid || e.email === user?.email);
   const isManager = user?.role === 'manager';
+
+  const renderReason = (item) => {
+    if (!item.reason) return <span className="text-neutral-400 text-sm">—</span>;
+    return (
+      <Button
+        variant="secondary"
+        className="py-1 px-3 text-xs flex items-center justify-center"
+        onClick={() => {
+          setLeaveReasonItem(item.reason);
+          setLeaveReasonOpen(true);
+        }}
+        title="View Reason"
+      >
+        <EyeIcon className="h-4 w-4" />
+      </Button>
+    );
+  };
 
   if (!isAdminLike(user?.role) && !isManager) {
     return <Card className="p-6 text-center">Approval queue is restricted to Admin, HR, and Manager users.</Card>;
@@ -58,8 +90,13 @@ export default function LeaveApproval({ isTab = false }) {
     // Prevent ANY user from approving their own leave
     if (request.employeeId === user?.uid || request.employeeId === currentEmployee?.id) return false;
 
+    const requestEmp = allEmployees.find(e => e.uid === request.employeeId || e.id === request.employeeId);
+    const empRole = requestEmp?.role || '';
+
+    if (empTypeTab === 'interns' && empRole !== 'intern') return false;
+    if (empTypeTab === 'employees' && empRole === 'intern') return false;
+
     if (isManager && !isAdminLike(user?.role)) {
-      const requestEmp = employees.find(e => e.uid === request.employeeId || e.id === request.employeeId);
       // Make it visible to manager if the employee is in the same department
       if (requestEmp?.departmentId !== currentEmployee?.departmentId) return false;
     }
@@ -144,7 +181,7 @@ export default function LeaveApproval({ isTab = false }) {
         else if (leaveTypeName.includes('sick') || leaveTypeName.includes('medical')) quotaKey = 'sick_leaves';
 
         if (quotaKey) {
-          const requestEmp = employees.find(e => e.uid === employeeId || e.id === employeeId);
+          const requestEmp = allEmployees.find(e => e.uid === employeeId || e.id === employeeId);
           if (requestEmp) {
             const currentUsed = Number(requestEmp[quotaKey + '_used'] || requestEmp.data?.[quotaKey + '_used'] || 0);
             await updateDocument('employees', requestEmp.id, {
@@ -186,13 +223,16 @@ export default function LeaveApproval({ isTab = false }) {
         <Table
           columns={[
             { key: 'employee', label: 'Employee' },
-            { key: 'department', label: 'Department' },
-            { key: 'designation', label: 'Designation' },
+            ...(empTypeTab === 'interns' ? [] : [
+              { key: 'department', label: 'Department' },
+              { key: 'designation', label: 'Designation' },
+            ]),
             { key: 'type', label: 'Type' },
             { key: 'range', label: 'Range' },
             { key: 'days', label: 'Days' },
             { key: 'attachment', label: 'Attachment' },
             { key: 'status', label: 'Status' },
+            { key: 'reason', label: 'Reason' },
             { key: 'comment', label: 'Comment' },
             { key: 'actions', label: 'Actions' }
           ]}
@@ -202,8 +242,8 @@ export default function LeaveApproval({ isTab = false }) {
             return (
               <tr key={request.id}>
                 <td className="px-4 py-3 font-medium text-neutral-900">{empInfo.name}</td>
-                <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>
-                <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>
+                {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>}
+                {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>}
                 <td className="px-4 py-3">{request.leaveTypeName || request.leaveType || request.leaveTypeId}</td>
                 <td className="px-4 py-3">{formatDate(request.fromDate)} - {formatDate(request.toDate)}</td>
                 <td className="px-4 py-3">{request.totalDays || daysBetween(request.fromDate, request.toDate)}</td>
@@ -217,6 +257,7 @@ export default function LeaveApproval({ isTab = false }) {
                   )}
                 </td>
                 <td className="px-4 py-3"><Badge tone="warning">{request.status}</Badge></td>
+                <td className="px-4 py-3">{renderReason(request)}</td>
                 <td className="px-4 py-3"><Input value={comments[request.id] || ''} onChange={(event) => setComments((current) => ({ ...current, [request.id]: event.target.value }))} placeholder="Add a comment" /></td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
@@ -259,6 +300,20 @@ export default function LeaveApproval({ isTab = false }) {
               <p><span className="font-medium text-neutral-500 w-20 inline-block">Type:</span> <span className="font-semibold text-neutral-900">{confirmApprove.leaveTypeName || confirmApprove.leaveType || confirmApprove.leaveTypeId}</span></p>
             </div>
           )}
+        </div>
+      </Modal>
+
+      <Modal
+        open={leaveReasonOpen}
+        title="Leave Request Reason"
+        onClose={() => {
+          setLeaveReasonOpen(false);
+          setLeaveReasonItem(null);
+        }}
+        footer={<Button onClick={() => setLeaveReasonOpen(false)}>Close</Button>}
+      >
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap break-words max-h-[60vh] overflow-y-auto">
+          {leaveReasonItem}
         </div>
       </Modal>
     </div>

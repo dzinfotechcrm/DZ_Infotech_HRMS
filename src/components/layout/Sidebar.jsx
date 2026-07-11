@@ -114,6 +114,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {!isAgent(user?.role) && hrmsNavigation.map((item) => {
             if (item.adminOnly && !isAdminLikeRole) return null;
+            if (user?.role === 'intern' && item.to === '/employees') return null;
             const Icon = item.icon;
             return (
               <NavLink

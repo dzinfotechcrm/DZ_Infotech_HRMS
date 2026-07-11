@@ -1965,8 +1965,8 @@ export default function EmployeeList() {
         <button
           onClick={() => setActiveTab('employees')}
           className={`flex-1 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all
-            ${activeTab === 'employees' 
-              ? 'bg-white text-indigo-700 shadow shadow-indigo-100/50' 
+            ${activeTab === 'employees'
+              ? 'bg-white text-indigo-700 shadow shadow-indigo-100/50'
               : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'}`}
         >
           Employee / Manager
@@ -1974,8 +1974,8 @@ export default function EmployeeList() {
         <button
           onClick={() => setActiveTab('interns')}
           className={`flex-1 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all
-            ${activeTab === 'interns' 
-              ? 'bg-white text-indigo-700 shadow shadow-indigo-100/50' 
+            ${activeTab === 'interns'
+              ? 'bg-white text-indigo-700 shadow shadow-indigo-100/50'
               : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'}`}
         >
           Interns

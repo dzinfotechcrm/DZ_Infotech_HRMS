@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { formatDate } from '../../utils/dateHelpers';
 import { getDocumentDownloadUrl } from '../../utils/internPdfGenerator';
 import toast from 'react-hot-toast';
 
 export default function InternDetailModal({ intern, managers, open, onClose, onRegenerate, onClearSigned }) {
+  const [clearingDoc, setClearingDoc] = useState(null);
+
   if (!intern) return null;
 
   const handleDownload = async (path, name) => {
@@ -33,7 +37,7 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
   return (
     <Modal open={open} title="Intern Details" onClose={onClose} size="max-w-4xl">
       <div className="space-y-8 h-[75vh] overflow-y-auto px-2 pb-4">
-        
+
         {/* Profile Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -58,7 +62,7 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
 
         {/* Info Grid */}
         <div className="grid gap-8 sm:grid-cols-2">
-          
+
           {/* Identity & Contact */}
           <div>
             <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Identity & Contact</h4>
@@ -84,11 +88,6 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
                 <p className="text-sm text-slate-900">{intern.is_paid ? `Paid (Rs. ${intern.stipend_amount}/mo)` : 'Unpaid'}</p>
               </div>
               <div><p className="text-xs font-medium text-slate-500">Certificate Eligible</p><p className="text-sm text-slate-900">{intern.certificate_eligible ? 'Yes' : 'No'}</p></div>
-              <div><p className="text-xs font-medium text-slate-500">Manager</p>
-                <p className="text-sm text-slate-900">
-                  {managers?.find(m => m.id === intern.reporting_manager_id)?.firstName || '—'}
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -106,7 +105,7 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
               <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-md">Regeneration disabled (signed docs exist)</span>
             )}
           </div>
-          
+
           <div className="grid gap-6 sm:grid-cols-2">
             {/* Offer Letter Block */}
             <div className="rounded-xl border border-slate-200 p-4">
@@ -121,7 +120,7 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
                     <span className="text-sm font-medium text-emerald-600">Signed Copy:</span>
                     <div className="flex gap-2">
                       <Button size="sm" variant="secondary" onClick={() => handleDownload(intern.signed_offer_letter_url)}>View</Button>
-                      <Button size="sm" variant="danger" onClick={() => onClearSigned(intern.id, 'signed_offer_letter_url')}>Clear</Button>
+                      <Button size="sm" variant="danger" onClick={() => setClearingDoc('signed_offer_letter_url')}>Clear</Button>
                     </div>
                   </div>
                 ) : (
@@ -143,7 +142,7 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
                     <span className="text-sm font-medium text-emerald-600">Signed Copy:</span>
                     <div className="flex gap-2">
                       <Button size="sm" variant="secondary" onClick={() => handleDownload(intern.signed_nda_url)}>View</Button>
-                      <Button size="sm" variant="danger" onClick={() => onClearSigned(intern.id, 'signed_nda_url')}>Clear</Button>
+                      <Button size="sm" variant="danger" onClick={() => setClearingDoc('signed_nda_url')}>Clear</Button>
                     </div>
                   </div>
                 ) : (
@@ -161,6 +160,21 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
           Close
         </Button>
       </div>
+
+      <ConfirmModal
+        open={!!clearingDoc}
+        title="Clear Document"
+        message="Are you sure you want to clear this signed document? This action cannot be undone and intern need to re-upload the document."
+        confirmText="Clear"
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (clearingDoc) {
+            onClearSigned(intern.id, clearingDoc);
+            setClearingDoc(null);
+          }
+        }}
+        onCancel={() => setClearingDoc(null)}
+      />
     </Modal>
   );
 }
