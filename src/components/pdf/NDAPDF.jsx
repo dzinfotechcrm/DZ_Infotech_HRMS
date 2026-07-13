@@ -1,7 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { SIGNATURE_BASE64 } from '../../utils/constants';
-
+import { formatDate } from '../../utils/dateHelpers';
 
 Font.register({
   family: 'Arial',
@@ -128,7 +128,7 @@ export const NDAPDF = ({ intern }) => {
         <Text style={styles.subtitle}>{position}</Text>
 
         <Text style={styles.text}>
-          This Non-Disclosure Agreement ("Agreement") is entered into on <Text style={styles.bold}>{nda_date}</Text>
+          This Non-Disclosure Agreement ("Agreement") is entered into on <Text style={styles.bold}>{formatDate(nda_date, 'dd-MM-yyyy')}</Text>
         </Text>
 
         <View style={{ marginBottom: 15 }}>
@@ -322,7 +322,7 @@ export const NDAPDF = ({ intern }) => {
                 </View>
                 <Text style={styles.text}>Name: <Text style={styles.bold}>Soumyarajsinh Zala</Text></Text>
                 <Text style={styles.text}>Designation: Co-Founder</Text>
-                <Text style={styles.text}>Date: {nda_date}</Text>
+                <Text style={styles.text}>Date: {formatDate(nda_date, 'dd-MM-yyyy')}</Text>
               </View>
             </View>
 

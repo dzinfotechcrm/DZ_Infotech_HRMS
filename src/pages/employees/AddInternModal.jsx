@@ -246,6 +246,8 @@ export default function AddInternModal({ intern, departments, managers, existing
               handleChange('work_mode', val);
               if (val === 'On-site') {
                 handleChange('working_hours', 'As Per Company Policy(7 Hours/Day For Intern)');
+              } else if (val === 'Not Mentioned') {
+                handleChange('working_hours', 'N/A');
               } else {
                 handleChange('working_hours', 'Flexible with minimum 5-6 hours/day');
               }
@@ -253,10 +255,11 @@ export default function AddInternModal({ intern, departments, managers, existing
               <option value="Remote">Remote</option>
               <option value="Hybrid">Hybrid</option>
               <option value="On-site">On-site</option>
+              <option value="Not Mentioned">Not Mentioned</option>
             </Select>
             <Input label="Working Days" error={errors.working_days} value={formData.working_days} onChange={(e) => handleChange('working_days', e.target.value)} required />
             <div className="sm:col-span-2">
-              <Input label="Working Hours" error={errors.working_hours} value={formData.working_hours} onChange={(e) => handleChange('working_hours', e.target.value)} required />
+              <Input label="Working Hours" error={errors.working_hours} value={formData.working_hours} onChange={(e) => handleChange('working_hours', e.target.value)} required={formData.work_mode !== 'Not Mentioned'} disabled={formData.work_mode === 'Not Mentioned'} className={formData.work_mode === 'Not Mentioned' ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''} />
             </div>
 
             <Select label="Compensation Type" value={formData.is_paid ? 'paid' : 'unpaid'} onChange={(e) => handleChange('is_paid', e.target.value === 'paid')}>

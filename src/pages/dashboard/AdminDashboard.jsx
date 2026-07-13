@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { query, orderBy, limit, where } from '../../supabase/db';
 import {
   ArrowTrendingUpIcon,
@@ -18,7 +18,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 
-function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
+function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle, onClick, className = '' }) {
   const tones = {
     primary: 'text-primary-600 bg-primary-100',
     success: 'text-success-600 bg-success-100',
@@ -27,7 +27,7 @@ function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
   };
 
   return (
-    <Card className="p-5">
+    <Card className={`p-5 ${onClick ? 'cursor-pointer hover:shadow-md transition-all active:scale-[0.98]' : ''} ${className}`} onClick={onClick}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-neutral-500">{title}</p>
@@ -44,12 +44,14 @@ function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const [showInterns, setShowInterns] = useState(false);
   const employeesQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
   const attendanceQuery = useMemo(() => (base) => query(base, orderBy('date', 'desc'), limit(30)), []);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc'), limit(5)), []);
   const departmentQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
 
   const { items: employees, loading: loadingEmployees } = useSupabaseCollection('employees', employeesQuery);
+  const { items: interns, loading: loadingInterns } = useSupabaseCollection('interns');
   const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
   const { items: departments } = useSupabaseCollection('departments', departmentQuery);
@@ -60,6 +62,7 @@ export default function AdminDashboard() {
   };
 
   const totalEmployees = employees.filter((employee) => employee.status !== 'inactive' && employee.role !== 'admin').length;
+  const totalInterns = interns.filter((intern) => intern.status !== 'inactive').length;
   const presentToday = attendance.filter((entry) => entry.status === 'present' && formatDate(entry.date, 'yyyy-MM-dd') === formatDate(new Date(), 'yyyy-MM-dd')).length;
   const leaveToday = leaveRequests.filter((leaveRequest) => leaveRequest.status === 'approved' && formatDate(leaveRequest.fromDate, 'yyyy-MM-dd') <= formatDate(new Date(), 'yyyy-MM-dd') && formatDate(leaveRequest.toDate, 'yyyy-MM-dd') >= formatDate(new Date(), 'yyyy-MM-dd')).length;
   const pendingApprovals = leaveRequests.filter((leaveRequest) => leaveRequest.status === 'pending').length;
@@ -132,7 +135,14 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Total Employees" value={loadingEmployees ? '...' : totalEmployees} icon={UsersIcon} tone="primary" subtitle="Active employee base" />
+        <StatCard 
+          title={showInterns ? "Total Interns" : "Total Employees"} 
+          value={showInterns ? (loadingInterns ? '...' : totalInterns) : (loadingEmployees ? '...' : totalEmployees)} 
+          icon={UsersIcon} 
+          tone="primary" 
+          subtitle={showInterns ? "Active intern base" : "Active employee base"} 
+          onClick={() => setShowInterns(prev => !prev)}
+        />
         <StatCard title="Present Today" value={presentToday} icon={CheckCircleIcon} tone="success" subtitle="Attendance marked today" />
         <StatCard title="On Leave Today" value={leaveToday} icon={CalendarDaysIcon} tone="warning" subtitle="Approved leave overlap" />
         <StatCard title="Pending Approvals" value={pendingApprovals} icon={ExclamationTriangleIcon} tone="danger" subtitle="Waiting for action" />

@@ -54,7 +54,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Arial',
     color: '#C55A11',
     marginTop: 15,
-    marginBottom: 5,
+    marginBottom: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#C55A11',
+    paddingBottom: 2,
   },
   subSectionTitle: {
     fontSize: 11,
@@ -144,7 +147,7 @@ export const OfferLetterPDF = ({ intern }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-                <View style={styles.header}>
+        <View style={styles.header}>
           <Text style={styles.companyName}>DZ INFOTECH</Text>
           <Text style={styles.companyAddress}>Bhavnagar, Gujarat, India</Text>
         </View>
@@ -165,7 +168,7 @@ export const OfferLetterPDF = ({ intern }) => {
         </Text>
 
         <Text style={styles.sectionTitle}>1. INTERNSHIP DETAILS</Text>
-        
+
         <Text style={styles.subSectionTitle}>1.1 Position and Duration</Text>
         <Text style={styles.text}><Text style={styles.bold}>Position: </Text><Text style={{ color: '#C55A11', fontFamily: 'Helvetica-Bold' }}>{position}</Text></Text>
         <Text style={styles.text}><Text style={styles.bold}>Start Date: </Text>{formatDate(start_date)}</Text>
@@ -173,9 +176,13 @@ export const OfferLetterPDF = ({ intern }) => {
         <Text style={styles.text}><Text style={styles.bold}>Duration: </Text>{duration_text}</Text>
 
         <Text style={styles.subSectionTitle}>1.2 Work Mode and Schedule</Text>
-        <Text style={styles.text}><Text style={styles.bold}>Work Mode: </Text>{work_mode}</Text>
+        {work_mode !== 'Not Mentioned' && (
+          <Text style={styles.text}><Text style={styles.bold}>Work Mode: </Text>{work_mode}</Text>
+        )}
         <Text style={styles.text}><Text style={styles.bold}>Working Days: </Text>{working_days}</Text>
-        <Text style={styles.text}><Text style={styles.bold}>Working Hours: </Text>{working_hours}</Text>
+        {work_mode !== 'Not Mentioned' && (
+          <Text style={styles.text}><Text style={styles.bold}>Working Hours: </Text>{working_hours}</Text>
+        )}
         <Text style={styles.text}><Text style={styles.bold}>Holidays: </Text>Weekends (Saturday and Sunday) and public holidays as per company calendar</Text>
         <Text style={styles.text}><Text style={styles.bold}>Max Leave: </Text>{max_leave_per_month} days per month. Any exam leave must be declared at the time of joining.</Text>
 
@@ -196,7 +203,7 @@ export const OfferLetterPDF = ({ intern }) => {
         <Bullet>Collaborate with team members through daily updates and weekly sync meetings.</Bullet>
         <Bullet>Learn and implement new technologies and frameworks as required.</Bullet>
         <Bullet>Contribute to product improvements and suggest innovative solutions.</Bullet>
-        
+
         <Text style={{ ...styles.text, marginTop: 10 }}>
           <Text style={styles.bold}>Tech Stack: </Text>{skills_technologies || 'React JS, Node JS, JavaScript, HTML, CSS, REST APIs, Databases'}
         </Text>
@@ -281,7 +288,7 @@ export const OfferLetterPDF = ({ intern }) => {
         <Text style={styles.text}>
           If you wish to terminate the internship, you must provide <Text style={styles.bold}>14 days written notice</Text> via email. During this notice period, you must complete any pending tasks and hand over all work properly.
         </Text>
-        
+
         <Text style={styles.subSectionTitle}>9.2 Termination by Company</Text>
         <Text style={styles.text}>
           The Company may terminate the internship with <Text style={styles.bold}>7 days written notice</Text> for reasons including but not limited to restructuring, project completion, or other business needs.
@@ -343,7 +350,7 @@ export const OfferLetterPDF = ({ intern }) => {
           <Text style={styles.text}>
             I, <Text style={styles.bold}>{full_name}</Text>, have read and understood all the terms and conditions mentioned in this offer letter. I hereby accept this internship offer and agree to abide by all the policies, guidelines, and terms stated above.
           </Text>
-          
+
           <View style={{ marginTop: 30, flexDirection: 'row', justifyContent: 'space-between' }}>
             <View>
               <View style={styles.signatureLine} />
@@ -354,7 +361,7 @@ export const OfferLetterPDF = ({ intern }) => {
               <Text>Date</Text>
             </View>
           </View>
-          
+
           <View style={{ marginTop: 30, flexDirection: 'row', justifyContent: 'space-between' }}>
             <View>
               <Text style={{ ...styles.bold, borderBottomWidth: 1, borderBottomColor: '#000', width: 200, paddingBottom: 2, marginBottom: 5 }}>{full_name}</Text>

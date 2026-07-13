@@ -37,6 +37,7 @@ export default function Profile() {
         firstName: employee.firstName || employee.first_name,
         lastName: employee.lastName || employee.last_name,
         photoURL: employee.photoURL || employee.photo_url,
+        address: employee?.address ? (typeof employee.address === 'string' ? employee.address : [employee.address.line1, employee.address.city, employee.address.state, employee.address.pincode].filter(Boolean).join(', ')) : '',
       });
     }
   }, [employee, reset]);
@@ -51,6 +52,7 @@ export default function Profile() {
       if (isIntern) {
         const payload = {
           phone: values.phone,
+          address: values.address,
           photo_url: photoURL
         };
         await updateDocument('interns', employee.id, payload);
@@ -101,10 +103,10 @@ export default function Profile() {
           <Input label="Phone" type="tel" maxLength={10} {...register('phone', { pattern: { value: /^[0-9]{10}$/, message: 'Phone must be exactly 10 digits' } })} error={errors.phone?.message} disabled={!editableAll && user?.role === 'employee'} />
           <Input
             label="Address"
-            value={employee?.address ? (typeof employee.address === 'string' ? employee.address : [employee.address.line1, employee.address.city, employee.address.state, employee.address.pincode].filter(Boolean).join(', ')) : ''}
-            readOnly
-            disabled
-            className="bg-neutral-50"
+            {...register('address')}
+            readOnly={!isIntern}
+            disabled={!isIntern}
+            className={!isIntern ? "bg-neutral-50" : ""}
           />
 
           <Input label="Upload Photo (preview only)" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) { setPreview(URL.createObjectURL(file)); } }} />

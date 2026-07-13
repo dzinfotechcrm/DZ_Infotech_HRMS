@@ -2085,7 +2085,7 @@ export default function EmployeeList() {
 
       {/* Modals */}
       <ViewEmployeeModal
-        employee={selectedEmployee}
+        employee={enrichedEmployees.find(e => e.id === selectedEmployee?.id) || selectedEmployee}
         attendanceStatus={selectedEmployee ? (attendanceLookup[selectedEmployee.uid] || attendanceLookup[selectedEmployee.id]) : null}
         managers={managers}
         open={viewModalOpen}
@@ -2096,11 +2096,11 @@ export default function EmployeeList() {
       />
       <LeaveHistoryModal
         open={leaveHistoryModalOpen}
-        employee={selectedEmployee}
+        employee={enrichedEmployees.find(e => e.id === selectedEmployee?.id) || selectedEmployee}
         onClose={() => setLeaveHistoryModalOpen(false)}
       />
       <EditEmployeeModal
-        employee={selectedEmployee}
+        employee={enrichedEmployees.find(e => e.id === selectedEmployee?.id) || selectedEmployee}
         departments={allDepartments}
         managers={managers}
         existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean)}
@@ -2125,7 +2125,7 @@ export default function EmployeeList() {
       />
       <Modal
         open={deleteModalOpen}
-        title="Delete Employee"
+        title={selectedEmployee?.isIntern ? "Delete Intern" : "Delete Employee"}
         onClose={() => {
           setDeleteModalOpen(false);
           setSelectedEmployee(null);
@@ -2139,7 +2139,7 @@ export default function EmployeeList() {
               Cancel
             </Button>
             <Button variant="danger" onClick={executeDelete} className="flex-1">
-              Delete Employee
+              {selectedEmployee?.isIntern ? "Delete Intern" : "Delete Employee"}
             </Button>
           </div>
         }
@@ -2159,7 +2159,7 @@ export default function EmployeeList() {
         onSave={handleAddIntern}
       />
       <AddInternModal
-        intern={selectedIntern}
+        intern={groupedEmployees.interns.find(i => i.id === selectedIntern?.id) || selectedIntern}
         departments={allDepartments}
         managers={managers}
         existingEmails={interns.map(i => (i.email || '').toLowerCase()).filter(Boolean)}
@@ -2171,7 +2171,7 @@ export default function EmployeeList() {
         onSave={handleEditIntern}
       />
       <InternDetailModal
-        intern={selectedIntern}
+        intern={groupedEmployees.interns.find(i => i.id === selectedIntern?.id) || selectedIntern}
         managers={managers}
         open={internDetailModalOpen}
         onClose={() => {
