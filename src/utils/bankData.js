@@ -241,7 +241,7 @@ export const INDIAN_BANKS = [
   `ZILA SAHAKRI BANK LIMITED GHAZIABAD`,
 ];
 
-// ── Lazy loader ────────────────────────────────────────────────────────────────
+// ── Lazy loader ──────────────────────────────────────────────────────────
 let _cache = null;         // full { [bankName]: [{ifsc,branch,city,state}] }
 let _promise = null;       // in-flight fetch promise
 
