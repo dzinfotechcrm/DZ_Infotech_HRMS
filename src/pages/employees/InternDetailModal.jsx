@@ -92,6 +92,28 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
           </div>
         </div>
 
+        {/* Bank Details Section */}
+        {intern.is_paid && (intern.bank_name || intern.ifsc_code || intern.upi_id) && (
+          <div className="mt-8 border-t border-slate-200 pt-6">
+            <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Bank & UPI Details</h4>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><p className="text-xs font-medium text-slate-500">Bank Name</p><p className="text-sm text-slate-900">{intern.bank_name || '—'}</p></div>
+              <div><p className="text-xs font-medium text-slate-500">IFSC Code</p><p className="text-sm text-slate-900">{intern.ifsc_code || '—'}</p></div>
+              <div><p className="text-xs font-medium text-slate-500">Account Number</p><p className="text-sm text-slate-900">{intern.bank_account || '—'}</p></div>
+              <div><p className="text-xs font-medium text-slate-500">UPI ID</p><p className="text-sm text-slate-900">{intern.upi_id || '—'}</p></div>
+              {intern.upi_qr_code_url && (
+                <div className="sm:col-span-2">
+                  <p className="text-xs font-medium text-slate-500 mb-2">UPI QR Code</p>
+                  <a href={intern.upi_qr_code_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    View Uploaded QR
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Documents Section */}
         <div>
           <div className="flex items-center justify-between mb-4 border-b border-slate-200 pb-2">

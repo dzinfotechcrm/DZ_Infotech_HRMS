@@ -787,7 +787,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
   };
 
   const handleIfscChange = async (val) => {
-    const formattedVal = val.toUpperCase();
+    const formattedVal = val.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     handleChange('ifsc', formattedVal);
     handleChange('bankAccount', '');
     setBranchDetails('');

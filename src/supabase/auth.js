@@ -90,7 +90,7 @@ export async function syncAuthenticatedUser(supabaseUser) {
     }
 
     // Handle Intern payload
-    const internName = internSnap.first_name && internSnap.last_name 
+    const internName = internSnap.first_name && internSnap.last_name
       ? `${internSnap.first_name} ${internSnap.last_name}`
       : internSnap.full_name || supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '';
 
@@ -122,6 +122,12 @@ export async function syncAuthenticatedUser(supabaseUser) {
       isActive: userPayload.is_active,
       status: userPayload.is_active ? 'active' : 'inactive',
       isPaid: internSnap.is_paid,
+      bankName: internSnap.bank_name,
+      ifsc: internSnap.ifsc_code,
+      bankAccount: internSnap.bank_account,
+      upiId: internSnap.upi_id,
+      upiQrCodeUrl: internSnap.upi_qr_code_url,
+      employeeId: userPayload.employee_id,
     };
   }
 
@@ -139,7 +145,7 @@ export async function syncAuthenticatedUser(supabaseUser) {
     }
   }
 
-  const employeeName = employeeSnap.first_name && employeeSnap.last_name 
+  const employeeName = employeeSnap.first_name && employeeSnap.last_name
     ? `${employeeSnap.first_name} ${employeeSnap.last_name}`
     : supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '';
 

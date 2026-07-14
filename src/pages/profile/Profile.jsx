@@ -116,6 +116,41 @@ export default function Profile() {
           </div>
         </form>
       </Card>
+
+      {isIntern && (employee.bank_name || employee.ifsc_code || employee.upi_id) && (
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Bank & UPI Details</h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <label className="text-xs font-medium text-slate-500">Bank Name</label>
+              <div className="mt-1 text-sm font-medium text-slate-900">{employee.bank_name || 'N/A'}</div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500">IFSC Code</label>
+              <div className="mt-1 text-sm font-medium text-slate-900">{employee.ifsc_code || 'N/A'}</div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500">Account Number</label>
+              <div className="mt-1 text-sm font-medium text-slate-900">{employee.bank_account || 'N/A'}</div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500">UPI ID</label>
+              <div className="mt-1 text-sm font-medium text-slate-900">{employee.upi_id || 'N/A'}</div>
+            </div>
+            {employee.upi_qr_code_url && (
+              <div className="md:col-span-2">
+                <label className="text-xs font-medium text-slate-500">UPI QR Code</label>
+                <div className="mt-2">
+                  <a href={employee.upi_qr_code_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 text-primary-700 text-sm font-medium hover:bg-primary-100 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    View Uploaded QR
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

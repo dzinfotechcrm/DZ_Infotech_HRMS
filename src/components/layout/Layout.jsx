@@ -9,6 +9,7 @@ import { isAdminLike } from '../../utils/rbac';
 import { logout } from '../../supabase/auth';
 import toast from 'react-hot-toast';
 import { useAmcNotifier } from '../../hooks/useAmcNotifier';
+import InternBankDetailsPrompt from './InternBankDetailsPrompt';
 
 const titleMap = [
   ['/dashboard', 'Dashboard'],
@@ -56,6 +57,7 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+      <InternBankDetailsPrompt user={user} />
     </div>
   );
 }
