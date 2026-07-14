@@ -10,6 +10,7 @@ import { logout } from '../../supabase/auth';
 import toast from 'react-hot-toast';
 import { useAmcNotifier } from '../../hooks/useAmcNotifier';
 import InternBankDetailsPrompt from './InternBankDetailsPrompt';
+import ConfirmModal from '../ui/ConfirmModal';
 
 const titleMap = [
   ['/dashboard', 'Dashboard'],
@@ -32,6 +33,7 @@ function getTitle(pathname) {
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
 
@@ -39,6 +41,7 @@ export default function Layout() {
   useAmcNotifier();
 
   async function handleLogout() {
+    setConfirmLogout(false);
     await logout();
     toast.success('Logged out successfully');
   }
@@ -51,13 +54,22 @@ export default function Layout() {
           title={getTitle(location.pathname)}
           onMenuClick={() => setMenuOpen(true)}
           user={user}
-          onLogout={handleLogout}
+          onLogout={() => setConfirmLogout(true)}
         />
         <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 py-6 md:px-6 lg:px-8">
           <Outlet />
         </main>
       </div>
       <InternBankDetailsPrompt user={user} />
+      <ConfirmModal
+        open={confirmLogout}
+        title="Confirm Logout"
+        message="Are you sure you want to log out of your account?"
+        onConfirm={handleLogout}
+        onCancel={() => setConfirmLogout(false)}
+        confirmText="Log Out"
+        confirmVariant="danger"
+      />
     </div>
   );
 }
