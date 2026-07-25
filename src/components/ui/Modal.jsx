@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function Modal({ open, title, onClose, children, footer, disableBackdropClick = false }) {
+export default function Modal({ open, title, onClose, children, footer, disableBackdropClick = false, overflowVisible = false }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !disableBackdropClick) {
@@ -59,7 +59,7 @@ export default function Modal({ open, title, onClose, children, footer, disableB
           </div>
         </div>
 
-        <div className="overflow-y-auto px-6 py-5 flex-1">
+        <div className={`px-6 py-5 flex-1 ${overflowVisible ? 'overflow-visible' : 'overflow-y-auto'}`}>
           {children}
         </div>
 

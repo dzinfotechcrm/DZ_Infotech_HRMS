@@ -29,6 +29,7 @@ const ProjectsList = lazy(() => import('./pages/projects/ProjectsList'));
 const AmcList = lazy(() => import('./pages/amc/AmcList'));
 const Finance = lazy(() => import('./pages/revenue/Finance'));
 const BucketSettings = lazy(() => import('./pages/revenue/BucketSettings'));
+const Expense = lazy(() => import('./pages/revenue/Expense'));
 
 // SFMS Routes
 const SfmsDashboard = lazy(() => import('./pages/sfms/Dashboard'));
@@ -108,6 +109,7 @@ export default function App() {
           <Route path="projects" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ProjectsList /></ProtectedRoute>} />
           <Route path="amc" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><AmcList /></ProtectedRoute>} />
           <Route path="finance" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Finance /></ProtectedRoute>} />
+          <Route path="expense" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Expense /></ProtectedRoute>} />
           <Route path="bucket-settings" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><BucketSettings /></ProtectedRoute>} />
 
           <Route path="sfms/dashboard" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SfmsDashboard /></ProtectedRoute>} />
