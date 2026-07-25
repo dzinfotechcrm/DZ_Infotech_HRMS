@@ -174,19 +174,12 @@ export const OfferLetterPDF = ({ intern }) => {
         <Text style={styles.text}><Text style={styles.bold}>Start Date: </Text>{formatDate(start_date)}</Text>
         <Text style={styles.text}><Text style={styles.bold}>End Date: </Text>{formatDate(end_date)}</Text>
         <Text style={styles.text}><Text style={styles.bold}>Duration: </Text>{duration_text}</Text>
-
-        <Text style={styles.subSectionTitle}>1.2 Work Mode and Schedule</Text>
         {work_mode !== 'Not Mentioned' && (
           <Text style={styles.text}><Text style={styles.bold}>Work Mode: </Text>{work_mode}</Text>
         )}
-        <Text style={styles.text}><Text style={styles.bold}>Working Days: </Text>{working_days}</Text>
-        {work_mode !== 'Not Mentioned' && (
-          <Text style={styles.text}><Text style={styles.bold}>Working Hours: </Text>{working_hours}</Text>
-        )}
-        <Text style={styles.text}><Text style={styles.bold}>Holidays: </Text>Weekends (Saturday and Sunday) and public holidays as per company calendar</Text>
         <Text style={styles.text}><Text style={styles.bold}>Max Leave: </Text>{max_leave_per_month} days per month. Any exam leave must be declared at the time of joining.</Text>
 
-        <Text style={styles.subSectionTitle}>1.3 Communication and Collaboration</Text>
+        <Text style={styles.subSectionTitle}>1.2 Communication and Collaboration</Text>
         <Text style={styles.text}>
           All work will be conducted remotely through online collaboration tools including Google Meet for video calls, Google Chat for daily communication, GitHub/GitLab for code management, and project management tools as assigned.
         </Text>
