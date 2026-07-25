@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 import { PlusIcon, FolderIcon, ChartBarIcon, ExclamationTriangleIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ProjectFormModal from './ProjectFormModal';
 import { toast } from 'react-hot-toast';
@@ -24,6 +25,7 @@ export default function ProjectsList() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
 
   const handleOpenModal = (project = null) => {
     setSelectedProject(project);
@@ -75,27 +77,31 @@ export default function ProjectsList() {
     }
   };
 
-  const handleDelete = async (e, id) => {
+  const handleDelete = (e, id) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      try {
-        const projectToDelete = projects.find(p => p.id === id);
-        await removeDocument('projects', id);
+    setDeleteId(id);
+  };
 
-        // Auto-decrement client project count in database
-        if (projectToDelete && projectToDelete.clientId) {
-          const clientToUpdate = clients.find(c => c.id === projectToDelete.clientId);
-          if (clientToUpdate) {
-            const currentCount = Number(clientToUpdate.projects) || 0;
-            await updateDocument('clients', projectToDelete.clientId, { projects: Math.max(0, currentCount - 1) });
-          }
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    try {
+      const projectToDelete = projects.find(p => p.id === deleteId);
+      await removeDocument('projects', deleteId);
+
+      // Auto-decrement client project count in database
+      if (projectToDelete && projectToDelete.clientId) {
+        const clientToUpdate = clients.find(c => c.id === projectToDelete.clientId);
+        if (clientToUpdate) {
+          const currentCount = Number(clientToUpdate.projects) || 0;
+          await updateDocument('clients', projectToDelete.clientId, { projects: Math.max(0, currentCount - 1) });
         }
-
-        toast.success('Project deleted successfully');
-        refetchProjects();
-      } catch (error) {
-        toast.error('Failed to delete project: ' + error.message);
       }
+
+      toast.success('Project deleted successfully');
+      setDeleteId(null);
+      refetchProjects();
+    } catch (error) {
+      toast.error('Failed to delete project: ' + error.message);
     }
   };
 
@@ -331,6 +337,26 @@ export default function ProjectsList() {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveProject}
       />
+
+      <Modal
+        open={!!deleteId}
+        title="Confirm Deletion"
+        onClose={() => setDeleteId(null)}
+        footer={
+          <div className="flex justify-end gap-3 w-full">
+            <Button variant="secondary" onClick={() => setDeleteId(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={confirmDelete}>
+              Delete Project
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-neutral-600 pb-4">
+          Are you sure you want to delete this project? This action cannot be undone.
+        </p>
+      </Modal>
     </div>
   );
 }
