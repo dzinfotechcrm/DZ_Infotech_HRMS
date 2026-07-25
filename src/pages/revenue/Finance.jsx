@@ -13,15 +13,26 @@ export default function Finance() {
 
   const loading = projectsLoading || clientsLoading || settingsLoading;
 
-  const buckets = settingsItem?.value?.buckets || [
+  const defaultBuckets = [
     { id: '1', name: 'Employee', target: 250000 },
     { id: '2', name: 'Probation Reserve', target: 50000 },
     { id: '3', name: 'Contrack Expense', target: 75000 },
     { id: '4', name: 'Profit', target: 100000 },
     { id: '5', name: 'Company Expense', target: 25000 },
   ];
+  
+  const globalBuckets = settingsItem?.value?.buckets || defaultBuckets;
 
-  const totalTarget = buckets.reduce((sum, b) => sum + Number(b.target || 0), 0);
+  // Derive unique buckets for the table view across all projects and current globals
+  const allBucketsMap = new Map();
+  defaultBuckets.forEach(b => allBucketsMap.set(b.id, b.name));
+  globalBuckets.forEach(b => allBucketsMap.set(b.id, b.name));
+  projects.forEach(p => {
+    if (p.bucketSettings) {
+      p.bucketSettings.forEach(b => allBucketsMap.set(b.id, b.name));
+    }
+  });
+  const uniqueBuckets = Array.from(allBucketsMap.entries()).map(([id, name]) => ({ id, name }));
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -90,7 +101,7 @@ export default function Finance() {
                   <th className="px-4 py-3 text-right font-semibold">Amount Received</th>
                   <th className="px-4 py-3 text-right font-semibold">Pending</th>
                   <th className="px-4 py-3 text-right font-semibold bg-primary-800">Net Received</th>
-                  {buckets.map(bucket => (
+                  {uniqueBuckets.map(bucket => (
                     <th key={bucket.id} className="px-4 py-3 text-right font-semibold text-accent-100">
                       {bucket.name} Alloc
                     </th>
@@ -104,7 +115,7 @@ export default function Finance() {
               <tbody className="bg-white divide-y divide-neutral-100">
                 {projects.length === 0 ? (
                   <tr>
-                    <td colSpan={11 + buckets.length} className="px-6 py-12 text-center text-neutral-500">
+                    <td colSpan={11 + uniqueBuckets.length} className="px-6 py-12 text-center text-neutral-500">
                       No projects found.
                     </td>
                   </tr>
@@ -125,8 +136,11 @@ export default function Finance() {
                         <td className="px-4 py-4 text-right font-semibold text-primary-600">{formatCurrency(advanceReceived)}</td>
                         <td className="px-4 py-4 text-right text-neutral-600">{formatCurrency(pending)}</td>
                         <td className="px-4 py-4 text-right font-bold bg-neutral-50 border-x border-neutral-100">{formatCurrency(netReceived)}</td>
-                        {buckets.map(bucket => {
-                          const percent = totalTarget > 0 ? (Number(bucket.target) / totalTarget) : 0;
+                        {uniqueBuckets.map(bucket => {
+                          const projectBuckets = project.bucketSettings || defaultBuckets;
+                          const projectTotalTarget = projectBuckets.reduce((sum, b) => sum + Number(b.target || 0), 0);
+                          const matchingBucket = projectBuckets.find(b => b.id === bucket.id);
+                          const percent = matchingBucket && projectTotalTarget > 0 ? (Number(matchingBucket.target) / projectTotalTarget) : 0;
                           const allocatedAmount = netReceived * percent;
                           return (
                             <td key={bucket.id} className="px-4 py-4 text-right text-accent-700 font-semibold bg-accent-50/30 border-r border-accent-100/50">
@@ -182,7 +196,7 @@ export default function Finance() {
                     </p>
                     <p className="text-xs font-medium text-neutral-400 mt-1">{project.serviceType}</p>
                   </div>
-                  
+
                   {/* Financials */}
                   <div className="p-5 border-b border-neutral-100 bg-white">
                     <div className="grid grid-cols-2 gap-4">
@@ -208,16 +222,18 @@ export default function Finance() {
                       Allocations
                     </p>
                     <div className="space-y-3 mt-auto">
-                      {buckets.map(bucket => {
-                        const percent = totalTarget > 0 ? (Number(bucket.target) / totalTarget) : 0;
+                      {(project.bucketSettings || defaultBuckets).map(bucket => {
+                        const projectBuckets = project.bucketSettings || defaultBuckets;
+                        const projectTotalTarget = projectBuckets.reduce((sum, b) => sum + Number(b.target || 0), 0);
+                        const percent = projectTotalTarget > 0 ? (Number(bucket.target) / projectTotalTarget) : 0;
                         const allocatedAmount = netReceived * percent;
                         return (
                           <div key={bucket.id} className="flex items-center justify-between group">
                             <div className="flex items-center gap-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-accent-400"></div>
                               <span className="text-xs font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">
-                                {bucket.name} 
-                                <span className="ml-1 text-[10px] font-bold text-neutral-400">({(percent * 100).toFixed(0)}%)</span>
+                                {bucket.name}
+                                <span className="ml-1 text-[10px] font-bold text-neutral-400">({(percent * 100).toFixed(1)}%)</span>
                               </span>
                             </div>
                             <span className="text-sm font-bold text-accent-700">{formatCurrency(allocatedAmount)}</span>

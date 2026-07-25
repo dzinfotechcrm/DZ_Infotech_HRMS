@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSupabaseCollection } from '../../hooks/useSupabase';
+import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
 import { PlusIcon, FolderIcon, ChartBarIcon, ExclamationTriangleIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -20,6 +20,7 @@ const STAGES = [
 export default function ProjectsList() {
   const { items: projects, refetch: refetchProjects } = useSupabaseCollection('projects');
   const { items: clients } = useSupabaseCollection('clients');
+  const { item: settingsItem } = useSupabaseDocument('settings', 'bucket_allocations');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -45,6 +46,16 @@ export default function ProjectsList() {
         });
         const nextId = `P-${String(maxId + 1).padStart(3, '0')}`;
         payload.projectId = nextId;
+
+        // Snapshot current bucket settings
+        const currentBuckets = settingsItem?.value?.buckets || [
+          { id: '1', name: 'Employee', target: 250000 },
+          { id: '2', name: 'Probation Reserve', target: 50000 },
+          { id: '3', name: 'Contrack Expense', target: 75000 },
+          { id: '4', name: 'Profit', target: 100000 },
+          { id: '5', name: 'Company Expense', target: 25000 },
+        ];
+        payload.bucketSettings = currentBuckets;
 
         await createDocument('projects', payload);
 

@@ -57,8 +57,11 @@ export default function AdminDashboard() {
   const { items: departments } = useSupabaseCollection('departments', departmentQuery);
 
   const getEmpName = (id) => {
-    const emp = employees.find((e) => e.uid === id || e.id === id);
-    return emp ? `${emp.firstName} ${emp.lastName}`.trim() : id;
+    let emp = employees.find((e) => e.uid === id || e.id === id);
+    if (!emp) {
+      emp = interns.find((e) => e.uid === id || e.id === id);
+    }
+    return emp ? `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() : id;
   };
 
   const totalEmployees = employees.filter((employee) => employee.status !== 'inactive' && employee.role !== 'admin').length;
