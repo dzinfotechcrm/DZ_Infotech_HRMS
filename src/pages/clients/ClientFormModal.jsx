@@ -112,7 +112,7 @@ export default function ClientFormModal({ client, clients = [], employees, open,
   return (
     <Modal open={open} title={client ? "Edit Client" : "Add New Client"} onClose={onClose} size="max-w-4xl">
       <form onSubmit={handleSubmit} className="space-y-8 h-[65vh] overflow-y-auto px-2 pb-4 text-slate-900">
-        
+
         {/* Basic Info */}
         <div>
           <h4 className="mb-4 text-sm font-semibold text-slate-900 border-b border-slate-200 pb-2">Client Information</h4>

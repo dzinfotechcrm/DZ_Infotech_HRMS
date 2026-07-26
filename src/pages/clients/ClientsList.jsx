@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
-import { createDocument, updateDocument } from '../../supabase/db';
+import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
-import { PlusIcon, BriefcaseIcon, ShieldCheckIcon, DocumentTextIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, BriefcaseIcon, ShieldCheckIcon, DocumentTextIcon, ArrowTrendingUpIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ClientFormModal from './ClientFormModal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { toast } from 'react-hot-toast';
 import { formatDate } from '../../utils/dateHelpers';
 import Badge from '../../components/ui/Badge';
@@ -22,6 +23,7 @@ export default function ClientsList() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [clientToDelete, setClientToDelete] = useState(null);
 
   const handleOpenModal = (client = null) => {
     setSelectedClient(client);
@@ -41,6 +43,19 @@ export default function ClientsList() {
     } catch (err) {
       console.error(err);
       toast.error('Database operation failed');
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    if (!clientToDelete) return;
+    try {
+      await removeDocument('clients', clientToDelete.id);
+      toast.success('Client deleted successfully');
+      setClientToDelete(null);
+      refetch();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete client');
     }
   };
 
@@ -143,12 +158,13 @@ export default function ClientsList() {
                 <th className="px-6 py-4 font-semibold">Since</th>
                 <th className="px-6 py-4 font-semibold text-center">Owner</th>
                 <th className="px-6 py-4 font-semibold text-right">Status</th>
+                <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
               {clients.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-neutral-500">
+                  <td colSpan="8" className="px-6 py-12 text-center text-neutral-500">
                     No clients found. Add your first client to get started.
                   </td>
                 </tr>
@@ -190,6 +206,18 @@ export default function ClientsList() {
                           {client.status || 'Active'}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setClientToDelete(client);
+                          }}
+                          className="p-1 text-neutral-400 hover:text-danger-600 transition-colors"
+                          title="Delete Client"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
@@ -206,6 +234,16 @@ export default function ClientsList() {
         employees={employees}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveClient}
+      />
+
+      <ConfirmModal
+        open={!!clientToDelete}
+        title="Delete Client"
+        message={`Are you sure you want to delete ${clientToDelete?.companyName || 'this client'}? This action cannot be undone.`}
+        confirmText="Delete"
+        confirmVariant="danger"
+        onConfirm={handleDeleteClient}
+        onCancel={() => setClientToDelete(null)}
       />
     </div>
   );
