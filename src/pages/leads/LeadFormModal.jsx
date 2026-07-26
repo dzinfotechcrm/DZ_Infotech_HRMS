@@ -28,7 +28,7 @@ const STAGES = [
 
 const SERVICES_LIST = [
   'Static Website', 'Dynamic Website', 'Ecommerce Website',
-  'CRM', 'ERP', 'AI Chatbot', 'AI Automation'
+  'CRM', 'ERP', 'AI Chatbot', 'AI Automation', 'Whatsapp API'
 ];
 
 const INITIAL_STATE = {

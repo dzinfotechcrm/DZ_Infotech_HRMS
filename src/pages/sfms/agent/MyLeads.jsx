@@ -26,7 +26,7 @@ const formatCurrency = (value) => {
 
 const SERVICES_LIST = [
   'Static Website', 'Dynamic Website', 'Ecommerce Website',
-  'CRM', 'ERP', 'AI Chatbot', 'AI Automation', 'ConTrack'
+  'CRM', 'ERP', 'AI Chatbot', 'AI Automation', 'Whatsapp API', 'ConTrack'
 ];
 
 const STAGES = ['Assigned', 'Contacted', 'Meeting Scheduled', 'Meeting Completed', 'Proposal Sent', 'Negotiation', 'Won', 'Lost'];

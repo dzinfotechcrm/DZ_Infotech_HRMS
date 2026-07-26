@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button';
 
 const SERVICES_LIST = [
   'Static Website', 'Dynamic Website', 'Ecommerce Website',
-  'CRM', 'ERP', 'AI Chatbot', 'AI Automation'
+  'CRM', 'ERP', 'AI Chatbot', 'AI Automation', 'Whatsapp API'
 ];
 
 export default function MeetingCompletedModal({ open, onClose, onSubmit, leadName }) {

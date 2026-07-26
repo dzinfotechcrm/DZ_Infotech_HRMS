@@ -13,7 +13,8 @@ const SERVICE_TYPES = [
   'CRM',
   'ERP',
   'AI Chatbot',
-  'AI Automation'
+  'AI Automation',
+  'Whatsapp API'
 ];
 
 const STAGES = [

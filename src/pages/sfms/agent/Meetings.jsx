@@ -33,6 +33,7 @@ const SERVICE_OPTIONS = [
   'ERP',
   'AI Chatbot',
   'AI Automation',
+  'Whatsapp API',
   'ConTrack'
 ];
 
