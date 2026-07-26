@@ -146,7 +146,7 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
   return (
     <Modal open={open} title={project ? "Edit Project" : "New Project"} onClose={onClose} size="max-w-4xl">
       <form onSubmit={handleSubmit} className="space-y-8 h-[70vh] overflow-y-auto px-2 pb-4 text-slate-900">
-        
+
         {/* Basic Info */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-neutral-900 border-b border-neutral-200 pb-2">Basic Information</h3>
@@ -253,8 +253,8 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
                     <a href={formData.files[category]} target="_blank" rel="noreferrer" className="text-sm text-primary-600 hover:underline truncate max-w-[200px]">
                       View Uploaded File
                     </a>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => setFormData(prev => {
                         const newFiles = { ...prev.files };
                         delete newFiles[category];
@@ -267,15 +267,15 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
                   </div>
                 ) : (
                   <div>
-                    <input 
-                      type="file" 
-                      id={`file-${category}`} 
-                      className="hidden" 
-                      onChange={(e) => handleFileUpload(e, category)} 
+                    <input
+                      type="file"
+                      id={`file-${category}`}
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, category)}
                       disabled={uploading}
                     />
-                    <label 
-                      htmlFor={`file-${category}`} 
+                    <label
+                      htmlFor={`file-${category}`}
                       className={`cursor-pointer inline-flex items-center justify-center px-3 py-1.5 border border-neutral-300 shadow-sm text-xs font-medium rounded text-neutral-700 bg-white hover:bg-neutral-50 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       Upload File
