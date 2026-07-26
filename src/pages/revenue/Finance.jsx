@@ -51,6 +51,12 @@ export default function Finance() {
     });
   };
 
+  const sortedProjects = [...projects].sort((a, b) => {
+    const dateA = new Date(a.created_at || a.startDate || 0);
+    const dateB = new Date(b.created_at || b.startDate || 0);
+    return dateA - dateB;
+  });
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -113,14 +119,14 @@ export default function Finance() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-neutral-100">
-                {projects.length === 0 ? (
+                {sortedProjects.length === 0 ? (
                   <tr>
                     <td colSpan={11 + uniqueBuckets.length} className="px-6 py-12 text-center text-neutral-500">
                       No projects found.
                     </td>
                   </tr>
                 ) : (
-                  projects.map((project) => {
+                  sortedProjects.map((project) => {
                     const client = clients.find(c => c.id === project.clientId);
                     const totalAmount = parseFloat(project.totalValue) || 0;
                     const advanceReceived = parseFloat(project.advanceReceived) || 0;
@@ -168,12 +174,12 @@ export default function Finance() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {projects.length === 0 ? (
+          {sortedProjects.length === 0 ? (
             <div className="col-span-full py-12 text-center text-neutral-500 bg-white rounded-xl border border-neutral-200">
               No projects found.
             </div>
           ) : (
-            projects.map((project) => {
+            sortedProjects.map((project) => {
               const client = clients.find(c => c.id === project.clientId);
               const totalAmount = parseFloat(project.totalValue) || 0;
               const advanceReceived = parseFloat(project.advanceReceived) || 0;
