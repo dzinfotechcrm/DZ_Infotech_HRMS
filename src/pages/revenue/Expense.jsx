@@ -26,6 +26,8 @@ export default function Expense() {
     { value: 'Marketing', label: 'Marketing' },
     { value: 'Travel', label: 'Travel' },
     { value: 'Utilities', label: 'Utilities' },
+    { value: 'Rent', label: 'Rent' },
+    { value: 'Salary', label: 'Salary' },
     { value: 'Other', label: 'Other' },
   ];
 

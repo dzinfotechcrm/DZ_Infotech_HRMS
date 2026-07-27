@@ -5,7 +5,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import { useSupabaseDocument } from '../../hooks/useSupabase';
+import { useSupabaseDocument, useSupabaseCollection } from '../../hooks/useSupabase';
 import { upsertDocument } from '../../supabase/db';
 
 const defaultBuckets = [
@@ -17,20 +17,23 @@ const defaultBuckets = [
 ];
 
 export default function BucketSettings() {
-  const { item: settingsItem, loading } = useSupabaseDocument('settings', 'bucket_allocations');
+  const { item: settingsItem, loading: settingsLoading } = useSupabaseDocument('settings', 'bucket_allocations');
+  const { items: projects = [], loading: projectsLoading } = useSupabaseCollection('projects');
+  
+  const loading = settingsLoading || projectsLoading;
   const [buckets, setBuckets] = useState([]);
   const [editingBucket, setEditingBucket] = useState(null);
   const [previewTarget, setPreviewTarget] = useState('');
 
   useEffect(() => {
-    if (!loading) {
+    if (!settingsLoading) {
       if (settingsItem?.value?.buckets) {
         setBuckets(settingsItem.value.buckets);
       } else {
         setBuckets(defaultBuckets);
       }
     }
-  }, [settingsItem, loading]);
+  }, [settingsItem, settingsLoading]);
 
   useEffect(() => {
     setPreviewTarget(editingBucket?.target || '');
@@ -103,9 +106,31 @@ export default function BucketSettings() {
     return ((amount / totalTarget) * 100).toFixed(1) + '%';
   };
 
+  const filledAmounts = {};
+  buckets.forEach(b => filledAmounts[b.id] = 0);
+
+  if (projects) {
+    projects.forEach(project => {
+      const netReceived = parseFloat(project.advanceReceived) || 0;
+      const projectBuckets = project.bucketSettings || buckets;
+      const projectTotalTarget = projectBuckets.reduce((sum, b) => sum + Number(b.target || 0), 0);
+      
+      projectBuckets.forEach(pb => {
+        const percent = projectTotalTarget > 0 ? (Number(pb.target) / projectTotalTarget) : 0;
+        const allocatedAmount = netReceived * percent;
+        const globalBucket = buckets.find(b => b.name === pb.name || b.id === pb.id);
+        if (globalBucket) {
+           filledAmounts[globalBucket.id] = (filledAmounts[globalBucket.id] || 0) + allocatedAmount;
+        }
+      });
+    });
+  }
+
   if (loading) {
     return <div className="p-6 text-center text-neutral-500">Loading bucket settings...</div>;
   }
+
+  const totalFilledAmount = Object.values(filledAmounts).reduce((sum, amount) => sum + amount, 0);
 
   return (
     <div className="space-y-6">
@@ -115,6 +140,26 @@ export default function BucketSettings() {
         description="Configure target amounts for different buckets. Percentages are auto-calculated based on the total target."
         actions={<Button onClick={saveSettings}>Save Settings</Button>}
       />
+
+      {buckets.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {buckets.map(bucket => {
+            const filledAmount = filledAmounts[bucket.id] || 0;
+            return (
+              <Card key={bucket.id} className="p-4 border-l-4 border-l-emerald-500">
+                <h3 className="text-sm font-semibold text-neutral-600 truncate" title={bucket.name}>{bucket.name}</h3>
+                <p className="text-xl font-bold text-neutral-900 mt-1">{formatCurrency(filledAmount)}</p>
+                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mt-2">Amount Filled</p>
+              </Card>
+            );
+          })}
+          <Card className="p-4 border-l-4 border-l-primary-600 bg-primary-50/50">
+            <h3 className="text-sm font-semibold text-primary-900 truncate" title="Total Filled">Total Filled</h3>
+            <p className="text-xl font-black text-primary-900 mt-1">{formatCurrency(totalFilledAmount)}</p>
+            <p className="text-[10px] font-bold text-primary-600/80 uppercase tracking-wider mt-2">All Buckets Combined</p>
+          </Card>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="xl:col-span-1 space-y-6">
