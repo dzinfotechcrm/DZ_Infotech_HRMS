@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useSupabaseCollection } from '../../hooks/useSupabase';
+import { useState, useMemo } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument, query, orderBy } from '../../supabase/db';
 import toast from 'react-hot-toast';
 import PageHeader from '../../components/ui/PageHeader';
@@ -14,13 +15,26 @@ import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 const expensesQuery = (base) => query(base, orderBy('date', 'desc'));
 
 export default function Expense() {
-  const { items: expenses, loading } = useSupabaseCollection('expenses', expensesQuery);
+  const { items: expenses, loading: expensesLoading } = useSupabaseCollection('expenses', expensesQuery);
+  const { item: settingsItem, loading: settingsLoading } = useSupabaseDocument('settings', 'bucket_allocations');
   const [showModal, setShowModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [newExpense, setNewExpense] = useState({ date: new Date().toISOString().split('T')[0], category: 'Software Subscriptions', description: '', amount: '' });
 
-  const categories = [
+  const loading = expensesLoading || settingsLoading;
+
+  const defaultBuckets = [
+    { id: '1', name: 'Employee', target: 250000 },
+    { id: '2', name: 'Probation Reserve', target: 50000 },
+    { id: '3', name: 'Contrack Expense', target: 75000 },
+    { id: '4', name: 'Profit', target: 100000 },
+    { id: '5', name: 'Company Expense', target: 25000 },
+  ];
+  
+  const globalBuckets = settingsItem?.value?.buckets || defaultBuckets;
+
+  const standardCategories = [
     { value: 'Software Subscriptions', label: 'Software Subscriptions' },
     { value: 'Office Supplies', label: 'Office Supplies' },
     { value: 'Marketing', label: 'Marketing' },
@@ -30,6 +44,13 @@ export default function Expense() {
     { value: 'Salary', label: 'Salary' },
     { value: 'Other', label: 'Other' },
   ];
+
+  const categories = [...standardCategories];
+  globalBuckets.forEach(b => {
+    if (!categories.find(c => c.value === b.name)) {
+      categories.push({ value: b.name, label: b.name });
+    }
+  });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -110,6 +131,44 @@ export default function Expense() {
 
   const totalExpense = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
 
+  const COLORS = ['#0ea5e9', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#14b8a6'];
+
+  const categoryData = useMemo(() => {
+    const data = categories.map(cat => ({
+      name: cat.label,
+      value: expenses.filter(e => e.category === cat.value).reduce((sum, e) => sum + Number(e.amount || 0), 0)
+    })).filter(item => item.value > 0);
+    return data.sort((a, b) => b.value - a.value);
+  }, [expenses]);
+
+  const timeData = useMemo(() => {
+    const expensesByDate = expenses.reduce((acc, exp) => {
+      const date = exp.date;
+      if (!acc[date]) acc[date] = 0;
+      acc[date] += Number(exp.amount || 0);
+      return acc;
+    }, {});
+    
+    return Object.keys(expensesByDate).sort().map(date => ({
+      date: formatDate(date),
+      amount: expensesByDate[date]
+    }));
+  }, [expenses]);
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border border-neutral-200 shadow-lg rounded-lg p-3 text-sm">
+          <p className="font-semibold text-neutral-800 mb-1">{label || payload[0].name}</p>
+          <p className="text-primary-600 font-bold">
+            {formatCurrency(payload[0].value)}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -133,11 +192,55 @@ export default function Expense() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="p-6 border-primary-100 bg-primary-50/30">
+        <Card className="p-6 border-primary-100 bg-primary-50/30 md:col-span-3 lg:col-span-1 flex flex-col justify-center">
           <div className="text-sm font-semibold uppercase tracking-wider text-primary-800 mb-2">Total Expenses</div>
           <div className="text-4xl font-black text-primary-900">{formatCurrency(totalExpense)}</div>
         </Card>
       </div>
+
+      {expenses.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="p-6">
+            <h3 className="text-lg font-bold text-neutral-800 mb-6">Expenses by Category</h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-lg font-bold text-neutral-800 mb-6">Expense Trend</h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={timeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} tickFormatter={(val) => formatCurrency(val)} />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
+      )}
 
       <Card className="p-0 overflow-hidden shadow-sm border border-neutral-200">
         <div className="overflow-x-auto">

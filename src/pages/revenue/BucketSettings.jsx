@@ -19,7 +19,7 @@ const defaultBuckets = [
 export default function BucketSettings() {
   const { item: settingsItem, loading: settingsLoading } = useSupabaseDocument('settings', 'bucket_allocations');
   const { items: projects = [], loading: projectsLoading } = useSupabaseCollection('projects');
-  
+
   const loading = settingsLoading || projectsLoading;
   const [buckets, setBuckets] = useState([]);
   const [editingBucket, setEditingBucket] = useState(null);
@@ -114,13 +114,13 @@ export default function BucketSettings() {
       const netReceived = parseFloat(project.advanceReceived) || 0;
       const projectBuckets = project.bucketSettings || buckets;
       const projectTotalTarget = projectBuckets.reduce((sum, b) => sum + Number(b.target || 0), 0);
-      
+
       projectBuckets.forEach(pb => {
         const percent = projectTotalTarget > 0 ? (Number(pb.target) / projectTotalTarget) : 0;
         const allocatedAmount = netReceived * percent;
         const globalBucket = buckets.find(b => b.name === pb.name || b.id === pb.id);
         if (globalBucket) {
-           filledAmounts[globalBucket.id] = (filledAmounts[globalBucket.id] || 0) + allocatedAmount;
+          filledAmounts[globalBucket.id] = (filledAmounts[globalBucket.id] || 0) + allocatedAmount;
         }
       });
     });
