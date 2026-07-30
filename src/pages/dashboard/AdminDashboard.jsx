@@ -9,7 +9,7 @@ import {
   UsersIcon,
   GiftIcon,
 } from '@heroicons/react/24/outline';
-import { AreaChart, Area, BarChart, Bar, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell } from 'recharts';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
@@ -49,12 +49,14 @@ export default function AdminDashboard() {
   const attendanceQuery = useMemo(() => (base) => query(base, orderBy('date', 'desc'), limit(30)), []);
   const leaveQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc'), limit(5)), []);
   const departmentQuery = useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []);
+  const expensesQuery = useMemo(() => (base) => query(base, orderBy('date', 'desc')), []);
 
   const { items: employees, loading: loadingEmployees } = useSupabaseCollection('employees', employeesQuery);
   const { items: interns, loading: loadingInterns } = useSupabaseCollection('interns');
   const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
   const { items: departments } = useSupabaseCollection('departments', departmentQuery);
+  const { items: expenses } = useSupabaseCollection('expenses', expensesQuery);
 
   const getEmpName = (id) => {
     let emp = employees.find((e) => e.uid === id || e.id === id);
@@ -122,6 +124,39 @@ export default function AdminDashboard() {
       ts: getTimestamp(leaveRequest.createdAt)
     })),
   ].sort((a, b) => b.ts - a.ts).slice(0, 5);
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  const expenseCategoryData = useMemo(() => {
+    const sums = {};
+    expenses.forEach(e => {
+       const cat = e.category || 'Other';
+       sums[cat] = (sums[cat] || 0) + Number(e.amount || 0);
+    });
+    return Object.keys(sums).map(key => ({ name: key, value: sums[key] })).sort((a, b) => b.value - a.value);
+  }, [expenses]);
+
+  const expenseTimeData = useMemo(() => {
+    const expensesByDate = expenses.reduce((acc, exp) => {
+      const date = exp.date;
+      if (!acc[date]) acc[date] = 0;
+      acc[date] += Number(exp.amount || 0);
+      return acc;
+    }, {});
+    
+    return Object.keys(expensesByDate).sort().map(date => ({
+      date: formatDate(date, 'dd MMM'),
+      amount: expensesByDate[date]
+    }));
+  }, [expenses]);
+
+  const COLORS = ['#0ea5e9', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#14b8a6'];
 
   return (
     <div className="space-y-6">
@@ -198,6 +233,54 @@ export default function AdminDashboard() {
                 <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} stroke="#94A3B8" />
                 <Tooltip />
                 <Bar dataKey="count" fill="#14B8A6" radius={[0, 10, 10, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="p-5">
+          <div className="mb-4">
+            <h2 className="section-title">Expenses by Category</h2>
+            <p className="muted-text">Distribution of expenses</p>
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={expenseCategoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={60}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {expenseCategoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="mb-4">
+            <h2 className="section-title">Expense Trend</h2>
+            <p className="muted-text">Daily expenses</p>
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={expenseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={(val) => formatCurrency(val)} />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>

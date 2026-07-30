@@ -219,6 +219,10 @@ export default function AttendanceList() {
               }
             }
           } else {
+            const dateObj = new Date(d);
+            const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+            if (isWeekend) continue;
+
             const onLeave = leaveRequests.find(lr => {
               const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
               const isApproved = lr.status === 'approved';
@@ -267,6 +271,10 @@ export default function AttendanceList() {
             virtualRows.push(att);
             continue;
           }
+
+          const dateObj = new Date(d);
+          const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+          if (isWeekend) continue;
 
           const onLeave = leaveRequests.find(lr => {
             const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
@@ -355,6 +363,10 @@ export default function AttendanceList() {
               virtualRows.push(att);
               continue;
             }
+
+            const dateObj = new Date(d);
+            const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+            if (isWeekend) continue;
 
             const onLeave = leaveRequests.find(lr => {
               const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
@@ -456,6 +468,10 @@ export default function AttendanceList() {
           continue;
         }
 
+        const dateObj = new Date(d);
+        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+        if (isWeekend) continue;
+
         const onLeave = leaveRequests.find(lr => {
           const isMatch = lr.employeeId === emp.uid || lr.employeeId === emp.id;
           const isApproved = lr.status === 'approved';
@@ -536,21 +552,19 @@ export default function AttendanceList() {
         <div className="flex bg-slate-100/80 p-1 rounded-xl w-fit mb-4 mt-6 border border-slate-200/60 shadow-sm">
           <button
             onClick={() => { setActiveTab('employees'); setCurrentPage(1); }}
-            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              activeTab === 'employees' 
-                ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-            }`}
+            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${activeTab === 'employees'
+              ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
           >
             Employee / Manager
           </button>
           <button
             onClick={() => { setActiveTab('interns'); setCurrentPage(1); }}
-            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              activeTab === 'interns' 
-                ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-            }`}
+            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${activeTab === 'interns'
+              ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50'
+              : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+              }`}
           >
             Interns
           </button>
