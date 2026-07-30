@@ -174,15 +174,17 @@ export default function LeaveApproval({ isTab = false, empTypeTab = 'employees' 
         const employeeId = request.employeeId;
         const days = request.totalDays || daysBetween(request.fromDate, request.toDate);
         
-        let quotaKey = '';
-        const leaveTypeName = (request.leaveTypeName || request.leaveType || request.leaveTypeId || '').toLowerCase();
-        if (leaveTypeName.includes('paid')) quotaKey = 'paid_leaves';
-        else if (leaveTypeName.includes('casual')) quotaKey = 'casual_leaves';
-        else if (leaveTypeName.includes('sick') || leaveTypeName.includes('medical')) quotaKey = 'sick_leaves';
+        const requestEmp = allEmployees.find(e => e.uid === employeeId || e.id === employeeId);
 
-        if (quotaKey) {
-          const requestEmp = allEmployees.find(e => e.uid === employeeId || e.id === employeeId);
-          if (requestEmp) {
+        if (requestEmp && requestEmp.role !== 'intern') {
+          let quotaKey = '';
+          const leaveTypeName = (request.leaveTypeName || request.leaveType || request.leaveTypeId || '').toLowerCase().trim();
+          
+          if (leaveTypeName === 'paid leave') quotaKey = 'paid_leaves';
+          else if (leaveTypeName === 'casual leave') quotaKey = 'casual_leaves';
+          else if (leaveTypeName === 'sick leave' || leaveTypeName === 'medical leave') quotaKey = 'sick_leaves';
+
+          if (quotaKey) {
             const currentUsed = Number(requestEmp[quotaKey + '_used'] || requestEmp.data?.[quotaKey + '_used'] || 0);
             await updateDocument('employees', requestEmp.id, {
               data: {

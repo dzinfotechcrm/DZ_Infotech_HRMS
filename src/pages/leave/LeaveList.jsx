@@ -206,6 +206,24 @@ export default function LeaveList() {
       ? othersLeaves.filter(item => String(item.status || '').toLowerCase().trim() === 'pending').length
       : 0;
 
+  const pendingEmployeeLeavesCount = isAdmin
+    ? leaveRequests.filter(req => {
+      if (String(req.status || '').toLowerCase().trim() !== 'pending' || req.employeeId === user?.uid) return false;
+      const requestEmp = allEmployees.find(e => e.uid === req.employeeId || e.id === req.employeeId);
+      const empRole = requestEmp?.role || '';
+      return empRole !== 'intern';
+    }).length
+    : 0;
+
+  const pendingInternLeavesCount = isAdmin
+    ? leaveRequests.filter(req => {
+      if (String(req.status || '').toLowerCase().trim() !== 'pending' || req.employeeId === user?.uid) return false;
+      const requestEmp = allEmployees.find(e => e.uid === req.employeeId || e.id === req.employeeId);
+      const empRole = requestEmp?.role || '';
+      return empRole === 'intern';
+    }).length
+    : 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -223,24 +241,34 @@ export default function LeaveList() {
         <div className="flex bg-slate-100/80 p-1 rounded-xl w-fit mb-4 mt-6 border border-slate-200/60 shadow-sm">
           <button
             onClick={() => setEmpTypeTab('employees')}
-            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${empTypeTab === 'employees'
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${empTypeTab === 'employees'
                 ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50'
                 : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               }`}
           >
             Employee / Manager
+            {pendingEmployeeLeavesCount > 0 && (
+              <span className={`px-2 py-0.5 text-xs rounded-full ${empTypeTab === 'employees' ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-600'}`}>
+                {pendingEmployeeLeavesCount}
+              </span>
+            )}
           </button>
           <button
             onClick={() => {
               setEmpTypeTab('interns');
               if (activeTab === 'reviewedByManager') setActiveTab('approvalQueue');
             }}
-            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${empTypeTab === 'interns'
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${empTypeTab === 'interns'
                 ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50'
                 : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               }`}
           >
             Interns
+            {pendingInternLeavesCount > 0 && (
+              <span className={`px-2 py-0.5 text-xs rounded-full ${empTypeTab === 'interns' ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-600'}`}>
+                {pendingInternLeavesCount}
+              </span>
+            )}
           </button>
         </div>
       )}

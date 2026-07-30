@@ -108,35 +108,40 @@ export default function LeaveForm({ mode = 'create' }) {
       }
 
       const typeDoc = leaveTypes.find(t => t.id === values.leaveTypeId);
-      const leaveTypeName = typeDoc ? typeDoc.name : (isIntern ? 'Intern Leave' : '');
+      const leaveTypeName = typeDoc ? typeDoc.name : (isIntern ? (values.leaveTypeId === 'unpaid-leave' ? 'Unpaid Leave' : 'Intern Leave') : '');
       const totalDays = daysBetween(values.fromDate, values.toDate);
 
       // Quota validation
       if (currentEmployee) {
         if (isIntern) {
           // Intern monthly limit check
-          const now = new Date(values.fromDate);
+          if (leaveTypeName !== 'Unpaid Leave') {
+            const now = new Date(values.fromDate);
 
-          let existingLeaves = [];
-          if (employeeDbId) {
-            existingLeaves = await fetchCollection('leaveRequests', (base) =>
-              query(base, where('employeeId', '==', employeeDbId), where('status', 'in', ['approved', 'pending']))
-            );
-          }
+            let existingLeaves = [];
+            if (employeeDbId) {
+              existingLeaves = await fetchCollection('leaveRequests', (base) =>
+                query(base, where('employeeId', '==', employeeDbId), where('status', 'in', ['approved', 'pending']))
+              );
+            }
 
-          const currentMonthLeaves = existingLeaves.filter(leave => {
-            if (mode === 'edit' && leave.id === id) return false;
-            const leaveDate = new Date(leave.data?.fromDate || leave.fromDate || leave.from_date);
-            return leaveDate.getMonth() === now.getMonth() && leaveDate.getFullYear() === now.getFullYear();
-          });
+            const currentMonthLeaves = existingLeaves.filter(leave => {
+              if (mode === 'edit' && leave.id === id) return false;
+              const typeName = leave.data?.leaveTypeName || leave.leaveTypeName;
+              if (typeName === 'Unpaid Leave') return false;
 
-          const used = currentMonthLeaves.reduce((acc, curr) => acc + (curr.totalDays || curr.data?.totalDays || 0), 0);
-          const total = Number(currentEmployee.max_leave_per_month || 0);
-          const remaining = total - used;
+              const leaveDate = new Date(leave.data?.fromDate || leave.fromDate || leave.from_date);
+              return leaveDate.getMonth() === now.getMonth() && leaveDate.getFullYear() === now.getFullYear();
+            });
 
-          if (totalDays > remaining) {
-            toast.error(`You have only ${remaining} days remaining this month.`);
-            return;
+            const used = currentMonthLeaves.reduce((acc, curr) => acc + (curr.totalDays || curr.data?.totalDays || 0), 0);
+            const total = Number(currentEmployee.max_leave_per_month || 0);
+            const remaining = total - used;
+
+            if (totalDays > remaining) {
+              toast.error(`You have only ${remaining} days remaining this month.`);
+              return;
+            }
           }
         } else {
           // Employee bucket limit check
@@ -262,7 +267,10 @@ export default function LeaveForm({ mode = 'create' }) {
               })}
             </Select>
           ) : (
-            <Input label="Leave Type" value="Intern Leave" disabled />
+            <Select label="Leave Type" {...register('leaveTypeId', { required: 'Leave type is required' })} error={errors.leaveTypeId?.message}>
+              <option value="intern-leave">Intern Leave</option>
+              <option value="unpaid-leave">Unpaid Leave</option>
+            </Select>
           )}
           <Input type="file" label="Attachment (optional)" accept="application/pdf,image/*" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
           <Input
