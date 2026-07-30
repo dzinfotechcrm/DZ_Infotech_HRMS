@@ -629,14 +629,10 @@ export default function AttendanceList() {
       </Modal>
 
       {isEmployee && (
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           <Card className="p-4 flex flex-col items-center justify-center bg-success-50 border-success-100 text-success-900">
             <div className="text-sm font-medium uppercase tracking-wider">Present</div>
             <div className="text-3xl font-bold mt-1">{presentCount}</div>
-          </Card>
-          <Card className="p-4 flex flex-col items-center justify-center bg-warning-50 border-warning-100 text-warning-900">
-            <div className="text-sm font-medium uppercase tracking-wider">Late</div>
-            <div className="text-3xl font-bold mt-1">{lateCount}</div>
           </Card>
           <Card className="p-4 flex flex-col items-center justify-center bg-primary-50 border-primary-100 text-primary-900">
             <div className="text-sm font-medium uppercase tracking-wider">On Leave</div>
