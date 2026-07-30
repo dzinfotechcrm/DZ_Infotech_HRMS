@@ -19,8 +19,9 @@ const defaultBuckets = [
 export default function BucketSettings() {
   const { item: settingsItem, loading: settingsLoading } = useSupabaseDocument('settings', 'bucket_allocations');
   const { items: projects = [], loading: projectsLoading } = useSupabaseCollection('projects');
+  const { items: expenses = [], loading: expensesLoading } = useSupabaseCollection('expenses');
 
-  const loading = settingsLoading || projectsLoading;
+  const loading = settingsLoading || projectsLoading || expensesLoading;
   const [buckets, setBuckets] = useState([]);
   const [editingBucket, setEditingBucket] = useState(null);
   const [previewTarget, setPreviewTarget] = useState('');
@@ -117,12 +118,21 @@ export default function BucketSettings() {
 
       projectBuckets.forEach(pb => {
         const percent = projectTotalTarget > 0 ? (Number(pb.target) / projectTotalTarget) : 0;
-        const allocatedAmount = netReceived * percent;
+        const allocatedAmount = Math.round(netReceived * percent);
         const globalBucket = buckets.find(b => b.name === pb.name || b.id === pb.id);
         if (globalBucket) {
           filledAmounts[globalBucket.id] = (filledAmounts[globalBucket.id] || 0) + allocatedAmount;
         }
       });
+    });
+  }
+
+  if (expenses) {
+    expenses.forEach(expense => {
+      const globalBucket = buckets.find(b => b.name === expense.category);
+      if (globalBucket) {
+        filledAmounts[globalBucket.id] = (filledAmounts[globalBucket.id] || 0) - Number(expense.amount || 0);
+      }
     });
   }
 

@@ -35,6 +35,10 @@ export default function AttendanceControl({ user }) {
   const hasCheckedIn = !!todayRecord?.checkIn;
   const hasCheckedOut = !!todayRecord?.checkOut;
 
+  const breaks = todayRecord?.data?.breaks || [];
+  const activeBreak = breaks.find(b => !b.out);
+  const isOnBreak = !!activeBreak;
+
   const isOnLeaveToday = useMemo(() => {
     return approvedLeaves.some(leave => todayStr >= leave.fromDate && todayStr <= leave.toDate);
   }, [approvedLeaves, todayStr]);
@@ -60,6 +64,7 @@ export default function AttendanceControl({ user }) {
           checkIn: timeStr,
           checkOut: '',
           notes: '',
+          breaks: [],
           markedBy: user.uid,
           markedByName: user.displayName,
           timestamp: serverTimestamp(),
@@ -108,6 +113,60 @@ export default function AttendanceControl({ user }) {
     }
   };
 
+  const handleBreakIn = async () => {
+    if (!user || !todayRecord) return;
+    setLoading(true);
+    try {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+      
+      const updatedBreaks = [...(todayRecord.data?.breaks || []), { in: timeStr, out: null }];
+      
+      await updateDocument('attendance', todayRecord.id, {
+        data: {
+          ...(todayRecord.data || {}),
+          breaks: updatedBreaks,
+          timestamp: serverTimestamp(),
+        }
+      });
+      toast.success('Break started!');
+      refetchAttendance();
+    } catch (error) {
+      toast.error('Failed to start break');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBreakOut = async () => {
+    if (!user || !todayRecord) return;
+    setLoading(true);
+    try {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+      
+      const currentBreaks = todayRecord.data?.breaks || [];
+      const updatedBreaks = currentBreaks.map(b => {
+        if (!b.out) return { ...b, out: timeStr };
+        return b;
+      });
+      
+      await updateDocument('attendance', todayRecord.id, {
+        data: {
+          ...(todayRecord.data || {}),
+          breaks: updatedBreaks,
+          timestamp: serverTimestamp(),
+        }
+      });
+      toast.success('Break ended!');
+      refetchAttendance();
+    } catch (error) {
+      toast.error('Failed to end break');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -131,11 +190,24 @@ export default function AttendanceControl({ user }) {
               </Button>
             ) : !hasCheckedOut ? (
               <>
-                <div className="px-4 py-2 bg-emerald-100 text-emerald-800 rounded-xl font-semibold flex items-center gap-2 text-sm">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Checked In at {todayRecord.checkIn}
+                <div className={`px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm ${isOnBreak ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                  <span className={`w-2 h-2 rounded-full animate-pulse ${isOnBreak ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                  {isOnBreak ? `On Break since ${activeBreak.in}` : `Checked In at ${todayRecord.checkIn}`}
                 </div>
-                <Button disabled={isOnLeaveToday} onClick={() => setCheckOutModalOpen(true)} className="gap-2 bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                
+                {isOnBreak ? (
+                  <Button disabled={isOnLeaveToday || loading} onClick={handleBreakOut} className="gap-2 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50">
+                    <StopIcon className="h-5 w-5" />
+                    Break Out
+                  </Button>
+                ) : (
+                  <Button disabled={isOnLeaveToday || loading} onClick={handleBreakIn} className="gap-2 bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50">
+                    <PlayIcon className="h-5 w-5" />
+                    Break In
+                  </Button>
+                )}
+
+                <Button disabled={isOnLeaveToday || isOnBreak} onClick={() => setCheckOutModalOpen(true)} className="gap-2 bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
                   <StopIcon className="h-5 w-5" />
                   Check Out
                 </Button>

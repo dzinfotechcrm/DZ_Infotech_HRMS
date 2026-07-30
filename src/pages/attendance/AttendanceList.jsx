@@ -128,6 +128,7 @@ export default function AttendanceList() {
       'Status': row.status || '',
       'Check In': row.checkIn || '',
       'Check Out': row.checkOut || '',
+      'Breaks': (row.data?.breaks || []).map(b => `${b.in}-${b.out || '...'}`).join(', '),
       'Notes': row.notes || '',
     }));
 
@@ -210,11 +211,28 @@ export default function AttendanceList() {
                 const ci = parseTime(att.checkIn);
                 const co = parseTime(att.checkOut);
                 if (!isNaN(ci) && !isNaN(co)) {
+                  let hours = 0;
                   if (co >= ci) {
-                    summary.totalWorkingHours += (co - ci);
+                    hours = (co - ci);
                   } else {
-                    summary.totalWorkingHours += (24 - ci + co);
+                    hours = (24 - ci + co);
                   }
+
+                  const breaks = att.data?.breaks || [];
+                  for (const b of breaks) {
+                    if (b.in && b.out) {
+                      const bi = parseTime(b.in);
+                      const bo = parseTime(b.out);
+                      if (!isNaN(bi) && !isNaN(bo)) {
+                        let breakHours = 0;
+                        if (bo >= bi) breakHours = (bo - bi);
+                        else breakHours = (24 - bi + bo);
+                        hours -= breakHours;
+                      }
+                    }
+                  }
+
+                  summary.totalWorkingHours += hours;
                 }
               }
             }
@@ -641,6 +659,7 @@ export default function AttendanceList() {
             ...(!isMonthlySummary ? [{ key: 'status', label: 'Status' }] : [{ key: 'totalPresentDays', label: 'Total Present Days' }]),
             ...(!isMonthlySummary ? [{ key: 'checkIn', label: 'Check In' }] : []),
             ...(!isMonthlySummary ? [{ key: 'checkOut', label: 'Check Out' }] : []),
+            ...(!isMonthlySummary ? [{ key: 'breaks', label: 'Breaks' }] : []),
             ...(isMonthlySummary ? [{ key: 'totalWorkingHours', label: 'Total Working Hours This Month' }] : []),
             ...(!isMonthlySummary ? [{ key: 'notes', label: 'Notes' }] : [])
           ]}
@@ -656,6 +675,19 @@ export default function AttendanceList() {
                   <td className="px-4 py-3"><Badge tone={item.status === 'present' ? 'success' : item.status === 'late' ? 'warning' : item.status === 'absent' ? 'danger' : item.status === 'On Leave' ? 'primary' : 'neutral'}>{item.status}</Badge></td>
                   <td className="px-4 py-3 whitespace-nowrap">{item.checkIn || '—'}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{item.checkOut || '—'}</td>
+                  <td className="px-4 py-3 min-w-[120px]">
+                    {item.data?.breaks?.length ? (
+                      <div className="flex flex-col gap-1">
+                        {item.data.breaks.map((b, i) => (
+                          <span key={i} className="text-[10px] font-medium bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-100/50 w-fit whitespace-nowrap">
+                            {b.in} - {b.out || '...'}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 min-w-[120px]">
                     {item.notes ? (
                       <Button
