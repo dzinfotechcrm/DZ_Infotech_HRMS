@@ -1,0 +1,290 @@
+DZ INFOTECH
+DZ OS
+System Documentation
+30th July 2026
+Table of Contents
+1. Introduction & System Overview
+2. User Roles & Access Control
+3. HRMS Module
+    3.1 Dashboard
+    3.2 Employees
+    3.3 Departments
+    3.4 Attendance
+    3.5 Leave Management
+    3.6 Payroll
+    3.7 Activities
+    3.8 Profile
+4. Revenue Module
+    4.1 Leads Pipeline
+    4.2 Clients
+    4.3 Projects
+    4.4 Finance
+    4.5 Expense Tracker
+    4.6 AMC (Annual Maintenance Contracts)
+    4.7 Bucket Settings
+1. Introduction & System Overview
+The DZ OS is a comprehensive, web-based enterprise management platform built for DZ Infotech Pvt. Ltd. It consolidates two primary business pillars into a single, unified interface: the Human Resource Management System (HRMS) and the Revenue Management Platform. The system is designed to streamline day-to-day operations, improve transparency across departments, and provide real-time data insights to administrators, managers, employees, and interns.
+The platform is accessible via secure, role-based login and is organized into the following top-level modules:
+HRMS: Dashboard, Employees, Departments, Attendance, Leave, Payroll, Activities, Profile
+Revenue: Leads, Clients, Projects, Finance, Expense, AMC, Bucket Settings
+Key Objectives
+Automate and digitize attendance, leave, and payroll workflows.
+Provide real-time visibility into employee performance and organizational health.
+Track the full revenue lifecycle from lead generation to payment collection.
+Enable granular role-based access so each user only sees what is relevant to them.
+Maintain audit trails, generate reports, and export data in standard formats (PDF, Excel/CSV).
+2. User Roles & Access Control
+The system enforces strict role-based access control (RBAC). Every action in the system is gated behind a permission check. There are four primary user roles:
+Role
+Permissions & Scope
+Admin
+Full access to all HRMS and Revenue modules. Can manage all employees, process payroll, approve/reject leaves, configure buckets, and manage all revenue data.
+Manager
+Access to HRMS modules (Dashboard, Attendance, Leave, Payroll, Profile). Can view and manage leave requests for employees in their own department. Cannot access Revenue modules.
+Employee
+Limited self-service access. Can view their own attendance, submit leave requests, view their payroll slips, and manage their own profile. Cannot access admin-only features.
+Intern
+Like Employee but with specific differences: leave types are limited to "Intern Leave" (monthly quota) and "Unpaid Leave" (unlimited). Salary calculation is simplified (no HRA, DA, PF). Cannot access the Employees list.
+3. HRMS Module
+The HRMS module covers the complete employee lifecycle — from onboarding and daily attendance tracking to salary processing and exit. It is accessible to all users, with features appropriately scoped by role.
+3.1 Dashboard
+The Dashboard is the first screen a user sees after logging in. Its content is dynamically personalized based on the logged-in user's role.
+Admin Dashboard
+KPI Cards: Total Employees, Active Employees, Pending Leaves, Total Payroll disbursed this month.
+Attendance Overview: Charts showing present, absent, and on leave counts for the current day.
+Recent Activities: A live log of all user actions in the system (logins, check-ins, leave requests, etc.).
+Pending Approvals: Quick-access list of pending leave requests.
+Revenue Snapshot: Summary of current month’s revenue, pending receivables, and active projects.
+Employee / Manager Dashboard
+Personalized Greeting with current date and time.
+Attendance Control Panel: Check In, Break In/Out, Check Out buttons with live status indicator.
+Leave Balance Summary: Remaining paid, casual, and other leave types.
+Quick Links: Navigate to Leave application, Profile, and Payslip.
+Attendance Control Workflow (on Dashboard)
+Step
+Action
+Description
+1
+Check In
+Employee clicks "Check In". Current timestamp is recorded as check-in time. An attendance record is created for the day with status "Present".
+2
+Break In
+While checked in, the employee clicks "Break In". The current time is saved as the start of a break. The working hour timer is effectively paused. The button changes to "Break Out".
+3
+Break Out
+Employee clicks "Break Out". The current time is saved as the end of the break. The break entry is completed. Multiple Break In/Out cycles are supported per day.
+4
+Check Out
+Employee clicks "Check Out". A modal prompt for a work summary/note. Timestamp is saved. Check Out is disabled if an active break is in progress.
+5
+Working Hours Calc.
+Net working hours = (Check Out time - Check In time) - (Total duration of all completed breaks). This is reflected in the Monthly Summary view.
+3.2 Employees
+The Employees module provides a central directory of all employees and interns. Admins and Managers can view, add, edit, and deactivate employee records. Interns do not have access to the employee list.
+Key Features
+Employee Directory: Searchable and filterable list of all employees and interns.
+Add / Edit Employee: Create new employee records with full details (name, email, designation, department, joining date, salary, role).
+Employee Status: Active or Inactive. Inactive employees are excluded from payroll and attendance calculations.
+Profile View: Click any employee to open their unified profile with tabs for Overview, Attendance, Leave, Payroll, and Documents.
+Role Management: Assign roles (Employee, Manager, Intern) which control system access.
+Photo Upload: Employee photo can be uploaded and is shown throughout the system.
+Document Management: Upload and track offer letters, NDAs, and other documents for each employee.
+Leave Balances: Admin can set and view leave quotas (Paid, Casual, Medical, Earned) per employee.
+3.3 Departments
+The Departments module (Admin-only) allows the organization to define and manage its department structure.
+Create, edit, and delete departments.
+Assigning Department Head (Manager).
+View the employee count per department.
+Departments are used in Attendance, Leave, and Payroll for filtering and reporting.
+3.4 Attendance
+The Attendance module provides a detailed record of all employee check-ins, check-outs, break times, and overall working hours. It supports daily and monthly views, with the ability to export data.
+For Admins / Managers
+Tabbed view to switch between Employees/Managers and Interns.
+Filter attendance by Date, Month, Employee Name, and Status (Present, Absent, On Leave).
+Daily View: Shows each employee's status, Check In time, Check Out time, Breaks taken, and work notes.
+Monthly Summary View: Shows total Present Days and total Working Hours per employee (with break deductions).
+Weekends (Saturday and Sunday) are excluded from attendance records and absent day calculations for all roles.
+Export to Excel/CSV: Supports Daily, Monthly, and Custom date range exports. Break records are included in the exports.
+For Employees / Interns
+View own attendance history with date, status, check-in/out times, and breaks column.
+Summary statistics: Present count, On Leave count, Absent count (Late count removed as the company has flexible timing).
+Filter by Month or Date.
+Attendance Status Types
+Present: Employee has an attendance record with a Check In.
+Absent: No attendance record exists for a working day (weekday, non-holiday, no approved leave).
+On Leave: An approved leave request covers the day.
+3.5 Leave Management
+The Leave module manages the full leave request lifecycle from application to approval/rejection, with balance tracking and payroll integration.
+Leave Types (Employees / Managers)
+Paid Leave: Deducted from annual paid leave quota. No salary deduction.
+Casual Leave: Short notice leaves. Deducted from casual leave quota.
+Medical / Sick Leave: Deducted from medical leave quota. No salary deduction.
+Unpaid Leave: No quota limit; salary is deducted proportionally for days taken.
+Earned Leave: Accumulated over time and deducted from earned leave balance.
+Leave Types (Interns)
+Intern Leave: Deducted from the monthly intern leave quota. No salary deduction (interns have simplified payroll).
+Unpaid Leave: No monthly quota limit; unlimited times can be applied.
+Leave Workflow
+Step
+Action
+Description
+1
+Apply for Leave
+Employee/Intern submits a leave request by selecting leave type, from-date, to-date, and providing a reason.
+2
+Quota Validation
+System automatically validates the remaining leave balance. For interns applying "Intern Leave", the monthly quota is checked. Unpaid Leave has no limit.
+3
+Pending Status
+The request is created with status "Pending". A badge count appears on the Leave menu in the sidebar for Admins/Managers, showing the number of pending requests split by Employees/Managers and Interns.
+4
+Admin/Manager Review
+Admin or Manager views the request in the Leave Approval section with full employees and leave details.
+5
+Approve / Reject
+Admin clicks Approve or Reject. On approval, the leave balance is deducted (if applicable). On rejection, for non-intern employees, the quota balance is restored. For interns, no balance update is needed as the system calculates dynamically.
+6
+Payroll Integration
+Approved paid/casual/medical leaves are treated as present days in payroll. Approved unpaid leaves reduce the net salary proportionally.
+Admin Features
+Toggle view between Employee/Manager requests and Intern requests with pending count badge on each tab.
+Approve or Reject requests with a single click.
+View complete history of all leave requests with filters for status, date range, and employee.
+Export leave records to CSV.
+3.6 Payroll
+The payroll module automates salary calculation based on actual attendance, approved leaves, holidays, and statutory deductions. It supports the full lifecycle from computation to PDF pay slip generation.
+Payroll Calculation Logic
+Working Days: Total days in month minus Weekends minus Public Holidays.
+Present Days: Attendance records with status "Present" + Half Days (counted as 0.5) + Approved Paid/Casual/Medical Leave days.
+Absent Days: Working Days - Present Days. Salary is deducted proportionally per absent day.
+HRA: 40% of Basic Salary (Employees only; Interns get 0).
+DA (Dearness Allowance): 15% of Basic Salary (Employees only).
+Travel Allowance: Configurable per employee.
+PF Deduction: 12% of Basic Salary if PF is applicable to the employee.
+Tax: 10% of gross earnings after deductions (Employees only).
+Intern Payroll: Simplified — Net Salary = Basic Salary only. No allowances, PF, or tax.
+Net Salary: Basic + HRA + DA + Allowances - PF Deduction - Absent Deduction - Tax.
+Payroll Statuses
+Draft: Calculated but not yet submitted for approval.
+Pending: Submitted and awaiting admin approval.
+Approved: Approved but payment not yet processed.
+Paid: Payment confirmed. Payslip can be downloaded as PDF.
+Features
+Generate payroll for any Month / Year combination.
+View payroll summary for all employees on one screen.
+Bulk process payroll for all employees in a month.
+Download individual payslips as PDF.
+Export payroll summary to Excel/CSV.
+Holiday management is integrated into working day calculation.
+3.7 Activities
+The Activities module (Admin-only) provides a real-time audit log of all significant actions performed in the system.
+Logs: User login, Check In, Check Out, leave request, Leave approval, Payroll processing, Profile update, and more.
+Each entry shows the action, the user who performed it, and the timestamp.
+Enables full traceability and accountability for all system operations.
+Filterable by user and date range.
+3.8 Profile
+The Profile page allows users to view and manage their own personal and professional information.
+View personal details: Name, Email, Designation, Department, Joining Date.
+Update profile photo.
+Change password securely.
+View leave balance summary.
+For Interns: Access to download Offer Letter and NDA, and upload signed copies back to the system.
+View recent attendance and leave history.
+4. Revenue Module
+The Revenue module is an Admin-only section that manages the complete business development and financial lifecycle — from initial lead capture to project delivery, expense tracking, and AMC management. It provides real-time financial dashboards and bucket-based fund allocation.
+4.1 Leads Pipeline
+The Leads Pipeline is a CRM-style module for tracking potential clients from the first point of contact through to deal closure. It supports both a visual Kanban board view and a tabular list view.
+Lead Stages (Sales Pipeline)
+1. New Lead: Initial capture. Lead details are logged — company, contact person, source, estimated deal value, and assigned sales rep.
+2. Contacted: First contact made. Notes on the conversation are recorded. Next action is "Prepare Demo".
+3. Demo Preparation: Internal preparation for a product/service demonstration.
+4. Meeting Scheduled: A formal meeting has been arranged. Date, time, and meeting link/location are recorded.
+5. Meeting Completed: Post-meeting notes, outcome, and follow-up actions are logged.
+6. Proposal Sent: A formal proposal document has been sent to the client. Proposal value and terms are recorded.
+7. Negotiation: Active price/scope negotiations. Notes on counter offers and terms are maintained.
+8. Won: Deal closed successfully. Advance payment details and project commencement date are captured. Lead converts to a Client & Project.
+9. Lost: Deal was unsuccessful. Reason for loss is recorded for analysis.
+Features
+Kanban View: Drag-and-drop style cards organized by stage for quick visual status overview.
+List View: Tabular view with sorting (by amount, name, follow-up date) and filtering.
+Lead Sources: Website, LinkedIn, Referral, Cold Outreach, Inbound, Outbound, Ads, PA.
+Stage-specific action modals capture relevant details at each transition (e.g., meeting notes, proposal value, advance amount).
+Assign leads to specific sales employees.
+Set follow-up dates and track overdue leads.
+Delete leads with confirmation.
+4.2 Clients
+The Clients module maintains a directory for all active and past business clients.
+Store client details: Company Name, Contact Person, Email, Phone, Address, GSTIN.
+View all projects associated with a client.
+Track total revenue earned from each client.
+Edit and delete client records.
+Clients are linked to Projects and Finance for cross-module visibility.
+4.3 Projects
+The Projects module tracks the delivery lifecycle of all active and completed client projects.
+Create a project linked to a client with: Service Type, Total Value, Advance Received, Start Date, Deadline, Status, and Description.
+Project Statuses: Active, On Hold, Completed, Cancelled.
+Per-Project Bucket Settings: Each project can have its own fund allocation percentages that override the global defaults.
+View financial breakdown per project directly from the project list.
+Editing and archive projects.
+4.4 Finance
+The Finance module provides a high-level financial dashboard that visualizes how advance payments received from clients are allocated across different organizational buckets.
+Card View: Each project is shown as a card with Total Amount, Pending, Net Received, and a breakdown of bucket allocations.
+Table View: Comprehensive tabular view with per-project, per-bucket allocation amounts across all projects.
+Bucket Allocations are calculated as a percentage of the advance received, based on the bucket target ratios.
+Amounts are rounded to the nearest rupee to ensure individual bucket totals sum exactly to the total amount received.
+Filterable by Client and Project.
+4.5 Expense Tracker
+The Expense Tracker records all organizational expenditures and links them to the bucket fund system.
+Expense Categories
+Standard categories: Software Subscriptions, Office Supplies, Marketing, Travel, Utilities, Rent, Salary, Other.
+Bucket-linked categories: Expenses can be assigned to a bucket category (e.g., "Employee", "Company Expense"). When added, the expense amount is automatically deducted from the corresponding bucket's filled amount in the Bucket Settings module.
+Features
+Add, Edit, Delete expenses with Date, Category, Description, and Amount.
+Visual charts: Pie chart showing expense distribution by category, Bar chart showing monthly expense trends.
+Total expense summary by category.
+Real-time deduction from bucket balances on expense addition.
+4.6 AMC (Annual Maintenance Contracts)
+The AMC module tracks recurring maintenance and support contracts with clients, providing visibility into renewals, contract values, and at-risk accounts.
+AMC Statuses
+Active: Contract is currently running and in good standing.
+At Risk: Contract is approaching renewal or flagged for potential non-renewal.
+Expired: Contract has lapsed.
+Cancelled: Client has formally cancelled the AMC.
+KPI Dashboard
+Total Active AMCs: Count of all active and at-risk contracts.
+Total Active Value: Cumulative annual value of all active contracts.
+Renewals in Next 60 Days: Count and total value of contracts up for renewal soon.
+At Risk Count: Contracts flagged as "At Risk".
+Automated notifications alert the admin when an AMC renewal date is approaching.
+Features
+Link each AMC to a Client and Project.
+Store: Start Date, Renewal Date, Annual Value, Status, Description, and Contact person.
+Edit and delete AMC records.
+Color-coded status badges for quick visual identification.
+4.7 Bucket Settings
+The Bucket Settings module defines the fund allocation framework used across the Finance and Expense modules. It determines what percentage of revenue is allocated to each operational category.
+Default Buckets
+Employee: Funds allocated for employee salaries, benefits, and related costs.
+Probation Reserve: Reserve fund maintained for employees in their probation period.
+Contract Expense: Funds for project-related contracted third-party expenses.
+Profit: Net profit allocated after covering all operational costs.
+Company Expense: General operating expenses such as office rent, utilities, subscriptions.
+How It Works
+Step
+Action
+Description
+1
+Define Buckets
+Admin creates buckets with a Name and Target Amount (₹). The system auto-calculates each bucket's % of the total target.
+2
+Revenue Inflow
+When advance payments are received on Projects, the system distributes the advance across buckets proportionally based on the target percentages.
+3
+Amount Filled
+Each bucket shows the total ₹ allocated from all project advances. The "Total Filled" card shows the combined sum across all buckets.
+4
+Expense Deduction
+When an expense is added and its category matches a bucket name, the expense amount is deducted from that bucket's filled amount in real time.
+5
+Review & save
+Admin can edit bucket targets at any time. All percentages are recalculated automatically on save.
