@@ -11,11 +11,13 @@ import Select from '../../components/ui/Select';
 import Modal from '../../components/ui/Modal';
 import { formatDate } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 
 export default function AnnouncementsAdmin() {
   const { items: announcements, loading } = useSupabaseCollection('announcements');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -93,15 +95,19 @@ export default function AnnouncementsAdmin() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this announcement?')) {
-      try {
-        await removeDocument('announcements', id);
-        toast.success('Announcement deleted');
-      } catch (err) {
-        toast.error('Failed to delete announcement');
-      }
+  const handleDelete = (id) => {
+    setConfirmDeleteId(id);
+  };
+
+  const executeDelete = async () => {
+    if (!confirmDeleteId) return;
+    try {
+      await removeDocument('announcements', confirmDeleteId);
+      toast.success('Announcement deleted');
+    } catch (err) {
+      toast.error('Failed to delete announcement');
     }
+    setConfirmDeleteId(null);
   };
 
   if (loading) {
@@ -249,6 +255,16 @@ export default function AnnouncementsAdmin() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal
+        open={!!confirmDeleteId}
+        title="Delete Announcement"
+        message="Are you sure you want to delete this announcement? This action cannot be undone."
+        confirmText="Delete"
+        confirmVariant="danger"
+        onConfirm={executeDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }
