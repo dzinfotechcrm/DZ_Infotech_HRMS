@@ -4,6 +4,7 @@ export default function Button({ children, className = '', variant = 'primary', 
     secondary: 'bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-50',
     accent: 'bg-accent-600 text-white hover:bg-accent-500',
     danger: 'bg-danger-600 text-white hover:bg-danger-600/90',
+    warning: 'bg-amber-600 text-white hover:bg-amber-500',
     ghost: 'bg-transparent text-neutral-700 hover:bg-neutral-100',
   };
 

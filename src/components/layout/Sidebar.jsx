@@ -26,7 +26,9 @@ import {
   TrophyIcon,
   CurrencyRupeeIcon,
   BanknotesIcon as BanknotesIconOutline,
-  DocumentChartBarIcon
+  DocumentChartBarIcon,
+  ComputerDesktopIcon,
+  MegaphoneIcon
 } from '@heroicons/react/24/outline';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -41,6 +43,9 @@ const hrmsNavigation = [
   { to: '/leave', label: 'Leave', icon: ClipboardDocumentListIcon },
   { to: '/payroll', label: 'Payroll', icon: BanknotesIcon },
   { to: '/activities', label: 'Activities', icon: ClockIcon, adminOnly: true },
+  { to: '/assets/software-licenses', label: 'Software Licenses', icon: ComputerDesktopIcon, adminOnly: true },
+  { to: '/announcements', label: 'Announcements', icon: MegaphoneIcon, adminOnly: true },
+  { to: '/active-licenses', label: 'Active Licenses', icon: ComputerDesktopIcon, hideForAdmin: true },
   { to: '/profile', label: 'Profile', icon: UserCircleIcon },
 ];
 
@@ -120,6 +125,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
               </div>
               {hrmsNavigation.map((item) => {
                 if (item.adminOnly && !isAdminLikeRole) return null;
+                if (item.hideForAdmin && isAdminLikeRole) return null;
                 if (user?.role === 'intern' && item.to === '/employees') return null;
                 if (user?.role === 'intern' && item.to === '/payroll' && !user?.isPaid) return null;
                 const Icon = item.icon;

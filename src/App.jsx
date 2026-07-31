@@ -22,6 +22,10 @@ const PayrollList = lazy(() => import('./pages/payroll/PayrollList'));
 const Payslip = lazy(() => import('./pages/payroll/Payslip'));
 const Profile = lazy(() => import('./pages/profile/Profile'));
 
+const SoftwareLicenses = lazy(() => import('./pages/assets/SoftwareLicenses'));
+const ActiveLicenses = lazy(() => import('./pages/assets/ActiveLicenses'));
+const AnnouncementsAdmin = lazy(() => import('./pages/announcements/AnnouncementsAdmin'));
+
 const Activities = lazy(() => import('./pages/activities/Activities'));
 const LeadsPipeline = lazy(() => import('./pages/leads/LeadsPipeline'));
 const ClientsList = lazy(() => import('./pages/clients/ClientsList'));
@@ -102,7 +106,11 @@ export default function App() {
           <Route path="payroll" element={<ProtectedRoute allowedRoles={PERMISSIONS.payroll}><PayrollList /></ProtectedRoute>} />
           <Route path="payroll/payslip/:id" element={<ProtectedRoute allowedRoles={PERMISSIONS.payroll}><Payslip /></ProtectedRoute>} />
           <Route path="profile" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><Profile /></ProtectedRoute>} />
+          <Route path="active-licenses" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><ActiveLicenses /></ProtectedRoute>} />
 
+          <Route path="announcements" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr]}><AnnouncementsAdmin /></ProtectedRoute>} />
+
+          <Route path="assets/software-licenses" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><SoftwareLicenses /></ProtectedRoute>} />
           <Route path="activities" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Activities /></ProtectedRoute>} />
           <Route path="leads" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><LeadsPipeline /></ProtectedRoute>} />
           <Route path="clients" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ClientsList /></ProtectedRoute>} />
