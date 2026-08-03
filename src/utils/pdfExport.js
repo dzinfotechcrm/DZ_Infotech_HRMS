@@ -47,7 +47,7 @@ function getBase64Image(imgUrl) {
 export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ Infotech' }) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.width;
-  
+
   let finalDeptName = employee.department;
   if (!finalDeptName || finalDeptName === '—') {
     try {
@@ -59,13 +59,13 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
         const d = depts.find(x => x.managerId === employee.id || x.managerId === employee.uid);
         if (d) finalDeptName = d.name;
       }
-    } catch(e) {
+    } catch (e) {
       console.warn("Failed to fetch department for PDF", e);
     }
   }
 
   try {
-    const logoBase64 = await getBase64Image('/DZ_Infotech_Logo.png');
+    const logoBase64 = await getBase64Image('/DZ_Infotech_Logo.jpeg');
     // Draw Logo
     doc.addImage(logoBase64, 'PNG', 40, 30, 60, 60);
     // Company Header
@@ -73,24 +73,24 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
     doc.setFont('helvetica', 'bold');
     doc.setTextColor('#0f172a'); // slate-900
     doc.text(companyName, 115, 55);
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor('#64748b'); // slate-500
     doc.text('Official Employee Payslip', 115, 72);
-  } catch(e) {
+  } catch (e) {
     // fallback if image fails to load
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor('#0f172a');
     doc.text(companyName, 40, 55);
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor('#64748b');
     doc.text('Official Employee Payslip', 40, 72);
   }
-  
+
   // Divider
   doc.setDrawColor(226, 232, 240); // slate-200
   doc.setLineWidth(1);
@@ -103,21 +103,21 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   doc.setFont('helvetica', 'bold');
   doc.setTextColor('#334155'); // slate-700
   doc.text('EMPLOYEE DETAILS', 40, 130);
-  
+
   doc.setFont('helvetica', 'normal');
   doc.text(`Name:`, 40, 150);
   doc.text(`${employee.firstName} ${employee.lastName}`, 120, 150);
-  
+
   if (isIntern) {
     doc.text(`Role:`, 40, 165);
     doc.text(`Intern`, 120, 165);
   } else {
     doc.text(`Employee ID:`, 40, 165);
     doc.text(`${employee.employeeId || '—'}`, 120, 165);
-    
+
     doc.text(`Department:`, 40, 180);
     doc.text(`${finalDeptName || '—'}`, 120, 180);
-    
+
     doc.text(`Designation:`, 40, 195);
     doc.text(`${employee.designation || '—'}`, 120, 195);
   }
@@ -125,20 +125,20 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   // Payslip Details Column
   doc.setFont('helvetica', 'bold');
   doc.text('PAYSLIP DETAILS', pageWidth / 2 + 10, 130);
-  
+
   doc.setFont('helvetica', 'normal');
   doc.text(`Payslip For:`, pageWidth / 2 + 10, 150);
   doc.text(`${payroll.month} / ${payroll.year}`, pageWidth / 2 + 100, 150);
-  
+
   doc.text(`Working Days:`, pageWidth / 2 + 10, 165);
   doc.text(`${payroll.workingDays || 22}`, pageWidth / 2 + 100, 165);
-  
+
   doc.text(`Present Days:`, pageWidth / 2 + 10, 180);
   doc.text(`${payroll.exactPresentDays ?? payroll.presentDays ?? '—'}`, pageWidth / 2 + 100, 180);
-  
+
   doc.text(`Paid Leaves:`, pageWidth / 2 + 10, 195);
   doc.text(`${payroll.paidLeaveDays ?? 0}`, pageWidth / 2 + 100, 195);
-  
+
   doc.text(`Absent Days:`, pageWidth / 2 + 10, 210);
   doc.text(`${payroll.absentDays ?? Math.max(0, (payroll.workingDays || 22) - (payroll.presentDays || 0))}`, pageWidth / 2 + 100, 210);
 
@@ -150,21 +150,21 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
   };
 
   const fmtAmount = (val) => Number(val || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
-  
+
   const basic = Number(payroll.basicSalary || 0);
   const hra = isIntern ? 0 : Number(payroll.hra || basic * 0.4);
   const da = isIntern ? 0 : Number(payroll.da || basic * 0.15);
   const allowances = isIntern ? 0 : resolveObj(payroll.allowances);
-  
+
   const pf = isIntern ? 0 : (employee.pfApplicable ? basic * 0.12 : 0);
   const tax = isIntern ? 0 : Number(payroll.tax || 0);
   const absentDed = isIntern ? 0 : resolveObj(payroll.deductions);
-  
+
   const totalEarnings = isIntern ? basic : (basic + hra + da + allowances);
   const totalDeductions = pf + tax + absentDed;
-  
+
   const tableY = 230;
-  
+
   let finalY = 0;
 
   if (isIntern) {
@@ -220,7 +220,7 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
       },
       margin: { left: 40, right: pageWidth / 2 + 10 }
     });
-    
+
     const leftTableFinalY = doc.lastAutoTable.finalY;
 
     // Deductions Table (Right Side)
@@ -234,7 +234,7 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
         ['PF Deduction (12%)', fmtAmount(pf)],
         ['Tax (TDS)', fmtAmount(tax)],
         ['Absent Deduction', fmtAmount(absentDed)],
-        ['', ''] 
+        ['', '']
       ],
       foot: [[
         { content: 'Total Deductions', styles: { halign: 'left' } },
@@ -250,7 +250,7 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
       },
       margin: { left: pageWidth / 2 + 10, right: 40 }
     });
-    
+
     const rightTableFinalY = doc.lastAutoTable.finalY;
     finalY = Math.max(leftTableFinalY, rightTableFinalY) + 30;
   }
@@ -268,16 +268,97 @@ export async function exportPayslipPdf({ employee, payroll, companyName = 'DZ In
 
   // Footer / Signature Area
   const signatureY = finalY + 120;
-  
+
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor('#94a3b8');
   doc.text('This is a computer-generated document. No signature is required.', pageWidth / 2, signatureY, { align: 'center' });
-  
+
   doc.text(`Generated on ${formatDate(new Date(), 'dd MMM yyyy')}`, 40, signatureY + 20);
   doc.text('Authorized Signatory', pageWidth - 40, signatureY + 20, { align: 'right' });
   doc.setDrawColor(203, 213, 225); // slate-300
   doc.line(pageWidth - 160, signatureY + 5, pageWidth - 40, signatureY + 5);
 
   doc.save(`${employee.firstName}-${employee.lastName}-Payslip-${payroll.month}-${payroll.year}.pdf`);
+}
+
+export async function exportExpensesPdf({ expenses, totalAmount, startDate, endDate, companyName = 'DZ Infotech' }) {
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.width;
+
+  try {
+    const logoBase64 = await getBase64Image('/DZ_Infotech_Logo.jpeg');
+    doc.addImage(logoBase64, 'PNG', 40, 30, 60, 60);
+    
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor('#0f172a'); 
+    doc.text(companyName, 115, 55);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor('#64748b');
+    doc.text('Expense Report', 115, 72);
+  } catch (e) {
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor('#0f172a');
+    doc.text(companyName, 40, 55);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor('#64748b');
+    doc.text('Expense Report', 40, 72);
+  }
+
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(1);
+  doc.line(40, 100, pageWidth - 40, 100);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor('#334155');
+  doc.text('REPORT SUMMARY', 40, 130);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Period:`, 40, 150);
+  const periodText = (startDate && endDate) ? `${formatDate(startDate)} to ${formatDate(endDate)}` : 'All Time';
+  doc.text(periodText, 100, 150);
+
+  doc.text(`Total Expenses:`, 40, 165);
+  doc.setFont('helvetica', 'bold');
+  const fmtAmount = (val) => Number(val || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  doc.text(`Rs. ${fmtAmount(totalAmount)}`, 120, 165);
+  doc.setFont('helvetica', 'normal');
+
+  const rows = expenses.map(e => [
+    formatDate(e.date),
+    e.category,
+    e.description || '-',
+    fmtAmount(e.amount)
+  ]);
+
+  autoTable(doc, {
+    startY: 190,
+    head: [['Date', 'Category', 'Description', 'Amount (Rs.)']],
+    body: rows,
+    theme: 'grid',
+    styles: { fontSize: 10, cellPadding: 6, textColor: [51, 65, 85] },
+    headStyles: { fillColor: [248, 250, 252], textColor: [15, 23, 42], fontStyle: 'bold', lineColor: [226, 232, 240], lineWidth: 1 },
+    columnStyles: {
+      3: { halign: 'right' }
+    },
+    margin: { left: 40, right: 40 }
+  });
+
+  const finalY = doc.lastAutoTable.finalY + 40;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor('#94a3b8');
+  doc.text('This is a computer-generated document. No signature is required.', pageWidth / 2, finalY, { align: 'center' });
+  doc.text(`Generated on ${formatDate(new Date(), 'dd MMM yyyy')}`, 40, finalY + 20);
+
+  doc.save(`Expense_Report_${formatDate(new Date(), 'yyyyMMdd')}.pdf`);
 }

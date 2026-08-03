@@ -10,7 +10,8 @@ import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { exportExpensesPdf } from '../../utils/pdfExport';
 
 const expensesQuery = (base) => query(base, orderBy('date', 'desc'));
 
@@ -21,6 +22,8 @@ export default function Expense() {
   const [deleteId, setDeleteId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [newExpense, setNewExpense] = useState({ date: new Date().toISOString().split('T')[0], category: 'Software Subscriptions', description: '', amount: '' });
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const loading = expensesLoading || settingsLoading;
 
@@ -41,8 +44,10 @@ export default function Expense() {
     { value: 'Travel', label: 'Travel' },
     { value: 'Utilities', label: 'Utilities' },
     { value: 'Rent', label: 'Rent' },
-    { value: 'Salary', label: 'Salary' },
-    { value: 'Other', label: 'Other' },
+    { value: 'Salary/Freelancing', label: 'Salary/Freelancing' },
+    { value: 'Internet', label: 'Internet' },
+    { value: 'Domain & Hosting', label: 'Domain & Hosting' },
+    { value: 'AI Tools', label: 'AI Tools' },
   ];
 
   const categories = [...standardCategories];
@@ -51,6 +56,8 @@ export default function Expense() {
       categories.push({ value: b.name, label: b.name });
     }
   });
+
+  categories.push({ value: 'Miscellaneous', label: 'Miscellaneous' });
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -129,20 +136,28 @@ export default function Expense() {
     }
   };
 
-  const totalExpense = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(exp => {
+      if (startDate && exp.date < startDate) return false;
+      if (endDate && exp.date > endDate) return false;
+      return true;
+    });
+  }, [expenses, startDate, endDate]);
+
+  const totalExpense = filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
 
   const COLORS = ['#0ea5e9', '#8b5cf6', '#f43f5e', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#14b8a6'];
 
   const categoryData = useMemo(() => {
     const data = categories.map(cat => ({
       name: cat.label,
-      value: expenses.filter(e => e.category === cat.value).reduce((sum, e) => sum + Number(e.amount || 0), 0)
+      value: filteredExpenses.filter(e => e.category === cat.value).reduce((sum, e) => sum + Number(e.amount || 0), 0)
     })).filter(item => item.value > 0);
     return data.sort((a, b) => b.value - a.value);
-  }, [expenses]);
+  }, [filteredExpenses, categories]);
 
   const timeData = useMemo(() => {
-    const expensesByDate = expenses.reduce((acc, exp) => {
+    const expensesByDate = filteredExpenses.reduce((acc, exp) => {
       const date = exp.date;
       if (!acc[date]) acc[date] = 0;
       acc[date] += Number(exp.amount || 0);
@@ -153,7 +168,7 @@ export default function Expense() {
       date: formatDate(date),
       amount: expensesByDate[date]
     }));
-  }, [expenses]);
+  }, [filteredExpenses]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -184,10 +199,21 @@ export default function Expense() {
         title="Expense Tracking"
         description="Manage and track company expenses and operational costs."
         actions={
-          <Button onClick={openModalForCreate} className="flex items-center gap-2">
-            <PlusIcon className="h-4 w-4" />
-            Add Expense
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Input type="date" name="startDate" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-36 h-9 text-sm" />
+              <span className="text-neutral-500">-</span>
+              <Input type="date" name="endDate" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-36 h-9 text-sm" />
+            </div>
+            <Button variant="secondary" onClick={() => exportExpensesPdf({ expenses: filteredExpenses, totalAmount: totalExpense, startDate, endDate })} className="flex items-center gap-2 h-9 text-sm px-3">
+              <DocumentTextIcon className="h-4 w-4" />
+              Export PDF
+            </Button>
+            <Button onClick={openModalForCreate} className="flex items-center gap-2 h-9 text-sm px-3">
+              <PlusIcon className="h-4 w-4" />
+              Add Expense
+            </Button>
+          </div>
         }
       />
 
@@ -213,14 +239,14 @@ export default function Expense() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-neutral-100">
-              {expenses.length === 0 ? (
+              {filteredExpenses.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-neutral-500">
-                    No expenses recorded.
+                    No expenses recorded in this date range.
                   </td>
                 </tr>
               ) : (
-                expenses.map((expense) => (
+                filteredExpenses.map((expense) => (
                   <tr key={expense.id} onClick={() => handleEdit(expense)} className="hover:bg-neutral-50 transition-colors cursor-pointer">
                     <td className="px-6 py-4 text-neutral-600 font-medium">{formatDate(expense.date)}</td>
                     <td className="px-6 py-4">

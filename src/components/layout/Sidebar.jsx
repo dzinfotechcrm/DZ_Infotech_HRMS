@@ -105,7 +105,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
           <div className="flex items-center gap-3">
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white p-1">
-              <img src="/DZ_Infotech_Logo.png" alt="DZ Infotech" className="h-full w-full object-contain" />
+              <img src="/DZ_Infotech_Logo.jpeg" alt="DZ Infotech" className="h-full w-full object-contain" />
             </div>
             <div>
               <div className="text-3xl font-black uppercase tracking-wider text-white leading-none">DZ</div>
@@ -179,6 +179,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
             </>
           )}
 
+{/*
           {isAdminLikeRole && (
             <>
               <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
@@ -204,6 +205,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
               })}
             </>
           )}
+*/}
 
           {isAgent(user?.role) && (
             <>

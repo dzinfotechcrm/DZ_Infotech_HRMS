@@ -17,8 +17,8 @@ export default function AnnouncementsAdmin() {
   const { items: announcements, loading } = useSupabaseCollection('announcements');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -63,7 +63,7 @@ export default function AnnouncementsAdmin() {
       toast.error('Please fill in required fields');
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       if (editingId) {
@@ -116,8 +116,8 @@ export default function AnnouncementsAdmin() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Notice Board & Announcements" 
+      <PageHeader
+        title="Notice Board & Announcements"
         description="Publish company-wide announcements and track employee acknowledgments."
         actions={
           <Button onClick={() => handleOpenModal()}>
@@ -172,7 +172,7 @@ export default function AnnouncementsAdmin() {
                     {Array.isArray(ann.acknowledged_by) ? ann.acknowledged_by.length : 0} reads
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
+                    <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(ann.id); }}
                       className="text-rose-600 hover:text-rose-900"
                     >
@@ -195,12 +195,12 @@ export default function AnnouncementsAdmin() {
 
       <Modal open={isModalOpen} onClose={handleCloseModal} title={editingId ? "Edit Announcement" : "New Announcement"} overflowVisible={true}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input 
-            label="Announcement Title" 
+          <Input
+            label="Announcement Title"
             placeholder="e.g. Office closed for Diwali"
             value={formData.title}
             onChange={e => setFormData(p => ({ ...p, title: e.target.value }))}
-            required 
+            required
           />
           <label className="flex flex-col gap-1.5 text-sm font-medium text-neutral-700">
             <span>Announcement Content</span>
@@ -214,7 +214,7 @@ export default function AnnouncementsAdmin() {
             />
           </label>
           <div className="grid grid-cols-2 gap-4">
-            <Select 
+            <Select
               label="Priority"
               value={formData.priority}
               onChange={e => setFormData(p => ({ ...p, priority: e.target.value }))}
@@ -224,9 +224,9 @@ export default function AnnouncementsAdmin() {
               <option value="warning">Warning (Orange)</option>
               <option value="urgent">Urgent (Red)</option>
             </Select>
-            <Select 
+            <Select
               label="Target Roles"
-              value={formData.target_roles[0]} 
+              value={formData.target_roles[0]}
               onChange={e => setFormData(p => ({ ...p, target_roles: [e.target.value] }))}
               required
             >
@@ -237,7 +237,7 @@ export default function AnnouncementsAdmin() {
             </Select>
           </div>
           {editingId && (
-            <Select 
+            <Select
               label="Status"
               value={formData.status}
               onChange={e => setFormData(p => ({ ...p, status: e.target.value }))}

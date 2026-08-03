@@ -67,7 +67,7 @@ export default function Login() {
 
           <div className="mt-16 flex items-center gap-5">
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white shadow-lg ring-1 ring-white/20 p-2">
-              <img src="/DZ_Infotech_Logo.png" alt="DZ Infotech" className="h-full w-full object-contain" />
+              <img src="/DZ_Infotech_Logo.jpeg" alt="DZ Infotech" className="h-full w-full object-contain" />
             </div>
             <div>
               <p className="text-sm font-bold text-white tracking-widest uppercase">Secure Portal</p>
