@@ -4,7 +4,8 @@ import { createDocument, updateDocument, removeDocument } from '../../supabase/d
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import { FunnelIcon, PlusIcon, CalendarIcon, ListBulletIcon, ViewColumnsIcon, BarsArrowDownIcon } from '@heroicons/react/24/outline';
+import PageHeader from '../../components/ui/PageHeader';
+import { PlusIcon, AdjustmentsHorizontalIcon, BarsArrowDownIcon, ViewColumnsIcon, ListBulletIcon, FunnelIcon, CalendarIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import LeadFormModal from './LeadFormModal';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import { toast } from 'react-hot-toast';
@@ -390,35 +391,35 @@ export default function LeadsPipeline() {
   return (
     <div className="flex flex-col h-full bg-transparent text-neutral-900 min-h-[calc(100vh-64px)]">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-1">Leads</h1>
-          <p className="text-sm text-neutral-500">Pipeline · scoring · follow-ups · forecast</p>
-        </div>
-        <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex bg-neutral-100 p-1 rounded-xl">
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${viewMode === 'kanban' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
-            >
-              <ViewColumnsIcon className="h-4 w-4" /> Board
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${viewMode === 'list' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
-            >
-              <ListBulletIcon className="h-4 w-4" /> List
-            </button>
-          </div>
-          <div className="relative" ref={sortRef}>
-            <Button
-              variant="secondary"
-              className={`bg-white border-neutral-200 gap-2 ${isSortOpen ? 'ring-2 ring-primary-500/20 border-primary-500' : 'text-neutral-700 hover:bg-neutral-50'}`}
-              onClick={() => setIsSortOpen(!isSortOpen)}
-            >
-              <BarsArrowDownIcon className="h-4 w-4" /> Sort
-            </Button>
+      <PageHeader
+        eyebrow="Revenue"
+        title="Leads"
+        description="Pipeline · scoring · follow-ups · forecast"
+        className="mb-8"
+        actions={
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex bg-neutral-100 p-1 rounded-xl">
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${viewMode === 'kanban' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+              >
+                <ViewColumnsIcon className="h-4 w-4" /> Board
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${viewMode === 'list' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}
+              >
+                <ListBulletIcon className="h-4 w-4" /> List
+              </button>
+            </div>
+            <div className="relative" ref={sortRef}>
+              <Button
+                variant="secondary"
+                className={`bg-white border-neutral-200 gap-2 ${isSortOpen ? 'ring-2 ring-primary-500/20 border-primary-500' : 'text-neutral-700 hover:bg-neutral-50'}`}
+                onClick={() => setIsSortOpen(!isSortOpen)}
+              >
+                <BarsArrowDownIcon className="h-4 w-4" /> Sort
+              </Button>
             {isSortOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-neutral-200 rounded-xl shadow-soft py-2 z-50">
                 <div className="flex justify-between items-center px-4 pb-2 mb-2 border-b border-neutral-100">
@@ -526,7 +527,9 @@ export default function LeadsPipeline() {
             <PlusIcon className="h-4 w-4" /> New lead
           </Button>
         </div>
-      </div>
+        }
+      />
+
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

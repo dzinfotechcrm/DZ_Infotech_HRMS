@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
+import PageHeader from '../../components/ui/PageHeader';
 import { PlusIcon, BriefcaseIcon, ShieldCheckIcon, DocumentTextIcon, ArrowTrendingUpIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ClientFormModal from './ClientFormModal';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -79,17 +80,17 @@ export default function ClientsList() {
     <div className="flex flex-col h-full bg-transparent text-neutral-900 min-h-[calc(100vh-64px)]">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-1">Clients</h1>
-          <p className="text-sm text-neutral-500">All accounts · projects · LTV · ownership</p>
-        </div>
-        <div className="flex gap-3">
+      <PageHeader
+        eyebrow="Revenue"
+        title="Clients"
+        description="All accounts · projects · LTV · ownership"
+        className="mb-8"
+        actions={
           <Button className="gap-2" onClick={() => handleOpenModal()}>
             <PlusIcon className="h-4 w-4" /> New client
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

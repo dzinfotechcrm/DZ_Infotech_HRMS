@@ -262,7 +262,7 @@ export default function AdminDashboard() {
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Legend iconType="circle" />
+                <Legend iconType="circle" iconSize={10} />
               </PieChart>
             </ResponsiveContainer>
           </div>

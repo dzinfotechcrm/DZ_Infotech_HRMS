@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
-import { PlusIcon, ShieldCheckIcon, CurrencyDollarIcon, ArrowPathIcon, ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
+import PageHeader from '../../components/ui/PageHeader';
+import { PlusIcon, ShieldCheckIcon, CurrencyRupeeIcon, ArrowPathIcon, ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import AmcFormModal from './AmcFormModal';
 import { toast } from 'react-hot-toast';
 import { formatDate } from '../../utils/dateHelpers';
@@ -95,18 +96,20 @@ export default function AmcList() {
   return (
     <div className="flex flex-col h-full bg-transparent text-neutral-900 min-h-[calc(100vh-64px)]">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-1">AMC Management</h1>
-          <p className="text-sm text-neutral-500">Recurring maintenance contracts · renewals · reminders</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <NotificationsDropdown />
-          <Button className="gap-2" onClick={() => handleOpenModal()}>
-            <PlusIcon className="h-4 w-4" /> New AMC
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Revenue"
+        title="AMC Management"
+        description="Recurring maintenance contracts · renewals · reminders"
+        className="mb-8"
+        actions={
+          <div className="flex items-center gap-3">
+            <NotificationsDropdown />
+            <Button className="gap-2" onClick={() => handleOpenModal()}>
+              <PlusIcon className="h-4 w-4" /> New AMC
+            </Button>
+          </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -126,7 +129,7 @@ export default function AmcList() {
         <div className="bg-white rounded-2xl p-5 border border-neutral-200 shadow-sm flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
             <div className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Annual AMC Value</div>
-            <CurrencyDollarIcon className="h-4 w-4 text-neutral-400" />
+            <CurrencyRupeeIcon className="h-4 w-4 text-neutral-400" />
           </div>
           <div className="flex items-end justify-between">
             <div className="text-3xl font-bold text-neutral-900">{formatCurrencyShort(totalValue)}</div>

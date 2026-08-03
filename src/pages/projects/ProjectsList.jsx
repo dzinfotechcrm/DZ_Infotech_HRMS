@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
+import PageHeader from '../../components/ui/PageHeader';
 import Modal from '../../components/ui/Modal';
 import { PlusIcon, FolderIcon, ChartBarIcon, ExclamationTriangleIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ProjectFormModal from './ProjectFormModal';
@@ -154,17 +155,17 @@ export default function ProjectsList() {
   return (
     <div className="flex flex-col h-full bg-transparent text-neutral-900 min-h-[calc(100vh-64px)]">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-1">Projects</h1>
-          <p className="text-sm text-neutral-500">Workflow · tasks · health · timelines</p>
-        </div>
-        <div className="flex gap-3">
+      <PageHeader
+        eyebrow="Revenue"
+        title="Projects"
+        description="Workflow · tasks · health · timelines"
+        className="mb-8"
+        actions={
           <Button className="gap-2" onClick={() => handleOpenModal()}>
             <PlusIcon className="h-4 w-4" /> New project
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

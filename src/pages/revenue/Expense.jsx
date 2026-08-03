@@ -34,7 +34,7 @@ export default function Expense() {
     { id: '4', name: 'Profit', target: 100000 },
     { id: '5', name: 'Company Expense', target: 25000 },
   ];
-  
+
   const globalBuckets = settingsItem?.value?.buckets || defaultBuckets;
 
   const standardCategories = [
@@ -79,7 +79,7 @@ export default function Expense() {
   const handleSaveExpense = async (e) => {
     e.preventDefault();
     if (!newExpense.date || !newExpense.amount || !newExpense.description) return;
-    
+
     try {
       const payload = {
         date: newExpense.date,
@@ -95,7 +95,7 @@ export default function Expense() {
         await createDocument('expenses', payload);
         toast.success('Expense added successfully');
       }
-      
+
       setShowModal(false);
       setEditingId(null);
       setNewExpense({ date: new Date().toISOString().split('T')[0], category: 'Software Subscriptions', description: '', amount: '' });
@@ -163,7 +163,7 @@ export default function Expense() {
       acc[date] += Number(exp.amount || 0);
       return acc;
     }, {});
-    
+
     return Object.keys(expensesByDate).sort().map(date => ({
       date: formatDate(date),
       amount: expensesByDate[date]
@@ -204,6 +204,11 @@ export default function Expense() {
               <Input type="date" name="startDate" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-36 h-9 text-sm" />
               <span className="text-neutral-500">-</span>
               <Input type="date" name="endDate" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-36 h-9 text-sm" />
+              {(startDate || endDate) && (
+                <Button variant="secondary" onClick={() => { setStartDate(''); setEndDate(''); }} className="h-9 text-sm px-3 text-danger-600 hover:bg-danger-50">
+                  Clear
+                </Button>
+              )}
             </div>
             <Button variant="secondary" onClick={() => exportExpensesPdf({ expenses: filteredExpenses, totalAmount: totalExpense, startDate, endDate })} className="flex items-center gap-2 h-9 text-sm px-3">
               <DocumentTextIcon className="h-4 w-4" />
@@ -218,9 +223,17 @@ export default function Expense() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="p-6 border-primary-100 bg-primary-50/30 md:col-span-3 lg:col-span-1 flex flex-col justify-center">
+        <Card className="p-6 border-primary-100 bg-primary-50/30 flex flex-col justify-center">
           <div className="text-sm font-semibold uppercase tracking-wider text-primary-800 mb-2">Total Expenses</div>
           <div className="text-4xl font-black text-primary-900">{formatCurrency(totalExpense)}</div>
+        </Card>
+        <Card className="p-6 border-emerald-100 bg-emerald-50/30 flex flex-col justify-center">
+          <div className="text-sm font-semibold uppercase tracking-wider text-emerald-800 mb-2">Total Transactions</div>
+          <div className="text-4xl font-black text-emerald-900">{filteredExpenses.length}</div>
+        </Card>
+        <Card className="p-6 border-amber-100 bg-amber-50/30 flex flex-col justify-center">
+          <div className="text-sm font-semibold uppercase tracking-wider text-amber-800 mb-2">Average Expense</div>
+          <div className="text-4xl font-black text-amber-900">{formatCurrency(filteredExpenses.length > 0 ? totalExpense / filteredExpenses.length : 0)}</div>
         </Card>
       </div>
 

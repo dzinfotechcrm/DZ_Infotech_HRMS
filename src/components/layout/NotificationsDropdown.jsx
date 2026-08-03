@@ -56,7 +56,7 @@ export default function NotificationsDropdown() {
     <div className="relative mr-2" ref={menuRef}>
       <button 
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-xl border border-neutral-200 p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-50 transition-colors"
+        className="relative flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors shadow-sm"
       >
         <BellIcon className="h-5 w-5" />
         {unreadCount > 0 && (
