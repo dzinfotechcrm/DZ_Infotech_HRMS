@@ -69,6 +69,7 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
             <div className="space-y-3">
               <div><p className="text-xs font-medium text-slate-500">Email</p><p className="text-sm text-slate-900">{intern.email}</p></div>
               <div><p className="text-xs font-medium text-slate-500">Phone</p><p className="text-sm text-slate-900">{intern.phone || '—'}</p></div>
+              <div><p className="text-xs font-medium text-slate-500">Date of Birth</p><p className="text-sm text-slate-900">{intern.dob ? formatDate(intern.dob) : '—'}</p></div>
               <div><p className="text-xs font-medium text-slate-500">Address</p>
                 <p className="text-sm text-slate-900">
                   {intern.address ? (typeof intern.address === 'string' ? intern.address : `${intern.address.line1 || ''}, ${intern.address.city || ''}, ${intern.address.state || ''} - ${intern.address.pincode || ''}`.replace(/^[,\s-]+|[,\s-]+$/g, '')) : '—'}

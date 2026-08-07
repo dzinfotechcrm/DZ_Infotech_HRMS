@@ -23,6 +23,7 @@ export default function AddInternModal({ intern, departments, managers, existing
     last_name: '',
     email: '',
     phone: '',
+    dob: '',
     photo_url: '',
 
     // Internship Details
@@ -112,7 +113,7 @@ export default function AddInternModal({ intern, departments, managers, existing
     let isValid = true;
 
     const required = [
-      'first_name', 'last_name', 'full_name', 'email', 'position', 'start_date', 'end_date',
+      'first_name', 'last_name', 'full_name', 'email', 'dob', 'position', 'start_date', 'end_date',
       'offer_date', 'acceptance_deadline', 'working_hours'
     ];
 
@@ -142,6 +143,16 @@ export default function AddInternModal({ intern, departments, managers, existing
     if (formData.phone && formData.phone.length !== 10) {
       newErrors.phone = 'Phone number must be exactly 10 digits';
       isValid = false;
+    }
+
+    if (formData.dob) {
+      const parsed = new Date(formData.dob);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (parsed >= today) {
+        newErrors.dob = 'Date of birth cannot be today or in the future';
+        isValid = false;
+      }
     }
 
     setErrors(newErrors);
@@ -226,6 +237,7 @@ export default function AddInternModal({ intern, departments, managers, existing
                 handleChange('phone', val);
               }
             }} />
+            <Input label="Date of Birth" type="date" error={errors.dob} value={formData.dob} onChange={(e) => handleChange('dob', e.target.value)} required />
           </div>
         </div>
 

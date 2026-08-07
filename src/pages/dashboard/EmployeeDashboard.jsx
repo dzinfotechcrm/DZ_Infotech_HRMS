@@ -14,6 +14,7 @@ import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import AttendanceControl from '../../components/dashboard/AttendanceControl';
 import InternDocumentsCard from '../../components/dashboard/InternDocumentsCard';
+import UpcomingBirthdays from '../../components/dashboard/UpcomingBirthdays';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
   const tones = {
@@ -90,7 +91,9 @@ export default function EmployeeDashboard() {
         <StatCard title="Rejected Leaves" value={rejectedLeaves} icon={XCircleIcon} tone="danger" subtitle="Leave requests denied" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <UpcomingBirthdays employees={employees} interns={interns} />
+
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
