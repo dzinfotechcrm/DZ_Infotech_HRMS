@@ -15,7 +15,7 @@ import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
 import { formatDate } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
-import { createDocument } from '../../supabase/db';
+import { createDocument, updateDocument } from '../../supabase/db';
 import * as XLSX from 'xlsx';
 
 export default function AttendanceList() {
@@ -38,6 +38,9 @@ export default function AttendanceList() {
 
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState('');
+  const [selectedNoteItem, setSelectedNoteItem] = useState(null);
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [editNoteText, setEditNoteText] = useState('');
 
   const today = formatDate(new Date(), 'yyyy-MM-dd');
   const thisMonth = formatDate(new Date(), 'yyyy-MM');
@@ -454,6 +457,26 @@ export default function AttendanceList() {
     setExportModalOpen(false);
   };
 
+  const handleSaveNote = async () => {
+    try {
+      if (selectedNoteItem) {
+        await updateDocument('attendance', selectedNoteItem.id, { 
+          data: {
+            ...(selectedNoteItem.data || {}),
+            notes: editNoteText 
+          }
+        });
+        toast.success('Note updated successfully');
+        setNoteModalOpen(false);
+        setIsEditingNote(false);
+        // The data should automatically update if there's a listener, but we might want to manually update selectedNote 
+        setSelectedNote(editNoteText);
+      }
+    } catch (error) {
+      toast.error('Failed to update note: ' + error.message);
+    }
+  };
+
 
 
   const { presentCount, absentCount, lateCount, onLeaveCount } = useMemo(() => {
@@ -691,6 +714,9 @@ export default function AttendanceList() {
                         className="py-1 px-3 text-xs"
                         onClick={() => {
                           setSelectedNote(item.notes);
+                          setEditNoteText(item.notes || '');
+                          setSelectedNoteItem(item);
+                          setIsEditingNote(false);
                           setNoteModalOpen(true);
                         }}
                       >
@@ -738,19 +764,44 @@ export default function AttendanceList() {
 
       <Modal
         open={noteModalOpen}
-        title="Check-Out Note"
-        onClose={() => setNoteModalOpen(false)}
+        title={isEditingNote ? "Edit Check-Out Note" : "Check-Out Note"}
+        onClose={() => { setNoteModalOpen(false); setIsEditingNote(false); }}
         footer={
-          <div className="flex pt-3">
-            <Button variant="secondary" onClick={() => setNoteModalOpen(false)} className="w-full">
-              Close
+          <div className="flex gap-3 pt-3">
+            <Button 
+              variant="secondary" 
+              onClick={() => { setNoteModalOpen(false); setIsEditingNote(false); }} 
+              className={!isEditingNote && !isEmployee ? "w-full" : "flex-1"}
+            >
+              {isEditingNote ? 'Cancel' : 'Close'}
             </Button>
+            
+            {isEditingNote && (
+              <Button onClick={handleSaveNote} className="flex-1">
+                Save Changes
+              </Button>
+            )}
+            
+            {!isEditingNote && isEmployee && (
+              <Button onClick={() => setIsEditingNote(true)} className="flex-1">
+                Edit Note
+              </Button>
+            )}
           </div>
         }
       >
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap break-words">
-          {selectedNote}
-        </div>
+        {isEditingNote ? (
+          <textarea
+            className="w-full p-3 bg-white rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 min-h-[120px] resize-none"
+            value={editNoteText}
+            onChange={(e) => setEditNoteText(e.target.value)}
+            placeholder="Write your check-out note here..."
+          />
+        ) : (
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap break-words min-h-[120px]">
+            {selectedNote || <span className="text-slate-400 italic">No note provided.</span>}
+          </div>
+        )}
       </Modal>
 
     </div>
