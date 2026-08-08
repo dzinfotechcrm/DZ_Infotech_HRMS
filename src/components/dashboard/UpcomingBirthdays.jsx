@@ -7,8 +7,6 @@ export default function UpcomingBirthdays({ employees = [], interns = [] }) {
   const upcoming = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const in30Days = new Date(today);
-    in30Days.setDate(today.getDate() + 30);
 
     const allMembers = [
       ...employees.filter(e => e.status !== 'inactive').map(e => ({ 
@@ -39,7 +37,7 @@ export default function UpcomingBirthdays({ employees = [], interns = [] }) {
           nextBirthday = new Date(today.getFullYear() + 1, dobDate.getMonth(), dobDate.getDate());
         }
 
-        if (nextBirthday >= today && nextBirthday <= in30Days) {
+        if (nextBirthday >= today) {
           upcomingList.push({
             ...member,
             nextBirthday,
@@ -49,7 +47,7 @@ export default function UpcomingBirthdays({ employees = [], interns = [] }) {
       }
     });
 
-    return upcomingList.sort((a, b) => a.daysUntil - b.daysUntil);
+    return upcomingList.sort((a, b) => a.daysUntil - b.daysUntil).slice(0, 5);
   }, [employees, interns]);
 
   return (
@@ -57,7 +55,7 @@ export default function UpcomingBirthdays({ employees = [], interns = [] }) {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="section-title">Upcoming Birthdays</h2>
-          <p className="muted-text">Next 30 days</p>
+          <p className="muted-text">Next 5 birthdays</p>
         </div>
         <GiftIcon className="h-5 w-5 text-primary-600" />
       </div>

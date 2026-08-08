@@ -4,7 +4,7 @@ import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
-import { ClockIcon, UserPlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, UserPlusIcon, DocumentTextIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
@@ -18,6 +18,9 @@ export default function Activities() {
   const { items: employees, loading: loadingEmployees } = useSupabaseCollection('employees', employeesQuery);
   const { items: leaveRequests, loading: loadingLeaves } = useSupabaseCollection('leaveRequests', leaveQuery);
   const { items: interns, loading: loadingInterns } = useSupabaseCollection('interns', internsQuery);
+
+  const attendanceQuery = useMemo(() => (base) => query(base, orderBy('date', 'desc')), []);
+  const { items: attendance, loading: loadingAttendance } = useSupabaseCollection('attendance', attendanceQuery);
 
   const [page, setPage] = useState(1);
   const [filterDate, setFilterDate] = useState('');
@@ -53,23 +56,23 @@ export default function Activities() {
           ts: getTimestamp(employee.createdAt)
         })),
       ...interns.map((intern) => ({
-          id: `intern-${intern.id}`,
-          type: 'employee',
-          label: `New intern onboarded: ${intern.firstName || intern.first_name || ''} ${intern.lastName || intern.last_name || ''}`.trim(),
-          time: formatDate(intern.createdAt, 'dd MMM yyyy, hh:mm a'),
-          ts: getTimestamp(intern.createdAt)
-        })),
+        id: `intern-${intern.id}`,
+        type: 'employee',
+        label: `New intern onboarded: ${intern.firstName || intern.first_name || ''} ${intern.lastName || intern.last_name || ''}`.trim(),
+        time: formatDate(intern.createdAt, 'dd MMM yyyy, hh:mm a'),
+        ts: getTimestamp(intern.createdAt)
+      })),
       ...leaveRequests
         .filter(leaveRequest => {
-          return employees.some(e => e.uid === leaveRequest.employeeId || e.id === leaveRequest.employeeId) || 
-                 interns.some(i => i.uid === leaveRequest.employeeId || i.id === leaveRequest.employeeId);
+          return employees.some(e => e.uid === leaveRequest.employeeId || e.id === leaveRequest.employeeId) ||
+            interns.some(i => i.uid === leaveRequest.employeeId || i.id === leaveRequest.employeeId);
         })
         .map((leaveRequest) => {
           const isNameUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leaveRequest.employeeName || '');
-          const finalName = (leaveRequest.employeeName && !isNameUUID) 
-            ? leaveRequest.employeeName 
+          const finalName = (leaveRequest.employeeName && !isNameUUID)
+            ? leaveRequest.employeeName
             : getEmpName(leaveRequest.employeeId);
-            
+
           return {
             id: `leave-${leaveRequest.id}`,
             type: 'leave',
@@ -80,9 +83,31 @@ export default function Activities() {
             ts: getTimestamp(leaveRequest.createdAt)
           };
         }),
+      ...attendance
+        .filter((att) => att.check_in || (att.data && att.data.checkIn))
+        .map((att) => {
+          const finalName = getEmpName(att.employeeId || att.employee_id || (att.data && att.data.employeeId));
+          // If check_in is missing, construct it from date and checkIn string
+          let ts = getTimestamp(att.check_in);
+          let timeString = att.check_in;
+          
+          if (!ts && att.date && att.data?.checkIn) {
+             const fallbackDate = new Date(`${att.date}T${att.data.checkIn}`);
+             ts = fallbackDate.getTime() || 0;
+             timeString = fallbackDate.toISOString();
+          }
+
+          return {
+            id: `attendance-${att.id}`,
+            type: 'attendance',
+            label: `${finalName} checked in`,
+            time: formatDate(timeString, 'dd MMM, hh:mm a'),
+            ts: ts || getTimestamp(att.createdAt)
+          };
+        }),
     ];
     return combined.sort((a, b) => b.ts - a.ts);
-  }, [employees, interns, leaveRequests]);
+  }, [employees, interns, leaveRequests, attendance]);
 
   const filteredActivities = useMemo(() => {
     if (!filterDate) return activities;
@@ -101,7 +126,7 @@ export default function Activities() {
   const totalPages = Math.ceil(filteredActivities.length / PAGE_SIZE) || 1;
   const paginatedActivities = filteredActivities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const isLoading = loadingEmployees || loadingLeaves || loadingInterns;
+  const isLoading = loadingEmployees || loadingLeaves || loadingInterns || loadingAttendance;
 
   return (
     <div className="space-y-6">
@@ -148,8 +173,14 @@ export default function Activities() {
           ) : (
             paginatedActivities.map((activity) => (
               <div key={activity.id} className="flex items-start gap-4 px-6 py-4 hover:bg-neutral-50/50 transition-colors">
-                <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${activity.type === 'employee' ? 'bg-emerald-100 text-emerald-600' : 'bg-primary-100 text-primary-600'}`}>
-                  {activity.type === 'employee' ? <UserPlusIcon className="h-5 w-5" /> : <DocumentTextIcon className="h-5 w-5" />}
+                <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  activity.type === 'employee' ? 'bg-emerald-100 text-emerald-600' : 
+                  activity.type === 'attendance' ? 'bg-blue-100 text-blue-600' :
+                  'bg-primary-100 text-primary-600'
+                }`}>
+                  {activity.type === 'employee' ? <UserPlusIcon className="h-5 w-5" /> : 
+                   activity.type === 'attendance' ? <CheckCircleIcon className="h-5 w-5" /> :
+                   <DocumentTextIcon className="h-5 w-5" />}
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-neutral-900">{activity.label}</p>
