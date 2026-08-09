@@ -289,7 +289,9 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">
-        <UpcomingBirthdays employees={employees} interns={interns} />
+        {user?.role === 'admin' && (
+          <UpcomingBirthdays employees={employees} interns={interns} />
+        )}
         
         <Card className="p-5 min-w-0 overflow-hidden">
           <div className="mb-4 flex items-center justify-between">

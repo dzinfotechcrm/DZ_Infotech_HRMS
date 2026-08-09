@@ -14,7 +14,6 @@ import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import AttendanceControl from '../../components/dashboard/AttendanceControl';
 import InternDocumentsCard from '../../components/dashboard/InternDocumentsCard';
-import UpcomingBirthdays from '../../components/dashboard/UpcomingBirthdays';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
   const tones = {
@@ -55,7 +54,7 @@ export default function EmployeeDashboard() {
   
   const currentEntity = currentEmployee || currentIntern;
 
-  const attendance = allAttendance.filter((a) => a.employeeId === user?.uid || (currentEntity && a.employeeId === currentEntity.id)).slice(0, 10);
+  const attendance = allAttendance.filter((a) => a.employeeId === user?.uid || (currentEntity && a.employeeId === currentEntity.id)).slice(0, 5);
   const userLeaves = allLeaveRequests.filter((lr) => lr.employeeId === user?.uid || (currentEntity && lr.employeeId === currentEntity.id));
   const leaveRequests = userLeaves.slice(0, 5);
 
@@ -91,14 +90,13 @@ export default function EmployeeDashboard() {
         <StatCard title="Rejected Leaves" value={rejectedLeaves} icon={XCircleIcon} tone="danger" subtitle="Leave requests denied" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <UpcomingBirthdays employees={employees} interns={interns} />
+      <div className="grid gap-6 md:grid-cols-2">
 
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="section-title">Recent Attendance</h2>
-              <p className="muted-text">Your latest 10 attendance records</p>
+              <p className="muted-text">Your latest 5 attendance records</p>
             </div>
           </div>
           <Table
