@@ -59,6 +59,10 @@ const revenueNavigation = [
   { to: '/bucket-settings', label: 'Bucket Settings', icon: Cog6ToothIcon, adminOnly: true },
 ];
 
+const companyNavigation = [
+  { to: '/company/documents', label: 'Documents', icon: DocumentMagnifyingGlassIcon },
+];
+
 const fieldSalesNavigation = [
   { to: '/sfms/dashboard', label: 'Dashboard', icon: PresentationChartLineIcon, adminOnly: true },
   { to: '/sfms/teams', label: 'Teams', icon: UserGroupIcon, adminOnly: true },
@@ -147,6 +151,34 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
                         {pendingCount}
                       </span>
                     )}
+                  </NavLink>
+                );
+              })}
+            </>
+          )}
+
+          {!isAgent(user?.role) && (
+            <>
+              <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
+                Company
+              </div>
+              {companyNavigation.map((item) => {
+                if (item.adminOnly && !isAdminLikeRole) return null;
+                if (item.hideForAdmin && isAdminLikeRole) return null;
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-5 w-5" />
+                      <span>{item.label}</span>
+                    </div>
                   </NavLink>
                 );
               })}

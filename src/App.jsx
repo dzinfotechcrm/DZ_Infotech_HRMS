@@ -35,6 +35,8 @@ const Finance = lazy(() => import('./pages/revenue/Finance'));
 const BucketSettings = lazy(() => import('./pages/revenue/BucketSettings'));
 const Expense = lazy(() => import('./pages/revenue/Expense'));
 
+const CompanyDocuments = lazy(() => import('./pages/company/documents/CompanyDocuments'));
+
 // SFMS Routes
 const SfmsDashboard = lazy(() => import('./pages/sfms/Dashboard'));
 const SfmsTeams = lazy(() => import('./pages/sfms/Teams'));
@@ -107,6 +109,8 @@ export default function App() {
           <Route path="payroll/payslip/:id" element={<ProtectedRoute allowedRoles={PERMISSIONS.payroll}><Payslip /></ProtectedRoute>} />
           <Route path="profile" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><Profile /></ProtectedRoute>} />
           <Route path="active-licenses" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><ActiveLicenses /></ProtectedRoute>} />
+
+          <Route path="company/documents" element={<ProtectedRoute allowedRoles={PERMISSIONS.documents}><CompanyDocuments /></ProtectedRoute>} />
 
           <Route path="announcements" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr]}><AnnouncementsAdmin /></ProtectedRoute>} />
 
