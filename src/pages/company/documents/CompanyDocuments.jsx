@@ -84,12 +84,33 @@ export default function CompanyDocuments() {
     setPreviewDoc(doc);
   };
 
-  const handleDownload = (doc) => {
+  const handleDownload = async (doc) => {
     if (doc.url) {
-      const a = document.createElement('a');
-      a.href = doc.url;
-      a.download = doc.name;
-      a.click();
+      try {
+        const toastId = toast.loading(`Preparing download...`);
+        const response = await fetch(doc.url);
+        if (!response.ok) throw new Error('Download failed');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.dismiss(toastId);
+      } catch (error) {
+        console.error('Download error:', error);
+        // Fallback if fetch fails
+        const a = document.createElement('a');
+        a.href = `${doc.url}?download=${encodeURIComponent(doc.name)}`;
+        a.download = doc.name;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
     } else {
       toast(`Downloading ${doc.name} (Mock data)`, { icon: '⬇️' });
     }
