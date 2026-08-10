@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageHeader from '../../../components/ui/PageHeader';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
@@ -7,52 +7,77 @@ import Modal from '../../../components/ui/Modal';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import toast from 'react-hot-toast';
 import { DocumentIcon, TrashIcon, ArrowDownTrayIcon, EyeIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
+import { uploadFile } from '../../../supabase/storage';
 
 const initialDocs = [];
 
 export default function CompanyDocuments() {
   const [pptFile, setPptFile] = useState(null);
   const [catalogueFile, setCatalogueFile] = useState(null);
-  const [documents, setDocuments] = useState(initialDocs);
+  const [documents, setDocuments] = useState(() => {
+    const saved = localStorage.getItem('companyDocuments');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { return initialDocs; }
+    }
+    return initialDocs;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('companyDocuments', JSON.stringify(documents));
+  }, [documents]);
   const [previewDoc, setPreviewDoc] = useState(null);
   const [deleteDocId, setDeleteDocId] = useState(null);
 
-  const handlePptUpload = (e) => {
+  const handlePptUpload = async (e) => {
     e.preventDefault();
     if (!pptFile) {
       toast.error('Please select a PPT file to upload');
       return;
     }
-    const newDoc = {
-      id: Date.now(),
-      type: 'PPT',
-      name: pptFile.name,
-      uploadDate: new Date().toISOString().split('T')[0],
-      size: (pptFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-      url: URL.createObjectURL(pptFile)
-    };
-    setDocuments(prev => [newDoc, ...prev]);
-    toast.success('PPT uploaded successfully');
-    setPptFile(null);
+    const toastId = toast.loading('Uploading PPT...');
+    try {
+      const fileUrl = await uploadFile(pptFile, 'company_documents');
+      const newDoc = {
+        id: Date.now(),
+        type: 'PPT',
+        name: pptFile.name,
+        uploadDate: new Date().toISOString().split('T')[0],
+        size: (pptFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+        url: fileUrl
+      };
+      setDocuments(prev => [newDoc, ...prev]);
+      toast.success('PPT uploaded successfully', { id: toastId });
+      setPptFile(null);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to upload PPT', { id: toastId });
+    }
   };
 
-  const handleCatalogueUpload = (e) => {
+  const handleCatalogueUpload = async (e) => {
     e.preventDefault();
     if (!catalogueFile) {
       toast.error('Please select a catalogue file to upload');
       return;
     }
-    const newDoc = {
-      id: Date.now(),
-      type: 'Catalogue',
-      name: catalogueFile.name,
-      uploadDate: new Date().toISOString().split('T')[0],
-      size: (catalogueFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-      url: URL.createObjectURL(catalogueFile)
-    };
-    setDocuments(prev => [newDoc, ...prev]);
-    toast.success('Service Catalogue uploaded successfully');
-    setCatalogueFile(null);
+    const toastId = toast.loading('Uploading Catalogue...');
+    try {
+      const fileUrl = await uploadFile(catalogueFile, 'company_documents');
+      const newDoc = {
+        id: Date.now(),
+        type: 'Catalogue',
+        name: catalogueFile.name,
+        uploadDate: new Date().toISOString().split('T')[0],
+        size: (catalogueFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+        url: fileUrl
+      };
+      setDocuments(prev => [newDoc, ...prev]);
+      toast.success('Service Catalogue uploaded successfully', { id: toastId });
+      setCatalogueFile(null);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to upload Catalogue', { id: toastId });
+    }
   };
 
   const handleView = (doc) => {
@@ -99,9 +124,8 @@ export default function CompanyDocuments() {
         </div>
       </td>
       <td className="px-4 py-3">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-          doc.type === 'PPT' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
-        }`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${doc.type === 'PPT' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+          }`}>
           {doc.type}
         </span>
       </td>
