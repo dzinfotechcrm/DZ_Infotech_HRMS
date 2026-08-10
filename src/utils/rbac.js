@@ -33,6 +33,7 @@ export const PERMISSIONS = {
   leave: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
   payroll: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
   documents: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
+  quotations: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.intern],
   reports: [ROLES.admin, ROLES.hr, ROLES.manager],
   profile: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.agent, ROLES.intern],
   settings: [ROLES.admin],

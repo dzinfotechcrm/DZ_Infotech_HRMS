@@ -36,6 +36,7 @@ const BucketSettings = lazy(() => import('./pages/revenue/BucketSettings'));
 const Expense = lazy(() => import('./pages/revenue/Expense'));
 
 const CompanyDocuments = lazy(() => import('./pages/company/documents/CompanyDocuments'));
+const CompanyQuotations = lazy(() => import('./pages/company/quotations/CompanyQuotations'));
 
 // SFMS Routes
 const SfmsDashboard = lazy(() => import('./pages/sfms/Dashboard'));
@@ -111,6 +112,7 @@ export default function App() {
           <Route path="active-licenses" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><ActiveLicenses /></ProtectedRoute>} />
 
           <Route path="company/documents" element={<ProtectedRoute allowedRoles={PERMISSIONS.documents}><CompanyDocuments /></ProtectedRoute>} />
+          <Route path="company/quotations" element={<ProtectedRoute allowedRoles={PERMISSIONS.quotations}><CompanyQuotations /></ProtectedRoute>} />
 
           <Route path="announcements" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr]}><AnnouncementsAdmin /></ProtectedRoute>} />
 

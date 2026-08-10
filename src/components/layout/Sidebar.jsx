@@ -28,7 +28,8 @@ import {
   BanknotesIcon as BanknotesIconOutline,
   DocumentChartBarIcon,
   ComputerDesktopIcon,
-  MegaphoneIcon
+  MegaphoneIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -61,6 +62,7 @@ const revenueNavigation = [
 
 const companyNavigation = [
   { to: '/company/documents', label: 'Documents', icon: DocumentMagnifyingGlassIcon },
+  { to: '/company/quotations', label: 'Quotations', icon: DocumentTextIcon },
 ];
 
 const fieldSalesNavigation = [
