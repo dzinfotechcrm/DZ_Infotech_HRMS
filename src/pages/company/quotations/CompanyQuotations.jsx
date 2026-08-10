@@ -6,30 +6,39 @@ import Button from '../../../components/ui/Button';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { QuotationPDF } from '../../../components/pdf/QuotationPDF';
 
+const getInitialState = () => ({
+  clientName: '',
+  contactPerson: '',
+  quotationNumber: `QT-${new Date().toISOString().slice(0,10).replace(/-/g, '')}-A`,
+  quotationDate: new Date().toISOString().slice(0, 10),
+  validityDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+  businessObjective: '',
+  proposedSolution: '',
+  manufacturingCost: 40000,
+  inventoryCost: 30000,
+  salesCost: 20000,
+  hrCost: 20000,
+  reportsCost: 15000,
+  deploymentCost: 15000,
+  specialProjectPrice: 150000,
+  amcCost: 30000,
+  gstin: '',
+  registeredAddress: ''
+});
+
 export default function CompanyQuotations() {
-  const [formData, setFormData] = useState({
-    clientName: '',
-    contactPerson: '',
-    quotationNumber: `QT-${new Date().toISOString().slice(0,10).replace(/-/g, '')}-A`,
-    quotationDate: new Date().toISOString().slice(0, 10),
-    validityDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    businessObjective: '',
-    proposedSolution: '',
-    manufacturingCost: 40000,
-    inventoryCost: 30000,
-    salesCost: 20000,
-    hrCost: 20000,
-    reportsCost: 15000,
-    deploymentCost: 15000,
-    specialProjectPrice: 150000,
-    amcCost: 30000,
-    gstin: '',
-    registeredAddress: ''
-  });
+  const [formData, setFormData] = useState(getInitialState());
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleReset = () => {
+    // Add a small delay to ensure the PDF download starts before clearing the data
+    setTimeout(() => {
+      setFormData(getInitialState());
+    }, 500);
   };
 
   return (
@@ -112,7 +121,7 @@ export default function CompanyQuotations() {
             fileName={`${formData.quotationNumber}_${formData.clientName.replace(/\s+/g, '_') || 'Draft'}_Quotation.pdf`}
           >
             {({ loading }) => (
-              <Button type="button" variant="primary" disabled={loading || !formData.clientName}>
+              <Button type="button" variant="primary" disabled={loading || !formData.clientName} onClick={handleReset}>
                 {loading ? 'Generating PDF...' : 'Download Quotation PDF'}
               </Button>
             )}
