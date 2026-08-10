@@ -35,8 +35,8 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-neutral-200 bg-white/95 backdrop-blur">
-      <div className="flex items-center gap-4 px-4 py-4 md:px-6 lg:px-8">
+    <header className="sticky top-0 z-20 h-[105px] border-b border-neutral-200 bg-white/95 backdrop-blur">
+      <div className="flex h-full items-center gap-4 px-4 md:px-6 lg:px-8">
         <button className="rounded-xl border border-neutral-200 p-2 text-neutral-700 lg:hidden" onClick={onMenuClick}>
           <UserCircleIcon className="h-5 w-5" />
         </button>

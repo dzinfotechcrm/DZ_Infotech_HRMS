@@ -102,7 +102,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-[260px] transform border-r border-primary-800/70 bg-primary-900 text-white transition-transform duration-300 flex flex-col lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static`}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
+        <div className="flex h-[105px] items-center justify-between border-b border-white/10 px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white p-1">
               <img src="/DZ_Infotech_Logo.jpeg" alt="DZ Infotech" className="h-full w-full object-contain" />
