@@ -227,6 +227,14 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginBottom: 6,
   },
+  pageHeaderRight: {
+    position: 'absolute',
+    top: 20,
+    right: 40,
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
 });
 
 const Bullet = ({ children }) => (
@@ -284,6 +292,7 @@ export const QuotationPDF = ({ data }) => {
   return (
     <Document>
       <Page size="A4" style={styles.page} wrap>
+        <Text style={styles.pageHeaderRight} fixed>DZ INFOTECH</Text>
         <View style={styles.coverPage}>
           <Image src="/DZ_Infotech_Logo.jpeg" style={styles.coverLogo} />
           <Text style={styles.heroTitle}>Customized Manufacturing ERP</Text>

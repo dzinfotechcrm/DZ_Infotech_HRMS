@@ -31,7 +31,10 @@ export default function CompanyQuotations() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: name === 'gstin' ? value.toUpperCase() : value 
+    }));
   };
 
   const handleReset = () => {
