@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function Modal({ open, title, onClose, children, footer, disableBackdropClick = false, overflowVisible = false }) {
+export default function Modal({ open, title, onClose, children, footer, disableBackdropClick = false, overflowVisible = false, maxWidth = '780px' }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !disableBackdropClick) {
@@ -43,7 +43,7 @@ export default function Modal({ open, title, onClose, children, footer, disableB
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '90%',
-          maxWidth: '780px',
+          maxWidth: maxWidth,
           maxHeight: '90vh',
           zIndex: 1001
         }}

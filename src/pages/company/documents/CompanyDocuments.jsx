@@ -8,10 +8,7 @@ import ConfirmModal from '../../../components/ui/ConfirmModal';
 import toast from 'react-hot-toast';
 import { DocumentIcon, TrashIcon, ArrowDownTrayIcon, EyeIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 
-const initialDocs = [
-  { id: 1, type: 'PPT', name: 'Company_Overview_2026.pptx', uploadDate: '2026-08-01', size: '2.4 MB' },
-  { id: 2, type: 'Catalogue', name: 'Services_Catalogue_Q3.pdf', uploadDate: '2026-08-05', size: '1.1 MB' },
-];
+const initialDocs = [];
 
 export default function CompanyDocuments() {
   const [pptFile, setPptFile] = useState(null);
@@ -213,11 +210,11 @@ export default function CompanyDocuments() {
         confirmVariant="danger"
       />
 
-      <Modal open={!!previewDoc} title={`Viewing: ${previewDoc?.name}`} onClose={() => setPreviewDoc(null)}>
+      <Modal open={!!previewDoc} title={`Viewing: ${previewDoc?.name}`} onClose={() => setPreviewDoc(null)} maxWidth="95vw">
         {previewDoc?.url ? (
-          <div className="h-[60vh] w-full rounded-lg overflow-hidden border border-neutral-200">
+          <div className="h-[85vh] w-full rounded-lg overflow-hidden border border-neutral-200">
             {previewDoc.type === 'Catalogue' ? (
-              <iframe src={previewDoc.url} className="w-full h-full border-0" title="Document Preview" />
+              <iframe src={`${previewDoc.url}#toolbar=0`} className="w-full h-full border-0" title="Document Preview" />
             ) : (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-500 bg-neutral-50">
                 <DocumentIcon className="h-16 w-16 text-neutral-400" />
