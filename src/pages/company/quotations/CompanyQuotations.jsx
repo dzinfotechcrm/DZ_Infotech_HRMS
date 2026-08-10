@@ -22,6 +22,7 @@ export default function CompanyQuotations() {
     reportsCost: 15000,
     deploymentCost: 15000,
     specialProjectPrice: 150000,
+    amcCost: 30000,
     gstin: '',
     registeredAddress: ''
   });
@@ -99,6 +100,7 @@ export default function CompanyQuotations() {
               <Input label="Reports & Access" type="number" name="reportsCost" value={formData.reportsCost} onChange={handleChange} />
               <Input label="Deployment & Training" type="number" name="deploymentCost" value={formData.deploymentCost} onChange={handleChange} />
               <Input label="Special Project Price" type="number" name="specialProjectPrice" value={formData.specialProjectPrice} onChange={handleChange} />
+              <Input label="Annual Maintenance (AMC)" type="number" name="amcCost" value={formData.amcCost} onChange={handleChange} />
             </div>
             <p className="text-xs text-neutral-500 mt-2">Note: Core ERP Application Development is fixed at ₹1,20,000 in the template.</p>
           </div>

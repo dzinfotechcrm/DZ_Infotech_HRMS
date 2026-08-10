@@ -1,0 +1,134 @@
+Text: '[ COMPANY LOGO ]' | Color: 888888 | Size: 9.0 | Bold: None | Italic: None
+Text: 'Customized Manufacturing ERP' | Color: 222222 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Software Design, Development &' | Color: 172A6C | Size: 15.0 | Bold: None | Italic: True
+Text: 'MANUFACTURING  •  INVENTORY  •' | Color: EA6B23 | Size: 9.0 | Bold: True | Italic: None
+Text: 'BUSINESS OBJECTIVE' | Color: EA6B23 | Size: 8.0 | Bold: True | Italic: None
+Text: '[One to two sentences on the c' | Color: 222222 | Size: 10.5 | Bold: None | Italic: True
+Text: 'PROPOSED SOLUTION' | Color: EA6B23 | Size: 8.0 | Bold: True | Italic: None
+Text: '[One to two sentences on the p' | Color: 222222 | Size: 10.5 | Bold: None | Italic: True
+Text: '01  ' | Color: D8CBB0 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Project Overview' | Color: 172A6C | Size: 15.0 | Bold: True | Italic: None
+Text: '[1–2 sentence restatement of t' | Color: 222222 | Size: 10.5 | Bold: None | Italic: True
+Text: 'Module Flow' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Purchase  →  Inventory  →  Pro' | Color: 172A6C | Size: 10.0 | Bold: True | Italic: None
+Text: 'Module Summary' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Purchase — vendor POs, shortag' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Inventory — multi-location sto' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Production — multi-level BOMs,' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Sales & Dispatch — sales order' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'HR & Payroll — employee master' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Reports & Access Control — on-' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: '02  ' | Color: D8CBB0 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Detailed Functional Scope' | Color: 172A6C | Size: 15.0 | Bold: True | Italic: None
+Text: 'Purchase' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Material requirement visibilit' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Purchase Orders raised against' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'PO status tracking — Open, Par' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'GRN entry with partial/multipl' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Inventory' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Multi-location stock — raw mat' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Stock transfers between locati' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Reorder alerts when stock fall' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Stock adjustments after physic' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Stock valuation by item and lo' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Production' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Bills of Materials, including ' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Routing and stage-wise trackin' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Job-work tracking — material s' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Work Orders with BOM auto-expl' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Live production status and com' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Sales & Dispatch' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Sales Orders with items, quant' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Dispatch Notes / Delivery Chal' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Real-time finished-goods visib' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Order status tracking — Pendin' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'HR & Payroll' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Employee master for permanent ' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Daily attendance marking, indi' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Leave types and balances track' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Monthly payroll from attendanc' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Payslips and a consolidated mo' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Note: this module covers HR & ' | Color: 222222 | Size: 10.5 | Bold: None | Italic: True
+Text: 'Reports & Access Control' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'On-screen and downloadable (PD' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Role-based access, assignable ' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: '03  ' | Color: D8CBB0 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Deliverables & Implementation' | Color: 172A6C | Size: 15.0 | Bold: True | Italic: None
+Text: 'Project Deliverables' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'ERP Platform — web-based appli' | Color: 222222 | Size: 10.5 | Bold: True | Italic: None
+Text: 'Operations — Purchase, Invento' | Color: 222222 | Size: 10.5 | Bold: True | Italic: None
+Text: 'People — employee management, ' | Color: 222222 | Size: 10.5 | Bold: True | Italic: None
+Text: 'Management — reports, Excel/PD' | Color: 222222 | Size: 10.5 | Bold: True | Italic: None
+Text: 'Implementation — data setup, t' | Color: 222222 | Size: 10.5 | Bold: True | Italic: None
+Text: 'Scope of Work' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: "Understanding the client's bus" | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Preparation of a Software Requ' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'ERP customization as per the a' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Master data setup — items, cus' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Testing, validation, and corre' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'User training for concerned de' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Implementation support during ' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Post-implementation support fo' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Implementation Roadmap' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Timeline is dependent on timel' | Color: 222222 | Size: 10.5 | Bold: None | Italic: True
+Text: '04  ' | Color: D8CBB0 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Commercial Proposal' | Color: 172A6C | Size: 15.0 | Bold: True | Italic: None
+Text: 'Project Value: ' | Color: 222222 | Size: 10.0 | Bold: True | Italic: None
+Text: '₹1,50,000' | Color: 222222 | Size: 10.0 | Bold: None | Italic: None
+Text: 'GST: ' | Color: 222222 | Size: 10.0 | Bold: True | Italic: None
+Text: 'Extra as applicable' | Color: 222222 | Size: 10.0 | Bold: None | Italic: None
+Text: 'Total Payable: ' | Color: 222222 | Size: 10.0 | Bold: True | Italic: None
+Text: '₹1,50,000 + applicable GST' | Color: 172A6C | Size: 10.0 | Bold: True | Italic: None
+Text: 'GSTIN: [GSTIN Number]        R' | Color: 222222 | Size: 10.5 | Bold: None | Italic: True
+Text: 'Payment Schedule' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Production deployment, source-' | Color: 222222 | Size: 10.5 | Bold: None | Italic: True
+Text: '05  ' | Color: D8CBB0 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Support & Maintenance' | Color: 172A6C | Size: 15.0 | Bold: True | Italic: None
+Text: 'Post-implementation support is' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'Support does not include chang' | Color: 222222 | Size: 10.5 | Bold: None | Italic: True
+Text: 'Annual Maintenance Contract' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'An Annual Maintenance Contract' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: '06  ' | Color: D8CBB0 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Assumptions, Exclusions & Resp' | Color: 172A6C | Size: 15.0 | Bold: True | Italic: None
+Text: 'Scope Summary' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Hosting & Infrastructure' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'This quotation covers applicat' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'Integrations' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Integration with third-party s' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'Data Security & Backup' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'The system will implement role' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'Client Responsibilities' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: '[Client Company Name] shall pr' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'Dependencies & Assumptions' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'The proposed scope and timelin' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'Required business information ' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Master data will be supplied i' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'A designated client representa' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Required third-party hardware/' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Any major changes to the appro' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: '07  ' | Color: D8CBB0 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Handover & Ownership' | Color: 172A6C | Size: 15.0 | Bold: True | Italic: None
+Text: 'Scope Baseline' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'The approved SRS shall serve a' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'Change Requests' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'The project scope is based on ' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'User Acceptance Testing' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Following completion of develo' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'If no material issues are repo' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'Handover Deliverables' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'User login credentials with a ' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'User manual and technical docu' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Master data setup as configure' | Color: 222222 | Size: 10.5 | Bold: False | Italic: None
+Text: 'Source Code & Intellectual Pro' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'Source code and project intell' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: '08  ' | Color: D8CBB0 | Size: 22.0 | Bold: True | Italic: None
+Text: 'Acceptance' | Color: 172A6C | Size: 15.0 | Bold: True | Italic: None
+Text: 'For [Company Name]' | Color: 222222 | Size: 10.0 | Bold: None | Italic: None
+Text: '[Authorized Signatory Name]' | Color: 222222 | Size: 10.0 | Bold: True | Italic: None
+Text: '[Company Name] · [email] · [ph' | Color: 555555 | Size: 9.0 | Bold: None | Italic: None
+Text: 'ACCEPTANCE' | Color: EA6B23 | Size: 8.0 | Bold: True | Italic: None
+Text: 'Offer Acceptance by [Client Co' | Color: 172A6C | Size: 11.0 | Bold: True | Italic: None
+Text: 'By signing below, [Client Comp' | Color: 222222 | Size: 10.5 | Bold: None | Italic: False
+Text: 'For [Client Company Name]' | Color: 222222 | Size: 10.0 | Bold: None | Italic: None
+Text: 'Authorized Signatory: ' | Color: 222222 | Size: 10.0 | Bold: None | Italic: None
+Text: 'Name: ' | Color: 222222 | Size: 10.0 | Bold: None | Italic: None
