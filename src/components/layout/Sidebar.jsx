@@ -157,14 +157,12 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
             </>
           )}
 
-          {!isAgent(user?.role) && (
+          {isAdminLikeRole && (
             <>
               <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
-                Company
+                Revenue
               </div>
-              {companyNavigation.map((item) => {
-                if (item.adminOnly && !isAdminLikeRole) return null;
-                if (item.hideForAdmin && isAdminLikeRole) return null;
+              {revenueNavigation.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink
@@ -185,12 +183,14 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
             </>
           )}
 
-          {isAdminLikeRole && (
+          {!isAgent(user?.role) && (
             <>
               <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
-                Revenue
+                Company
               </div>
-              {revenueNavigation.map((item) => {
+              {companyNavigation.map((item) => {
+                if (item.adminOnly && !isAdminLikeRole) return null;
+                if (item.hideForAdmin && isAdminLikeRole) return null;
                 const Icon = item.icon;
                 return (
                   <NavLink

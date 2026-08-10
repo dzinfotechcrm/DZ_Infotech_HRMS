@@ -8,6 +8,7 @@ import Button from '../../components/ui/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import Select from '../../components/ui/Select';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
@@ -558,41 +559,31 @@ export default function LeaveList() {
         </div>
       )}
 
-      <Modal
+      <ConfirmModal
         open={confirmOpen}
         title="Confirm delete"
-        onClose={() => {
+        message="Are you sure you want to delete this leave request? This cannot be undone."
+        onConfirm={async () => {
+          if (!confirmItem) return;
+          try {
+            setDeleting(confirmItem.id);
+            await removeDocument('leaveRequests', confirmItem.id);
+            setConfirmOpen(false);
+          } catch (err) {
+            console.error('Failed to delete leave request', err);
+            alert('Failed to delete leave request.');
+          } finally {
+            setDeleting(null);
+            setConfirmItem(null);
+          }
+        }}
+        onCancel={() => {
           setConfirmOpen(false);
           setConfirmItem(null);
         }}
-        footer={(
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => { setConfirmOpen(false); setConfirmItem(null); }}>Cancel</Button>
-            <Button
-              variant="danger"
-              disabled={!confirmItem || deleting === confirmItem?.id}
-              onClick={async () => {
-                if (!confirmItem) return;
-                try {
-                  setDeleting(confirmItem.id);
-                  await removeDocument('leaveRequests', confirmItem.id);
-                  setConfirmOpen(false);
-                } catch (err) {
-                  console.error('Failed to delete leave request', err);
-                  alert('Failed to delete leave request.');
-                } finally {
-                  setDeleting(null);
-                  setConfirmItem(null);
-                }
-              }}
-            >
-              Delete
-            </Button>
-          </div>
-        )}
-      >
-        <p>Are you sure you want to delete this leave request? This cannot be undone.</p>
-      </Modal>
+        confirmText="Delete"
+        confirmVariant="danger"
+      />
 
       <Modal
         open={leaveReasonOpen}

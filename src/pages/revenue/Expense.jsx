@@ -7,6 +7,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Spinner from '../../components/ui/Spinner';
@@ -346,25 +347,15 @@ export default function Expense() {
         </form>
       </Modal>
 
-      <Modal
+      <ConfirmModal
         open={!!deleteId}
         title="Confirm Deletion"
-        onClose={() => setDeleteId(null)}
-        footer={
-          <div className="flex justify-end gap-3 w-full">
-            <Button variant="secondary" onClick={() => setDeleteId(null)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={confirmDelete}>
-              Delete Expense
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-sm text-neutral-600 pb-4">
-          Are you sure you want to delete this expense? This action cannot be undone.
-        </p>
-      </Modal>
+        message="Are you sure you want to delete this expense? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteId(null)}
+        confirmText="Delete Expense"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -24,6 +25,7 @@ export default function BucketSettings() {
   const loading = settingsLoading || projectsLoading || expensesLoading;
   const [buckets, setBuckets] = useState([]);
   const [editingBucket, setEditingBucket] = useState(null);
+  const [deleteBucketId, setDeleteBucketId] = useState(null);
   const [previewTarget, setPreviewTarget] = useState('');
 
   useEffect(() => {
@@ -269,7 +271,7 @@ export default function BucketSettings() {
                               <PencilIcon className="h-5 w-5" />
                             </button>
                             <button
-                              onClick={() => removeBucket(bucket.id)}
+                              onClick={() => setDeleteBucketId(bucket.id)}
                               className="text-red-500 hover:text-red-600 transition-colors p-1.5 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200"
                               title="Remove bucket"
                             >
@@ -302,6 +304,19 @@ export default function BucketSettings() {
           </Card>
         </div>
       </div>
+
+      <ConfirmModal
+        open={!!deleteBucketId}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this bucket? This action cannot be undone."
+        onConfirm={() => {
+          removeBucket(deleteBucketId);
+          setDeleteBucketId(null);
+        }}
+        onCancel={() => setDeleteBucketId(null)}
+        confirmText="Delete Bucket"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

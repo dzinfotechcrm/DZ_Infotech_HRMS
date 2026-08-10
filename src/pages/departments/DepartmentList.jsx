@@ -6,6 +6,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { removeDocument } from '../../supabase/db';
 import toast from 'react-hot-toast';
@@ -101,25 +102,15 @@ export default function DepartmentList() {
         actions={isAdminLike(user?.role) ? <Link to="/departments/new"><Button><UsersIcon className="h-4 w-4" /> Add Department</Button></Link> : null}
       />
 
-      <Modal
+      <ConfirmModal
         open={deleteModalOpen}
         title="Delete Department"
-        onClose={() => setDeleteModalOpen(false)}
-        footer={
-          <div className="flex gap-3 pt-3">
-            <Button variant="secondary" onClick={() => setDeleteModalOpen(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button onClick={executeDelete} className="flex-1 bg-danger-600 text-white hover:bg-danger-700">
-              Delete
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-sm text-neutral-600">
-          Are you sure you want to delete this department? This action cannot be undone.
-        </p>
-      </Modal>
+        message="Are you sure you want to delete this department? This action cannot be undone."
+        onConfirm={executeDelete}
+        onCancel={() => setDeleteModalOpen(false)}
+        confirmText="Delete"
+        confirmVariant="danger"
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {departments.map((department) => {

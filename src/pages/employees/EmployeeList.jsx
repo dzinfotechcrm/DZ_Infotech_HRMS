@@ -27,6 +27,7 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import SearchableSelect from '../../components/ui/SearchableSelect';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { formatDate, safeDate, daysBetween } from '../../utils/dateHelpers';
 import { removeDocument, upsertDocument, createDocument, updateDocument } from '../../supabase/db';
 import toast from 'react-hot-toast';
@@ -2123,31 +2124,22 @@ export default function EmployeeList() {
         onClose={() => setAddModalOpen(false)}
         onSave={handleAddEmployee}
       />
-      <Modal
+      <ConfirmModal
         open={deleteModalOpen}
         title={selectedEmployee?.isIntern ? "Delete Intern" : "Delete Employee"}
-        onClose={() => {
+        message={
+          <>
+            Are you sure you want to delete <span className="font-semibold text-slate-900">{selectedEmployee?.firstName} {selectedEmployee?.lastName}</span>? This action cannot be undone.
+          </>
+        }
+        onConfirm={executeDelete}
+        onCancel={() => {
           setDeleteModalOpen(false);
           setSelectedEmployee(null);
         }}
-        footer={
-          <div className="flex gap-3 pt-3">
-            <Button variant="secondary" onClick={() => {
-              setDeleteModalOpen(false);
-              setSelectedEmployee(null);
-            }} className="flex-1">
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={executeDelete} className="flex-1">
-              {selectedEmployee?.isIntern ? "Delete Intern" : "Delete Employee"}
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-sm text-slate-600">
-          Are you sure you want to delete <span className="font-semibold text-slate-900">{selectedEmployee?.firstName} {selectedEmployee?.lastName}</span>? This action cannot be undone.
-        </p>
-      </Modal>
+        confirmText={selectedEmployee?.isIntern ? "Delete Intern" : "Delete Employee"}
+        confirmVariant="danger"
+      />
 
       {/* Intern Modals */}
       <AddInternModal

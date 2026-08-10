@@ -16,6 +16,7 @@ import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import PageHeader from '../../components/ui/PageHeader';
 import Select from '../../components/ui/Select';
 import { useAuth } from '../../hooks/useAuth';
@@ -675,14 +676,16 @@ export default function PayrollList() {
   const { items: employees } = useSupabaseCollection('employees', activeEmpQuery);
   const { items: interns } = useSupabaseCollection('interns');
   const activeEmployees = useMemo(() => {
-    const activeInterns = interns.filter(i => String(i.status).toLowerCase() === 'active').map(i => ({
-      ...i,
-      firstName: i.first_name || i.firstName,
-      lastName: i.last_name || i.lastName,
-      role: 'intern',
-      departmentId: i.department_id || i.departmentId,
-      basicSalary: i.stipend_amount || i.basicSalary || 0,
-    }));
+    const activeInterns = interns
+      .filter(i => String(i.status).toLowerCase() === 'active' && i.is_paid)
+      .map(i => ({
+        ...i,
+        firstName: i.first_name || i.firstName,
+        lastName: i.last_name || i.lastName,
+        role: 'intern',
+        departmentId: i.department_id || i.departmentId,
+        basicSalary: i.stipend_amount || i.basicSalary || 0,
+      }));
     return [...employees, ...activeInterns];
   }, [employees, interns]);
   const { items: attendance } = useSupabaseCollection('attendance', attendanceQuery);
@@ -1269,33 +1272,32 @@ export default function PayrollList() {
       />
 
       {/* ── Warning Modal ─────────────────────────────────────────────────── */}
-      <Modal
+      <ConfirmModal
         open={!!warningContext}
         title="Zero Attendance Warning"
-        onClose={() => setWarningContext(null)}
-        footer={
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setWarningContext(null)}>No, Cancel</Button>
-            <Button onClick={() => {
-              if (warningContext?.type === 'single') processOne(warningContext.row, true);
-              else runAllPending(true);
-              setWarningContext(null);
-            }}>Yes, Process</Button>
+        message={
+          <div className="flex items-start gap-3">
+            <ExclamationTriangleIcon className="h-6 w-6 text-amber-500 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-neutral-900">Attendance not marked</p>
+              <p className="text-sm text-neutral-600 mt-1">
+                {warningContext?.type === 'single'
+                  ? `Attendance is not marked for ${warningContext.row._emp.firstName} ${warningContext.row._emp.lastName}. Do you still want to process payroll?`
+                  : `One or more employees have 0 present days. Do you still want to process payroll for everyone?`}
+              </p>
+            </div>
           </div>
         }
-      >
-        <div className="flex items-start gap-3">
-          <ExclamationTriangleIcon className="h-6 w-6 text-amber-500 flex-shrink-0" />
-          <div>
-            <p className="font-semibold text-neutral-900">Attendance not marked</p>
-            <p className="text-sm text-neutral-600 mt-1">
-              {warningContext?.type === 'single'
-                ? `Attendance is not marked for ${warningContext.row._emp.firstName} ${warningContext.row._emp.lastName}. Do you still want to process payroll?`
-                : `One or more employees have 0 present days. Do you still want to process payroll for everyone?`}
-            </p>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={() => {
+          if (warningContext?.type === 'single') processOne(warningContext.row, true);
+          else runAllPending(true);
+          setWarningContext(null);
+        }}
+        onCancel={() => setWarningContext(null)}
+        confirmText="Yes, Process"
+        cancelText="No, Cancel"
+        confirmVariant="primary"
+      />
     </div>
   );
 }

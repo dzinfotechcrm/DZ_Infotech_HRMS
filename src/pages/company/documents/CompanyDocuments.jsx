@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import PageHeader from '../../../components/ui/PageHeader';
 import Card from '../../../components/ui/Card';
-import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import Table from '../../../components/ui/Table';
+import Modal from '../../../components/ui/Modal';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
 import toast from 'react-hot-toast';
-import { DocumentIcon, TrashIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { DocumentIcon, TrashIcon, ArrowDownTrayIcon, EyeIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 
 const initialDocs = [
   { id: 1, type: 'PPT', name: 'Company_Overview_2026.pptx', uploadDate: '2026-08-01', size: '2.4 MB' },
@@ -16,6 +17,8 @@ export default function CompanyDocuments() {
   const [pptFile, setPptFile] = useState(null);
   const [catalogueFile, setCatalogueFile] = useState(null);
   const [documents, setDocuments] = useState(initialDocs);
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [deleteDocId, setDeleteDocId] = useState(null);
 
   const handlePptUpload = (e) => {
     e.preventDefault();
@@ -28,12 +31,12 @@ export default function CompanyDocuments() {
       type: 'PPT',
       name: pptFile.name,
       uploadDate: new Date().toISOString().split('T')[0],
-      size: (pptFile.size / (1024 * 1024)).toFixed(2) + ' MB'
+      size: (pptFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+      url: URL.createObjectURL(pptFile)
     };
     setDocuments(prev => [newDoc, ...prev]);
     toast.success('PPT uploaded successfully');
     setPptFile(null);
-    e.target.reset();
   };
 
   const handleCatalogueUpload = (e) => {
@@ -47,17 +50,39 @@ export default function CompanyDocuments() {
       type: 'Catalogue',
       name: catalogueFile.name,
       uploadDate: new Date().toISOString().split('T')[0],
-      size: (catalogueFile.size / (1024 * 1024)).toFixed(2) + ' MB'
+      size: (catalogueFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+      url: URL.createObjectURL(catalogueFile)
     };
     setDocuments(prev => [newDoc, ...prev]);
     toast.success('Service Catalogue uploaded successfully');
     setCatalogueFile(null);
-    e.target.reset();
+  };
+
+  const handleView = (doc) => {
+    setPreviewDoc(doc);
+  };
+
+  const handleDownload = (doc) => {
+    if (doc.url) {
+      const a = document.createElement('a');
+      a.href = doc.url;
+      a.download = doc.name;
+      a.click();
+    } else {
+      toast(`Downloading ${doc.name} (Mock data)`, { icon: '⬇️' });
+    }
   };
 
   const handleDelete = (id) => {
-    setDocuments(prev => prev.filter(doc => doc.id !== id));
-    toast.success('Document deleted');
+    setDeleteDocId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteDocId) {
+      setDocuments(prev => prev.filter(doc => doc.id !== deleteDocId));
+      toast.success('Document deleted successfully');
+      setDeleteDocId(null);
+    }
   };
 
   const columns = [
@@ -87,7 +112,10 @@ export default function CompanyDocuments() {
       <td className="px-4 py-3 text-neutral-500">{doc.size}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <button className="p-1.5 text-neutral-400 hover:text-primary-600 transition" title="Download">
+          <button onClick={() => handleView(doc)} className="p-1.5 text-neutral-400 hover:text-primary-600 transition" title="View">
+            <EyeIcon className="h-4 w-4" />
+          </button>
+          <button onClick={() => handleDownload(doc)} className="p-1.5 text-neutral-400 hover:text-primary-600 transition" title="Download">
             <ArrowDownTrayIcon className="h-4 w-4" />
           </button>
           <button onClick={() => handleDelete(doc.id)} className="p-1.5 text-neutral-400 hover:text-danger-600 transition" title="Delete">
@@ -106,12 +134,31 @@ export default function CompanyDocuments() {
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-neutral-900 mb-4">Upload PPT</h3>
           <form onSubmit={handlePptUpload} className="space-y-4">
-            <Input
-              type="file"
-              accept=".ppt,.pptx"
-              onChange={(e) => setPptFile(e.target.files[0])}
-            />
-            <Button type="submit" variant="primary">
+            <div className="relative group flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50 hover:bg-primary-50 hover:border-primary-400 transition-colors cursor-pointer overflow-hidden">
+              <input
+                type="file"
+                accept=".ppt,.pptx"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const name = file.name.toLowerCase();
+                    if (name.endsWith('.ppt') || name.endsWith('.pptx')) {
+                      setPptFile(file);
+                    } else {
+                      toast.error('Only PPT files (.ppt, .pptx) are allowed');
+                      e.target.value = null;
+                      setPptFile(null);
+                    }
+                  }
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <CloudArrowUpIcon className="h-8 w-8 text-neutral-400 group-hover:text-primary-500 mb-2 transition-colors" />
+              <span className="text-sm font-medium text-neutral-600 group-hover:text-primary-600 px-4 text-center truncate w-full">
+                {pptFile ? pptFile.name : "Click or drag to select PPT"}
+              </span>
+            </div>
+            <Button type="submit" variant="primary" className="w-full" disabled={!pptFile}>
               Upload PPT
             </Button>
           </form>
@@ -120,12 +167,31 @@ export default function CompanyDocuments() {
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-neutral-900 mb-4">Upload Service Catalogue</h3>
           <form onSubmit={handleCatalogueUpload} className="space-y-4">
-            <Input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => setCatalogueFile(e.target.files[0])}
-            />
-            <Button type="submit" variant="primary">
+            <div className="relative group flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50 hover:bg-primary-50 hover:border-primary-400 transition-colors cursor-pointer overflow-hidden">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const name = file.name.toLowerCase();
+                    if (name.endsWith('.pdf') || name.endsWith('.doc') || name.endsWith('.docx')) {
+                      setCatalogueFile(file);
+                    } else {
+                      toast.error('Only Catalogue files (.pdf, .doc, .docx) are allowed');
+                      e.target.value = null;
+                      setCatalogueFile(null);
+                    }
+                  }
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <CloudArrowUpIcon className="h-8 w-8 text-neutral-400 group-hover:text-primary-500 mb-2 transition-colors" />
+              <span className="text-sm font-medium text-neutral-600 group-hover:text-primary-600 px-4 text-center truncate w-full">
+                {catalogueFile ? catalogueFile.name : "Click or drag to select Catalogue"}
+              </span>
+            </div>
+            <Button type="submit" variant="primary" className="w-full" disabled={!catalogueFile}>
               Upload Catalogue
             </Button>
           </form>
@@ -136,6 +202,40 @@ export default function CompanyDocuments() {
         <h3 className="text-lg font-semibold text-neutral-900 mb-4">Uploaded Documents</h3>
         <Table columns={columns} data={documents} renderRow={renderRow} emptyMessage="No documents uploaded yet." />
       </div>
+
+      <ConfirmModal
+        open={!!deleteDocId}
+        title="Delete Document"
+        message="Are you sure you want to delete this document? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteDocId(null)}
+        confirmText="Delete"
+        confirmVariant="danger"
+      />
+
+      <Modal open={!!previewDoc} title={`Viewing: ${previewDoc?.name}`} onClose={() => setPreviewDoc(null)}>
+        {previewDoc?.url ? (
+          <div className="h-[60vh] w-full rounded-lg overflow-hidden border border-neutral-200">
+            {previewDoc.type === 'Catalogue' ? (
+              <iframe src={previewDoc.url} className="w-full h-full border-0" title="Document Preview" />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-500 bg-neutral-50">
+                <DocumentIcon className="h-16 w-16 text-neutral-400" />
+                <p>This file type cannot be previewed directly in the browser.</p>
+                <Button variant="outline" onClick={() => handleDownload(previewDoc)}>
+                  Download to View
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-64 gap-4 text-neutral-500 bg-neutral-50 rounded-lg border border-neutral-200 border-dashed">
+            <DocumentIcon className="h-12 w-12 text-neutral-400" />
+            <p>Preview is not available for mock documents.</p>
+            <p className="text-sm">Please upload a real document to preview it.</p>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

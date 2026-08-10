@@ -4,6 +4,7 @@ import { createDocument, updateDocument, removeDocument } from '../../supabase/d
 import Button from '../../components/ui/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { PlusIcon, FolderIcon, ChartBarIcon, ExclamationTriangleIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ProjectFormModal from './ProjectFormModal';
 import { toast } from 'react-hot-toast';
@@ -339,25 +340,15 @@ export default function ProjectsList() {
         onSave={handleSaveProject}
       />
 
-      <Modal
+      <ConfirmModal
         open={!!deleteId}
         title="Confirm Deletion"
-        onClose={() => setDeleteId(null)}
-        footer={
-          <div className="flex justify-end gap-3 w-full">
-            <Button variant="secondary" onClick={() => setDeleteId(null)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={confirmDelete}>
-              Delete Project
-            </Button>
-          </div>
-        }
-      >
-        <p className="text-sm text-neutral-600 pb-4">
-          Are you sure you want to delete this project? This action cannot be undone.
-        </p>
-      </Modal>
+        message="Are you sure you want to delete this project? This action cannot be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteId(null)}
+        confirmText="Delete Project"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

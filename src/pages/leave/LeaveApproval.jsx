@@ -10,6 +10,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import Input from '../../components/ui/Input';
 import Table from '../../components/ui/Table';
 import Modal from '../../components/ui/Modal';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
@@ -273,37 +274,31 @@ export default function LeaveApproval({ isTab = false, empTypeTab = 'employees' 
         />
       </Card>
 
-      <Modal
+      <ConfirmModal
         open={!!confirmApprove}
         title="Confirm Approval"
-        onClose={() => setConfirmApprove(null)}
-        footer={(
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setConfirmApprove(null)}>Cancel</Button>
-            <Button
-              onClick={() => {
-                if (confirmApprove) {
-                  updateStatus(confirmApprove, 'approved');
-                  setConfirmApprove(null);
-                }
-              }}
-            >
-              Approve Leave
-            </Button>
+        message={
+          <div className="text-neutral-700 space-y-2">
+            <p>Are you sure you want to approve this leave request?</p>
+            {confirmApprove && (
+              <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 text-sm mt-3 space-y-1.5">
+                <p><span className="font-medium text-neutral-500 w-20 inline-block">Employee:</span> <span className="font-semibold text-neutral-900">{getEmpName(confirmApprove.employeeId)}</span></p>
+                <p><span className="font-medium text-neutral-500 w-20 inline-block">Dates:</span> <span className="font-semibold text-neutral-900">{formatDate(confirmApprove.fromDate)} - {formatDate(confirmApprove.toDate)}</span></p>
+                <p><span className="font-medium text-neutral-500 w-20 inline-block">Type:</span> <span className="font-semibold text-neutral-900">{confirmApprove.leaveTypeName || confirmApprove.leaveType || confirmApprove.leaveTypeId}</span></p>
+              </div>
+            )}
           </div>
-        )}
-      >
-        <div className="text-neutral-700 space-y-2">
-          <p>Are you sure you want to approve this leave request?</p>
-          {confirmApprove && (
-            <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 text-sm mt-3 space-y-1.5">
-              <p><span className="font-medium text-neutral-500 w-20 inline-block">Employee:</span> <span className="font-semibold text-neutral-900">{getEmpName(confirmApprove.employeeId)}</span></p>
-              <p><span className="font-medium text-neutral-500 w-20 inline-block">Dates:</span> <span className="font-semibold text-neutral-900">{formatDate(confirmApprove.fromDate)} - {formatDate(confirmApprove.toDate)}</span></p>
-              <p><span className="font-medium text-neutral-500 w-20 inline-block">Type:</span> <span className="font-semibold text-neutral-900">{confirmApprove.leaveTypeName || confirmApprove.leaveType || confirmApprove.leaveTypeId}</span></p>
-            </div>
-          )}
-        </div>
-      </Modal>
+        }
+        onConfirm={() => {
+          if (confirmApprove) {
+            updateStatus(confirmApprove, 'approved');
+            setConfirmApprove(null);
+          }
+        }}
+        onCancel={() => setConfirmApprove(null)}
+        confirmText="Approve Leave"
+        confirmVariant="primary"
+      />
 
       <Modal
         open={leaveReasonOpen}
