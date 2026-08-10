@@ -646,7 +646,7 @@ export const QuotationPDF = ({ data }) => {
 
         <Text style={styles.text}>For DZ Infotech</Text>
         <Text style={styles.textBold}>Soumyarajsinh Zala</Text>
-        <Text style={{ fontSize: 9, color: colors.footerText }}>DZ Infotech · Dzinfotech10@gmail.com · 9327853727</Text>
+        <Text style={{ fontSize: 9, color: colors.footerText }}>DZ Infotech · info@dzinfotech.in · 9327853727</Text>
 
         <Text style={styles.orangeLabel}>ACCEPTANCE</Text>
         <Text style={styles.subTitle}>Offer Acceptance by {clientName || '[Client Company Name]'}</Text>
