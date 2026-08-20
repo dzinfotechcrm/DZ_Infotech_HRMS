@@ -59,7 +59,7 @@ const SearchableSelect = forwardRef(({
 
   return (
     <div className={`flex flex-col gap-1.5 text-sm font-medium text-neutral-700 ${disabled ? 'opacity-60 pointer-events-none' : ''}`} ref={containerRef}>
-      {label && <span>{label}</span>}
+      {label && <span>{label}{props.required && <span className="text-danger-600 ml-1">*</span>}</span>}
       <div className="relative">
         <div
           className={`flex w-full items-center justify-between rounded-xl border bg-white px-3 py-2.5 text-sm outline-none transition cursor-pointer

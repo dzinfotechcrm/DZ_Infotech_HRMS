@@ -52,7 +52,7 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
 
   return (
     <div className="flex flex-col gap-1.5 text-sm font-medium text-neutral-700" ref={containerRef}>
-      {label && <span>{label}</span>}
+      {label && <span>{label}{props.required && <span className="text-danger-600 ml-1">*</span>}</span>}
       <div className="relative">
         <button
           type="button"

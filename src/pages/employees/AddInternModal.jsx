@@ -113,7 +113,7 @@ export default function AddInternModal({ intern, departments, managers, existing
     let isValid = true;
 
     const required = [
-      'first_name', 'last_name', 'full_name', 'email', 'dob', 'position', 'start_date', 'end_date',
+      'first_name', 'last_name', 'full_name', 'email', 'position', 'start_date', 'end_date',
       'offer_date', 'acceptance_deadline', 'working_hours'
     ];
 
@@ -221,13 +221,13 @@ export default function AddInternModal({ intern, departments, managers, existing
               }} required />
             </div>
             <div className="sm:col-span-2">
-              <Input 
-                label="Full Name (As on legal docs)" 
-                error={errors.full_name} 
-                value={formData.full_name} 
-                readOnly 
-                disabled 
-                className="bg-slate-50 cursor-not-allowed text-slate-500" 
+              <Input
+                label="Full Name (As on legal docs)"
+                error={errors.full_name}
+                value={formData.full_name}
+                readOnly
+                disabled
+                className="bg-slate-50 cursor-not-allowed text-slate-500"
               />
             </div>
             <Input label="Email" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} required />
@@ -237,7 +237,7 @@ export default function AddInternModal({ intern, departments, managers, existing
                 handleChange('phone', val);
               }
             }} />
-            <Input label="Date of Birth" type="date" error={errors.dob} value={formData.dob} onChange={(e) => handleChange('dob', e.target.value)} required />
+            <Input label="Date of Birth" type="date" error={errors.dob} value={formData.dob} onChange={(e) => handleChange('dob', e.target.value)} />
           </div>
         </div>
 
