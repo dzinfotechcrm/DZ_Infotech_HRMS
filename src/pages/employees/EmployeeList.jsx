@@ -2042,7 +2042,7 @@ export default function EmployeeList() {
             ))}
           </div>
         </Card>
-      ) : enrichedEmployees.length === 0 ? (
+      ) : (activeTab === 'interns' ? interns.length === 0 : enrichedEmployees.length === 0) ? (
         <Card className="p-12 text-center border border-slate-200 border-dashed bg-slate-50/50">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
             <UserCircleIcon className="h-6 w-6 text-slate-400" />
@@ -2051,9 +2051,9 @@ export default function EmployeeList() {
           <p className="mt-1 text-sm text-slate-500">{activeTab === 'interns' ? 'There are no interns in the system.' : 'There are no employees or managers in the system.'}</p>
           <div className="mt-6">
             {isAdminLike(user?.role) && (
-              <Button onClick={() => setAddModalOpen(true)} className="gap-2">
+              <Button onClick={() => activeTab === 'interns' ? setAddInternModalOpen(true) : setAddModalOpen(true)} className="gap-2">
                 <PlusIcon className="h-4 w-4" />
-                Add Employee
+                {activeTab === 'interns' ? 'Add Intern' : 'Add Employee'}
               </Button>
             )}
           </div>
