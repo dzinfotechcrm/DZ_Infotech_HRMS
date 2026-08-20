@@ -120,7 +120,7 @@ export default function EmployeeForm({ mode = 'create' }) {
         if (!v) return 'Gender is required';
         return '';
       case 'dob': {
-        if (!v) return '';
+        if (!v) return 'Date of birth is required';
         const [year, month, day] = v.split('-');
         if (!year || !month || !day) return 'Invalid date format';
         const parsed = new Date(year, month - 1, day);
