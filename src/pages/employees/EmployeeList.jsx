@@ -1719,7 +1719,7 @@ export default function EmployeeList() {
     if (filteredEmp.length === 0) return null;
 
     const sortedEmp = getSortedEmployees(filteredEmp);
-    const paginatedEmp = sortedEmp.slice(0, PAGE_SIZE);
+    const paginatedEmp = sortedEmp;
 
     return (
       <div key={title} className="space-y-3">
