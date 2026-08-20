@@ -1934,7 +1934,7 @@ export default function EmployeeList() {
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Directory and access control</h1>
             <p className="mt-2 text-sm text-slate-300/80">Search, filter, and manage employee records in real time.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
             {isAdminLike(user?.role) && (
               <Button
                 variant="secondary"
@@ -1946,7 +1946,7 @@ export default function EmployeeList() {
               </Button>
             )}
             {isAdminLike(user?.role) && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button onClick={() => setAddModalOpen(true)} className="gap-2">
                   <PlusIcon className="h-4 w-4" />
                   Add Employee
