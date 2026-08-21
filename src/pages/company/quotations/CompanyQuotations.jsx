@@ -12,7 +12,7 @@ import { useSupabaseCollection } from '../../../hooks/useSupabase';
 
 const WhatsAppIcon = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.489-1.761-1.663-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
   </svg>
 );
 
@@ -31,7 +31,7 @@ const getSavedQuotations = () => {
 const getInitialState = (savedQuotations = []) => {
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const prefix = `QT-${today}-`;
-  
+
   let maxSeq = 0;
   savedQuotations.forEach(q => {
     if (q.quotationNumber && q.quotationNumber.startsWith(prefix)) {
@@ -75,13 +75,13 @@ export default function CompanyQuotations() {
   const [deleteItem, setDeleteItem] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   const [showWhatsAppConfirm, setShowWhatsAppConfirm] = useState(false);
   const [generatedQuotation, setGeneratedQuotation] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'clientName') {
       const selectedClient = clients.find(c => c.companyName === value);
       if (selectedClient) {
@@ -96,7 +96,7 @@ export default function CompanyQuotations() {
         return;
       }
     }
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: name === 'gstin' ? value.toUpperCase() : value
@@ -142,16 +142,16 @@ export default function CompanyQuotations() {
 
   const handleSendWhatsApp = () => {
     if (!generatedQuotation) return;
-    
+
     const q = generatedQuotation;
-    const totalCost = (Number(q.manufacturingCost) || 0) + 
-      (Number(q.inventoryCost) || 0) + 
-      (Number(q.salesCost) || 0) + 
-      (Number(q.hrCost) || 0) + 
-      (Number(q.reportsCost) || 0) + 
-      (Number(q.deploymentCost) || 0) + 
-      (Number(q.specialProjectPrice) || 0) + 
-      (Number(q.amcCost) || 0) + 
+    const totalCost = (Number(q.manufacturingCost) || 0) +
+      (Number(q.inventoryCost) || 0) +
+      (Number(q.salesCost) || 0) +
+      (Number(q.hrCost) || 0) +
+      (Number(q.reportsCost) || 0) +
+      (Number(q.deploymentCost) || 0) +
+      (Number(q.specialProjectPrice) || 0) +
+      (Number(q.amcCost) || 0) +
       120000; // Base ERP
 
     let breakdown = `- Core Application: ₹1,20,000\n`;
@@ -171,12 +171,6 @@ Please find the detailed overview for your quotation (*${q.quotationNumber}*) be
 *Date:* ${new Date(q.quotationDate).toLocaleDateString('en-IN')}
 *Valid Until:* ${new Date(q.validityDate).toLocaleDateString('en-IN')}
 
-*Business Objective:*
-${q.businessObjective || 'N/A'}
-
-*Proposed Solution:*
-${q.proposedSolution || 'N/A'}
-
 *Commercial Breakdown:*
 ${breakdown}
 *Total Estimated Value: ₹${totalCost.toLocaleString('en-IN')}*
@@ -190,7 +184,7 @@ Best regards,
     const encodedText = encodeURIComponent(text);
     const phone = q.clientPhone?.replace(/\D/g, '') || '';
     const url = `https://wa.me/${phone}?text=${encodedText}`;
-    
+
     window.open(url, '_blank');
     closeWhatsAppPrompt();
   };
@@ -232,21 +226,19 @@ Best regards,
 
       <div className="inline-flex bg-slate-100 p-1 rounded-xl mb-2">
         <button
-          className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-            activeTab === 'create'
+          className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${activeTab === 'create'
               ? 'bg-white text-indigo-700 shadow-sm'
               : 'text-slate-700 hover:text-slate-900'
-          }`}
+            }`}
           onClick={() => setActiveTab('create')}
         >
           Create Quotation
         </button>
         <button
-          className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-            activeTab === 'saved'
+          className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${activeTab === 'saved'
               ? 'bg-white text-indigo-700 shadow-sm'
               : 'text-slate-700 hover:text-slate-900'
-          }`}
+            }`}
           onClick={() => setActiveTab('saved')}
         >
           Saved Quotation
@@ -260,11 +252,11 @@ Best regards,
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <h3 className="font-medium text-neutral-700 border-b pb-2">Client Details</h3>
-              <Select 
-                label="Client Company Name" 
-                name="clientName" 
-                value={formData.clientName} 
-                onChange={handleChange} 
+              <Select
+                label="Client Company Name"
+                name="clientName"
+                value={formData.clientName}
+                onChange={handleChange}
                 required
               >
                 <option value="">Select or type client name...</option>
@@ -338,10 +330,10 @@ Best regards,
           </div>
 
           <div className="mt-8 flex justify-end">
-            <Button 
-              type="button" 
-              variant="primary" 
-              disabled={isGenerating || !formData.clientName} 
+            <Button
+              type="button"
+              variant="primary"
+              disabled={isGenerating || !formData.clientName}
               onClick={handleGenerateAndSave}
             >
               {isGenerating ? 'Generating PDF...' : 'Download Quotation PDF'}
@@ -401,6 +393,7 @@ Best regards,
                             setShowWhatsAppConfirm(true);
                           }}
                         >
+                          <WhatsAppIcon className="h-4 w-4" />
                           Send via WhatsApp
                         </Button>
                         <Button
