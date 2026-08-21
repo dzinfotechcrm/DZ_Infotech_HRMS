@@ -6,46 +6,65 @@ import Button from '../../../components/ui/Button';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
 import { QuotationPDF } from '../../../components/pdf/QuotationPDF';
+import toast from 'react-hot-toast';
 
-const getInitialState = () => ({
-  clientName: '',
-  contactPerson: '',
-  quotationNumber: `QT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-01`,
-  quotationDate: new Date().toISOString().slice(0, 10),
-  validityDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-  businessObjective: '',
-  proposedSolution: '',
-  manufacturingCost: 40000,
-  inventoryCost: 30000,
-  salesCost: 20000,
-  hrCost: 20000,
-  reportsCost: 15000,
-  deploymentCost: 15000,
-  specialProjectPrice: 150000,
-  amcCost: 30000,
-  gstin: '',
-  registeredAddress: ''
-});
+const getSavedQuotations = () => {
+  const saved = localStorage.getItem('savedQuotations');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse saved quotations', e);
+    }
+  }
+  return [];
+};
+
+const getInitialState = (savedQuotations = []) => {
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const prefix = `QT-${today}-`;
+  
+  let maxSeq = 0;
+  savedQuotations.forEach(q => {
+    if (q.quotationNumber && q.quotationNumber.startsWith(prefix)) {
+      const seqStr = q.quotationNumber.replace(prefix, '');
+      const seq = parseInt(seqStr, 10);
+      if (!isNaN(seq) && seq > maxSeq) {
+        maxSeq = seq;
+      }
+    }
+  });
+
+  const nextSeq = (maxSeq + 1).toString().padStart(2, '0');
+
+  return {
+    clientName: '',
+    contactPerson: '',
+    quotationNumber: `${prefix}${nextSeq}`,
+    quotationDate: new Date().toISOString().slice(0, 10),
+    validityDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    businessObjective: '',
+    proposedSolution: '',
+    manufacturingCost: 40000,
+    inventoryCost: 30000,
+    salesCost: 20000,
+    hrCost: 20000,
+    reportsCost: 15000,
+    deploymentCost: 15000,
+    specialProjectPrice: 150000,
+    amcCost: 30000,
+    gstin: '',
+    registeredAddress: ''
+  };
+};
 
 export default function CompanyQuotations() {
-  const [formData, setFormData] = useState(getInitialState());
+  const [savedQuotations, setSavedQuotations] = useState(getSavedQuotations);
+  const [formData, setFormData] = useState(() => getInitialState(getSavedQuotations()));
   const [activeTab, setActiveTab] = useState('create'); // 'create' or 'saved'
-  const [savedQuotations, setSavedQuotations] = useState([]);
   const [deleteItem, setDeleteItem] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('savedQuotations');
-    if (saved) {
-      try {
-        setSavedQuotations(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse saved quotations', e);
-      }
-    }
-  }, []);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -74,9 +93,11 @@ export default function CompanyQuotations() {
       localStorage.setItem('savedQuotations', JSON.stringify(newSaved));
 
       // 3. Reset form
-      setFormData(getInitialState());
+      setFormData(getInitialState(newSaved));
+      toast.success('Quotation generated and saved successfully!');
     } catch (error) {
       console.error('Failed to generate PDF', error);
+      toast.error('Failed to generate quotation');
     } finally {
       setIsGenerating(false);
     }
@@ -88,6 +109,7 @@ export default function CompanyQuotations() {
       setSavedQuotations(newSaved);
       localStorage.setItem('savedQuotations', JSON.stringify(newSaved));
       setDeleteItem(null);
+      toast.success('Quotation deleted successfully!');
     }
   };
 
@@ -103,8 +125,10 @@ export default function CompanyQuotations() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      toast.success('Quotation downloaded successfully!');
     } catch (error) {
       console.error('Failed to generate PDF', error);
+      toast.error('Failed to download quotation');
     } finally {
       setDownloadingId(null);
     }
