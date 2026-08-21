@@ -8,7 +8,7 @@ export default function NotificationsDropdown({ showAmc = false }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
-  
+
   const { items: notifications, refetch } = useSupabaseCollection('notifications', (query) => query.order('createdAt', { ascending: false }));
 
   useEffect(() => {
@@ -58,13 +58,13 @@ export default function NotificationsDropdown({ showAmc = false }) {
     if (n.type === 'amc_expiry') {
       return showAmc;
     }
-    
+
     // Check if the notification is targeted to the current user
     const targetUserId = n.user_id || n.userId || n.data?.userId;
     if (targetUserId) {
       return targetUserId === user?.id || targetUserId === user?.uid || targetUserId === user?.employeeId;
     }
-    
+
     return false;
   });
 
@@ -88,7 +88,7 @@ export default function NotificationsDropdown({ showAmc = false }) {
 
   return (
     <div className="relative mr-2" ref={menuRef}>
-      <button 
+      <button
         onClick={() => setOpen((v) => !v)}
         className="relative flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors shadow-sm"
       >
@@ -116,7 +116,7 @@ export default function NotificationsDropdown({ showAmc = false }) {
               </div>
             )}
           </div>
-          
+
           <div className="max-h-[264px] overflow-y-auto custom-scrollbar">
             {visibleNotifications.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-neutral-500">
@@ -141,7 +141,7 @@ export default function NotificationsDropdown({ showAmc = false }) {
                           </p>
                         </div>
                         {read ? (
-                          <button 
+                          <button
                             onClick={(e) => handleDelete(e, notification.id)}
                             className="text-neutral-400 hover:text-red-500 flex-shrink-0 p-1 rounded-md hover:bg-red-50 transition-colors"
                             title="Delete notification"
@@ -149,7 +149,7 @@ export default function NotificationsDropdown({ showAmc = false }) {
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         ) : (
-                          <button 
+                          <button
                             onClick={(e) => handleMarkAsRead(e, notification.id, notification.type)}
                             className="text-primary-600 hover:text-primary-700 flex-shrink-0 p-1 rounded-md hover:bg-primary-100 transition-colors"
                             title="Mark as read"
