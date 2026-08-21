@@ -117,7 +117,7 @@ export default function NotificationsDropdown({ showAmc = false }) {
             )}
           </div>
           
-          <div className="max-h-[80vh] overflow-y-auto">
+          <div className="max-h-[264px] overflow-y-auto custom-scrollbar">
             {visibleNotifications.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-neutral-500">
                 No new notifications
