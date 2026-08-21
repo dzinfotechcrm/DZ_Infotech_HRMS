@@ -154,17 +154,38 @@ export default function CompanyQuotations() {
       (Number(q.amcCost) || 0) + 
       120000; // Base ERP
 
+    let breakdown = `- Core Application: ₹1,20,000\n`;
+    if (Number(q.manufacturingCost) > 0) breakdown += `- Manufacturing & Prod: ₹${Number(q.manufacturingCost).toLocaleString('en-IN')}\n`;
+    if (Number(q.inventoryCost) > 0) breakdown += `- Inventory & Purchase: ₹${Number(q.inventoryCost).toLocaleString('en-IN')}\n`;
+    if (Number(q.salesCost) > 0) breakdown += `- Sales & Dispatch: ₹${Number(q.salesCost).toLocaleString('en-IN')}\n`;
+    if (Number(q.hrCost) > 0) breakdown += `- HR & Payroll: ₹${Number(q.hrCost).toLocaleString('en-IN')}\n`;
+    if (Number(q.reportsCost) > 0) breakdown += `- Reports & Access: ₹${Number(q.reportsCost).toLocaleString('en-IN')}\n`;
+    if (Number(q.deploymentCost) > 0) breakdown += `- Deployment & Training: ₹${Number(q.deploymentCost).toLocaleString('en-IN')}\n`;
+    if (Number(q.specialProjectPrice) > 0) breakdown += `- Special Project Price: ₹${Number(q.specialProjectPrice).toLocaleString('en-IN')}\n`;
+
     const text = `Hello ${q.contactPerson},
 
-Please find the details for your quotation (${q.quotationNumber}) below:
+Please find the detailed overview for your quotation (*${q.quotationNumber}*) below:
 
 *Project:* ERP Implementation for ${q.clientName}
-*Total Estimated Value:* ₹${totalCost.toLocaleString('en-IN')}
+*Date:* ${new Date(q.quotationDate).toLocaleDateString('en-IN')}
+*Valid Until:* ${new Date(q.validityDate).toLocaleDateString('en-IN')}
 
-We have just generated the official PDF quotation. Please let us know if you have any questions or require modifications.
+*Business Objective:*
+${q.businessObjective || 'N/A'}
+
+*Proposed Solution:*
+${q.proposedSolution || 'N/A'}
+
+*Commercial Breakdown:*
+${breakdown}
+*Total Estimated Value: ₹${totalCost.toLocaleString('en-IN')}*
+*(Annual Maintenance AMC: ₹${(Number(q.amcCost) || 0).toLocaleString('en-IN')}/year)*
+
+We have also generated the official PDF quotation. Please let us know if you have any questions or require modifications.
 
 Best regards,
-DZ Infotech`;
+*DZ Infotech*`;
 
     const encodedText = encodeURIComponent(text);
     const phone = q.clientPhone?.replace(/\D/g, '') || '';
