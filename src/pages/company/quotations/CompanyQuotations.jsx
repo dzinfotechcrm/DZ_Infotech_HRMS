@@ -10,7 +10,7 @@ import { QuotationPDF } from '../../../components/pdf/QuotationPDF';
 const getInitialState = () => ({
   clientName: '',
   contactPerson: '',
-  quotationNumber: `QT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-A`,
+  quotationNumber: `QT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-01`,
   quotationDate: new Date().toISOString().slice(0, 10),
   validityDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
   businessObjective: '',
