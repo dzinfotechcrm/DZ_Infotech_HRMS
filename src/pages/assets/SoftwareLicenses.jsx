@@ -122,6 +122,14 @@ export default function SoftwareLicenses() {
     
     if (confirmAction.type === 'revoke') {
       try {
+        const licenseToRevoke = licenses.find(l => l.id === confirmAction.id);
+        if (licenseToRevoke && licenseToRevoke.assigned_to) {
+          await createNotification(
+            licenseToRevoke.assigned_to, 
+            'License Revoked', 
+            `Your software license has been revoked: ${licenseToRevoke.name}`
+          );
+        }
         await updateDocument('software_licenses', confirmAction.id, { status: 'revoked' });
         toast.success('License revoked successfully');
       } catch (error) {
