@@ -33,6 +33,7 @@ export default function CompanyQuotations() {
   const [savedQuotations, setSavedQuotations] = useState([]);
   const [deleteItem, setDeleteItem] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('savedQuotations');
@@ -53,16 +54,32 @@ export default function CompanyQuotations() {
     }));
   };
 
-  const handleReset = () => {
-    // Save to localStorage before resetting
-    const newSaved = [...savedQuotations, { ...formData, id: Date.now().toString(), createdAt: new Date().toISOString() }];
-    setSavedQuotations(newSaved);
-    localStorage.setItem('savedQuotations', JSON.stringify(newSaved));
+  const handleGenerateAndSave = async () => {
+    setIsGenerating(true);
+    try {
+      // 1. Generate PDF
+      const blob = await pdf(<QuotationPDF data={formData} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${formData.quotationNumber}_${formData.clientName.replace(/\s+/g, '_') || 'Draft'}_Quotation.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-    // Add a small delay to ensure the PDF download starts before clearing the data
-    setTimeout(() => {
+      // 2. Save to localStorage
+      const newSaved = [...savedQuotations, { ...formData, id: Date.now().toString(), createdAt: new Date().toISOString() }];
+      setSavedQuotations(newSaved);
+      localStorage.setItem('savedQuotations', JSON.stringify(newSaved));
+
+      // 3. Reset form
       setFormData(getInitialState());
-    }, 500);
+    } catch (error) {
+      console.error('Failed to generate PDF', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleDelete = () => {
@@ -192,16 +209,14 @@ export default function CompanyQuotations() {
           </div>
 
           <div className="mt-8 flex justify-end">
-            <PDFDownloadLink
-              document={<QuotationPDF data={formData} />}
-              fileName={`${formData.quotationNumber}_${formData.clientName.replace(/\s+/g, '_') || 'Draft'}_Quotation.pdf`}
+            <Button 
+              type="button" 
+              variant="primary" 
+              disabled={isGenerating || !formData.clientName} 
+              onClick={handleGenerateAndSave}
             >
-              {({ loading }) => (
-                <Button type="button" variant="primary" disabled={loading || !formData.clientName} onClick={handleReset}>
-                  {loading ? 'Generating PDF...' : 'Download Quotation PDF'}
-                </Button>
-              )}
-            </PDFDownloadLink>
+              {isGenerating ? 'Generating PDF...' : 'Download Quotation PDF'}
+            </Button>
           </div>
         </Card>
       ) : (
