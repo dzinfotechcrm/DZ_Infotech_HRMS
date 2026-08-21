@@ -4,9 +4,11 @@ import Card from '../../../components/ui/Card';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
+import Select from '../../../components/ui/Select';
 import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
 import { QuotationPDF } from '../../../components/pdf/QuotationPDF';
 import toast from 'react-hot-toast';
+import { useSupabaseCollection } from '../../../hooks/useSupabase';
 
 const getSavedQuotations = () => {
   const saved = localStorage.getItem('savedQuotations');
@@ -54,19 +56,41 @@ const getInitialState = (savedQuotations = []) => {
     specialProjectPrice: 150000,
     amcCost: 30000,
     gstin: '',
-    registeredAddress: ''
+    registeredAddress: '',
+    clientPhone: ''
   };
 };
 
 export default function CompanyQuotations() {
+  const { items: clients } = useSupabaseCollection('clients');
   const [savedQuotations, setSavedQuotations] = useState(getSavedQuotations);
   const [formData, setFormData] = useState(() => getInitialState(getSavedQuotations()));
   const [activeTab, setActiveTab] = useState('create'); // 'create' or 'saved'
   const [deleteItem, setDeleteItem] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  const [showWhatsAppConfirm, setShowWhatsAppConfirm] = useState(false);
+  const [generatedQuotation, setGeneratedQuotation] = useState(null);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'clientName') {
+      const selectedClient = clients.find(c => c.companyName === value);
+      if (selectedClient) {
+        setFormData(prev => ({
+          ...prev,
+          clientName: value,
+          contactPerson: selectedClient.contactPerson || '',
+          gstin: selectedClient.gstin || '',
+          registeredAddress: selectedClient.address || '',
+          clientPhone: selectedClient.phone || ''
+        }));
+        return;
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: name === 'gstin' ? value.toUpperCase() : value
@@ -92,8 +116,9 @@ export default function CompanyQuotations() {
       setSavedQuotations(newSaved);
       localStorage.setItem('savedQuotations', JSON.stringify(newSaved));
 
-      // 3. Reset form
-      setFormData(getInitialState(newSaved));
+      // 3. Prompt for WhatsApp (delaying form reset until modal is closed)
+      setGeneratedQuotation({ ...formData });
+      setShowWhatsAppConfirm(true);
       toast.success('Quotation generated and saved successfully!');
     } catch (error) {
       console.error('Failed to generate PDF', error);
@@ -101,6 +126,46 @@ export default function CompanyQuotations() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const closeWhatsAppPrompt = () => {
+    setShowWhatsAppConfirm(false);
+    setGeneratedQuotation(null);
+    setFormData(getInitialState(savedQuotations));
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!generatedQuotation) return;
+    
+    const q = generatedQuotation;
+    const totalCost = (Number(q.manufacturingCost) || 0) + 
+      (Number(q.inventoryCost) || 0) + 
+      (Number(q.salesCost) || 0) + 
+      (Number(q.hrCost) || 0) + 
+      (Number(q.reportsCost) || 0) + 
+      (Number(q.deploymentCost) || 0) + 
+      (Number(q.specialProjectPrice) || 0) + 
+      (Number(q.amcCost) || 0) + 
+      120000; // Base ERP
+
+    const text = `Hello ${q.contactPerson},
+
+Please find the details for your quotation (${q.quotationNumber}) below:
+
+*Project:* ERP Implementation for ${q.clientName}
+*Total Estimated Value:* ₹${totalCost.toLocaleString('en-IN')}
+
+We have just generated the official PDF quotation. Please let us know if you have any questions or require modifications.
+
+Best regards,
+DZ Infotech`;
+
+    const encodedText = encodeURIComponent(text);
+    const phone = q.clientPhone?.replace(/\D/g, '') || '';
+    const url = `https://wa.me/${phone}?text=${encodedText}`;
+    
+    window.open(url, '_blank');
+    closeWhatsAppPrompt();
   };
 
   const handleDelete = () => {
@@ -168,7 +233,20 @@ export default function CompanyQuotations() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <h3 className="font-medium text-neutral-700 border-b pb-2">Client Details</h3>
-              <Input label="Client Company Name" name="clientName" value={formData.clientName} onChange={handleChange} required />
+              <Select 
+                label="Client Company Name" 
+                name="clientName" 
+                value={formData.clientName} 
+                onChange={handleChange} 
+                required
+              >
+                <option value="">Select or type client name...</option>
+                {clients.map(client => (
+                  <option key={client.id} value={client.companyName}>
+                    {client.companyName}
+                  </option>
+                ))}
+              </Select>
               <Input label="Contact Person" name="contactPerson" value={formData.contactPerson} onChange={handleChange} required />
               <Input label="Client GSTIN" name="gstin" value={formData.gstin} onChange={handleChange} />
               <div className="flex flex-col gap-1">
@@ -279,12 +357,24 @@ export default function CompanyQuotations() {
                       <td className="px-4 py-3 text-right space-x-2">
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="secondary"
                           size="sm"
                           disabled={downloadingId === quotation.id}
                           onClick={() => handleDownload(quotation)}
                         >
                           {downloadingId === quotation.id ? 'Generating...' : 'Download PDF'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:text-green-800"
+                          onClick={() => {
+                            setGeneratedQuotation(quotation);
+                            setShowWhatsAppConfirm(true);
+                          }}
+                        >
+                          Send via WhatsApp
                         </Button>
                         <Button
                           type="button"
@@ -307,12 +397,21 @@ export default function CompanyQuotations() {
       <ConfirmModal
         open={!!deleteItem}
         title="Delete Quotation"
-        message="Are you sure you want to delete this quotation? This action cannot be undone."
+        message={`Are you sure you want to delete quotation ${deleteItem?.quotationNumber}? This action cannot be undone.`}
         confirmText="Delete"
-        cancelText="Cancel"
         confirmVariant="danger"
         onConfirm={handleDelete}
         onCancel={() => setDeleteItem(null)}
+      />
+
+      <ConfirmModal
+        open={showWhatsAppConfirm}
+        title="Send via WhatsApp"
+        message={`Do you want to send a pre-typed WhatsApp message with quotation details to ${generatedQuotation?.contactPerson || 'the client'} (${generatedQuotation?.clientPhone || 'No phone number'})?`}
+        confirmText="Send on WhatsApp"
+        confirmVariant="primary"
+        onConfirm={handleSendWhatsApp}
+        onCancel={closeWhatsAppPrompt}
       />
     </div>
   );
