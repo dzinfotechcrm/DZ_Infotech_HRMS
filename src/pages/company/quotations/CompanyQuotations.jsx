@@ -378,6 +378,7 @@ Best regards,
                           type="button"
                           variant="secondary"
                           size="sm"
+                          className="hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200"
                           disabled={downloadingId === quotation.id}
                           onClick={() => handleDownload(quotation)}
                         >
