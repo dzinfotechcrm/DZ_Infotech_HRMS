@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { formatDate } from '../../utils/dateHelpers';
 import { useAmcNotifier } from '../../hooks/useAmcNotifier';
 import NotificationsDropdown from '../../components/layout/NotificationsDropdown';
+import ConfirmModal from '../../components/ui/ConfirmModal';
 
 export default function AmcList() {
   useAmcNotifier();
@@ -18,6 +19,8 @@ export default function AmcList() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAmc, setSelectedAmc] = useState(null);
+
+  const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
 
   const handleOpenModal = (amc = null) => {
     setSelectedAmc(amc);
@@ -40,16 +43,21 @@ export default function AmcList() {
     }
   };
 
-  const handleDelete = async (e, id) => {
+  const handleDelete = (e, id) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this AMC?')) {
-      try {
-        await removeDocument('amcs', id);
-        toast.success('AMC deleted successfully');
-        refetchAmcs();
-      } catch (error) {
-        toast.error('Failed to delete AMC: ' + error.message);
-      }
+    setConfirmDelete({ open: true, id });
+  };
+
+  const executeDelete = async () => {
+    if (!confirmDelete.id) return;
+    try {
+      await removeDocument('amcs', confirmDelete.id);
+      toast.success('AMC deleted successfully');
+      refetchAmcs();
+    } catch (error) {
+      toast.error('Failed to delete AMC: ' + error.message);
+    } finally {
+      setConfirmDelete({ open: false, id: null });
     }
   };
 
@@ -246,6 +254,16 @@ export default function AmcList() {
         projects={projects}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveAmc}
+      />
+
+      <ConfirmModal
+        open={confirmDelete.open}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this AMC? This action cannot be undone."
+        confirmText="Delete AMC"
+        confirmVariant="danger"
+        onConfirm={executeDelete}
+        onCancel={() => setConfirmDelete({ open: false, id: null })}
       />
     </div>
   );

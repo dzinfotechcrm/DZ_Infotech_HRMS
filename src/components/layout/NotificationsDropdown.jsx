@@ -49,7 +49,8 @@ export default function NotificationsDropdown() {
     // Check if the notification is targeted to the current user
     const targetUserId = n.user_id || n.userId || n.data?.userId;
     if (targetUserId) {
-      return targetUserId === user?.id && !(n.is_read || n.isRead || n.data?.isRead);
+      const isTarget = targetUserId === user?.id || targetUserId === user?.uid || targetUserId === user?.employeeId;
+      return isTarget && !(n.is_read || n.isRead || n.data?.isRead);
     }
     
     return false;
