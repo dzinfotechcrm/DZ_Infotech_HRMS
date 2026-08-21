@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
-import { createDocument, removeDocument, updateDocument } from '../../supabase/db';
+import { createDocument, removeDocument, updateDocument, createNotification } from '../../supabase/db';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -75,6 +75,10 @@ export default function SoftwareLicenses() {
     setIsSubmitting(true);
     try {
       if (editingLicenseId) {
+        const existingLicense = licenses.find(l => l.id === editingLicenseId);
+        if (existingLicense && existingLicense.assigned_to !== formData.assigned_to) {
+          await createNotification(formData.assigned_to, 'License Assigned', `You have been assigned a software license: ${formData.name}`);
+        }
         await updateDocument('software_licenses', editingLicenseId, {
           name: formData.name,
           provider: formData.provider,
@@ -84,6 +88,7 @@ export default function SoftwareLicenses() {
         });
         toast.success('Software license updated successfully');
       } else {
+        await createNotification(formData.assigned_to, 'License Assigned', `You have been assigned a software license: ${formData.name}`);
         await createDocument('software_licenses', {
           name: formData.name,
           provider: formData.provider,

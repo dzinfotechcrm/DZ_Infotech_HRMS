@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
-import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
+import { createDocument, updateDocument, removeDocument, createNotification } from '../../supabase/db';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
@@ -225,8 +225,14 @@ export default function LeadsPipeline() {
       const isNewLead = !selectedLead;
 
       if (selectedLead) {
+        if (formData.assignedTo && formData.assignedTo !== selectedLead.assignedTo) {
+          await createNotification(formData.assignedTo, 'Lead Assigned', `You have been assigned to lead: ${formData.companyName}`);
+        }
         await updateDocument('leads', selectedLead.id, formData);
       } else {
+        if (formData.assignedTo) {
+          await createNotification(formData.assignedTo, 'New Lead Assigned', `You have been assigned to a new lead: ${formData.companyName}`);
+        }
         await createDocument('leads', formData);
       }
 

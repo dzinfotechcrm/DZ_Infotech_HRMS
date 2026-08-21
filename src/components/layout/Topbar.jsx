@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowRightOnRectangleIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { isAdminLike } from '../../utils/rbac';
+import NotificationsDropdown from './NotificationsDropdown';
 
 function LiveClock() {
   const [time, setTime] = useState(new Date());
@@ -44,6 +45,8 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
           <div className="page-title">{title}</div>
           <LiveClock />
         </div>
+
+        {['employee', 'manager', 'intern'].includes(user?.role) && <NotificationsDropdown />}
 
         <div className="relative" ref={menuRef}>
           <button onClick={() => setOpen((value) => !value)} className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-left shadow-sm">

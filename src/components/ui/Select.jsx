@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
-const Select = forwardRef(({ label, error, children, className = '', onChange, value, name, helpText, ...props }, ref) => {
+const Select = forwardRef(({ label, error, children, className = '', onChange, value, name, helpText, required, ...props }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -52,7 +52,7 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
 
   return (
     <div className="flex flex-col gap-1.5 text-sm font-medium text-neutral-700" ref={containerRef}>
-      {label && <span>{label}{props.required && <span className="text-danger-600 ml-1">*</span>}</span>}
+      {label && <span>{label}{required && <span className="text-danger-600 ml-1">*</span>}</span>}
       <div className="relative">
         <button
           type="button"

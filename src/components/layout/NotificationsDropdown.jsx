@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { BellIcon } from '@heroicons/react/24/outline';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { removeDocument } from '../../supabase/db';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function NotificationsDropdown() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
   
@@ -27,24 +29,37 @@ export default function NotificationsDropdown() {
     }
   });
 
-  const handleDismiss = async (e, id) => {
+  const handleDismiss = async (e, id, type) => {
     e.stopPropagation();
-    const newDismissed = { ...dismissedNotifs, [id]: new Date().toDateString() };
-    setDismissedNotifs(newDismissed);
-    localStorage.setItem('dismissed_amc_notifications', JSON.stringify(newDismissed));
+    if (type === 'amc_expiry') {
+      const newDismissed = { ...dismissedNotifs, [id]: new Date().toDateString() };
+      setDismissedNotifs(newDismissed);
+      localStorage.setItem('dismissed_amc_notifications', JSON.stringify(newDismissed));
+    } else {
+      await removeDocument('notifications', id);
+    }
   };
 
   const todayStr = new Date().toDateString();
   const visibleNotifications = notifications.filter(n => {
-    if (n.type !== 'amc_expiry') return false;
-    return dismissedNotifs[n.id] !== todayStr;
+    if (n.type === 'amc_expiry') {
+      return dismissedNotifs[n.id] !== todayStr;
+    }
+    if (n.type === 'assignment') {
+      return n.userId === user?.id && !n.isRead;
+    }
+    return false;
   });
 
   const handleDismissAll = (e) => {
     e.stopPropagation();
     const newDismissed = { ...dismissedNotifs };
     visibleNotifications.forEach((n) => {
-      newDismissed[n.id] = todayStr;
+      if (n.type === 'amc_expiry') {
+        newDismissed[n.id] = todayStr;
+      } else {
+        removeDocument('notifications', n.id);
+      }
     });
     setDismissedNotifs(newDismissed);
     localStorage.setItem('dismissed_amc_notifications', JSON.stringify(newDismissed));
@@ -105,7 +120,7 @@ export default function NotificationsDropdown() {
                         </p>
                       </div>
                       <button 
-                        onClick={(e) => handleDismiss(e, notification.id)}
+                        onClick={(e) => handleDismiss(e, notification.id, notification.type)}
                         className="text-neutral-400 hover:text-primary-600 flex-shrink-0 p-1 rounded-md hover:bg-primary-50 transition-colors"
                         title="Mark as read"
                       >

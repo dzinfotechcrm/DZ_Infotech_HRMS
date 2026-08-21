@@ -24,6 +24,16 @@ export async function createDocument(tableName, payload) {
   return data;
 }
 
+export async function createNotification(userId, title, message, type = 'assignment') {
+  return await createDocument('notifications', {
+    user_id: userId,
+    title,
+    message,
+    type,
+    is_read: false
+  });
+}
+
 export async function updateDocument(tableName, id, payload) {
   const { data, error } = await supabase
     .from(mapTableName(tableName))

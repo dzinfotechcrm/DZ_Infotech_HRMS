@@ -23,6 +23,8 @@ export function useSupabaseCollection(tableName, buildQuery) {
       base.updatedAt = row.updated_at || base.updatedAt;
       base.employeeId = row.employee_id || base.employeeId;
       base.departmentId = row.department_id || base.departmentId;
+      base.userId = row.user_id || base.userId;
+      base.isRead = row.is_read !== undefined ? row.is_read : base.isRead;
       base.firstName = row.first_name || base.firstName;
       base.lastName = row.last_name || base.lastName;
       return base;
@@ -129,6 +131,8 @@ export function useSupabaseDocument(tableName, id) {
       base.updatedAt = row.updated_at || base.updatedAt;
       base.employeeId = row.employee_id || base.employeeId;
       base.departmentId = row.department_id || base.departmentId;
+      base.userId = row.user_id || base.userId;
+      base.isRead = row.is_read !== undefined ? row.is_read : base.isRead;
       base.firstName = row.first_name || base.firstName;
       base.lastName = row.last_name || base.lastName;
       return base;
