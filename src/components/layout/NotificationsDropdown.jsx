@@ -45,9 +45,13 @@ export default function NotificationsDropdown() {
     if (n.type === 'amc_expiry') {
       return dismissedNotifs[n.id] !== todayStr;
     }
-    if (n.type === 'assignment') {
-      return n.userId === user?.id && !n.isRead;
+    
+    // Check if the notification is targeted to the current user
+    const targetUserId = n.user_id || n.userId || n.data?.userId;
+    if (targetUserId) {
+      return targetUserId === user?.id && !(n.is_read || n.isRead || n.data?.isRead);
     }
+    
     return false;
   });
 

@@ -843,6 +843,19 @@ export default function PayrollList() {
           processedAt: new Date().toISOString(),
         },
       });
+
+      // Auto notification
+      await upsertDocument('notifications', Date.now().toString() + Math.floor(Math.random()*1000), {
+        type: 'payroll_processed',
+        title: 'Payroll Processed',
+        message: `Your payroll for ${MONTHS.find(m => m.value === row.month)?.label || row.month} ${row.year} has been processed.`,
+        data: {
+          userId: emp.uid || emp.id,
+          isRead: false,
+          relatedId: pid,
+        }
+      });
+
       toast.success(`Payroll processed for ${emp.firstName} ${emp.lastName}`);
     } catch (err) {
       toast.error(err?.message || 'Failed to process payroll');

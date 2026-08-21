@@ -93,6 +93,15 @@ export default function PayrollProcess() {
             isRead: false,
             relatedId: payrollId,
           });
+        } else {
+          await upsertDocument('notifications', `${payrollId}_processed`, {
+            userId: employee.uid,
+            type: 'payroll_processed',
+            title: 'Payroll Processed',
+            message: `Your payroll for ${month}/${year} has been processed.`,
+            isRead: false,
+            relatedId: payrollId,
+          });
         }
       }));
       toast.success('Payroll processed for selected month');
