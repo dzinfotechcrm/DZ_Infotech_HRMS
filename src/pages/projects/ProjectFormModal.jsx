@@ -72,7 +72,7 @@ const WhatsappButton = ({ client, project }) => {
       </button>
 
       {showDropdown && (
-        <div className="absolute left-0 mt-2 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-[100] overflow-hidden">
+        <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-[100] overflow-hidden">
           <div className="py-1">
             {STAGES.map((stage) => (
               <button
