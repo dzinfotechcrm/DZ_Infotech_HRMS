@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { BellIcon } from '@heroicons/react/24/outline';
+import { BellIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
-import { removeDocument } from '../../supabase/db';
+import { removeDocument, updateDocument } from '../../supabase/db';
 import { useAuth } from '../../hooks/useAuth';
 
-export default function NotificationsDropdown() {
+export default function NotificationsDropdown({ showAmc = false }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
@@ -29,48 +29,62 @@ export default function NotificationsDropdown() {
     }
   });
 
-  const handleDismiss = async (e, id, type) => {
+  const todayStr = new Date().toDateString();
+
+  const isNotificationRead = (n) => {
+    if (n.type === 'amc_expiry') {
+      return dismissedNotifs[n.id] === todayStr;
+    }
+    return n.is_read || n.isRead || n.data?.isRead;
+  };
+
+  const handleMarkAsRead = async (e, id, type) => {
     e.stopPropagation();
     if (type === 'amc_expiry') {
-      const newDismissed = { ...dismissedNotifs, [id]: new Date().toDateString() };
+      const newDismissed = { ...dismissedNotifs, [id]: todayStr };
       setDismissedNotifs(newDismissed);
       localStorage.setItem('dismissed_amc_notifications', JSON.stringify(newDismissed));
     } else {
-      await removeDocument('notifications', id);
+      await updateDocument('notifications', id, { is_read: true });
     }
   };
 
-  const todayStr = new Date().toDateString();
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    await removeDocument('notifications', id);
+  };
+
   const visibleNotifications = notifications.filter(n => {
     if (n.type === 'amc_expiry') {
-      return dismissedNotifs[n.id] !== todayStr;
+      return showAmc;
     }
     
     // Check if the notification is targeted to the current user
     const targetUserId = n.user_id || n.userId || n.data?.userId;
     if (targetUserId) {
-      const isTarget = targetUserId === user?.id || targetUserId === user?.uid || targetUserId === user?.employeeId;
-      return isTarget && !(n.is_read || n.isRead || n.data?.isRead);
+      return targetUserId === user?.id || targetUserId === user?.uid || targetUserId === user?.employeeId;
     }
     
     return false;
   });
 
-  const handleDismissAll = (e) => {
+  const unreadCount = visibleNotifications.filter(n => !isNotificationRead(n)).length;
+
+  const handleMarkAllAsRead = (e) => {
     e.stopPropagation();
     const newDismissed = { ...dismissedNotifs };
     visibleNotifications.forEach((n) => {
-      if (n.type === 'amc_expiry') {
-        newDismissed[n.id] = todayStr;
-      } else {
-        removeDocument('notifications', n.id);
+      if (!isNotificationRead(n)) {
+        if (n.type === 'amc_expiry') {
+          newDismissed[n.id] = todayStr;
+        } else {
+          updateDocument('notifications', n.id, { is_read: true });
+        }
       }
     });
     setDismissedNotifs(newDismissed);
     localStorage.setItem('dismissed_amc_notifications', JSON.stringify(newDismissed));
   };
-
-  const unreadCount = visibleNotifications.length;
 
   return (
     <div className="relative mr-2" ref={menuRef}>
@@ -94,7 +108,7 @@ export default function NotificationsDropdown() {
               <div className="flex items-center gap-3">
                 <span className="text-xs font-medium text-neutral-500">{unreadCount} new</span>
                 <button
-                  onClick={handleDismissAll}
+                  onClick={handleMarkAllAsRead}
                   className="text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
                 >
                   Read All
@@ -110,30 +124,43 @@ export default function NotificationsDropdown() {
               </div>
             ) : (
               <div className="divide-y divide-neutral-100">
-                {visibleNotifications.map((notification) => (
-                  <div key={notification.id} className="px-4 py-3 hover:bg-neutral-50 transition-colors">
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-neutral-900 truncate">
-                          {notification.title}
-                        </p>
-                        <p className="text-sm text-neutral-600 mt-0.5">
-                          {notification.message}
-                        </p>
-                        <p className="text-[10px] text-neutral-400 mt-1">
-                          {new Date(notification.createdAt).toLocaleString()}
-                        </p>
+                {visibleNotifications.map((notification) => {
+                  const read = isNotificationRead(notification);
+                  return (
+                    <div key={notification.id} className={`px-4 py-3 transition-colors ${read ? 'bg-white hover:bg-neutral-50' : 'bg-primary-50/30 hover:bg-primary-50/50'}`}>
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm truncate ${read ? 'font-medium text-neutral-700' : 'font-semibold text-neutral-900'}`}>
+                            {notification.title}
+                          </p>
+                          <p className={`text-sm mt-0.5 ${read ? 'text-neutral-500' : 'text-neutral-700'}`}>
+                            {notification.message}
+                          </p>
+                          <p className="text-[10px] text-neutral-400 mt-1">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        {read ? (
+                          <button 
+                            onClick={(e) => handleDelete(e, notification.id)}
+                            className="text-neutral-400 hover:text-red-500 flex-shrink-0 p-1 rounded-md hover:bg-red-50 transition-colors"
+                            title="Delete notification"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={(e) => handleMarkAsRead(e, notification.id, notification.type)}
+                            className="text-primary-600 hover:text-primary-700 flex-shrink-0 p-1 rounded-md hover:bg-primary-100 transition-colors"
+                            title="Mark as read"
+                          >
+                            <span className="text-xs font-medium">Read</span>
+                          </button>
+                        )}
                       </div>
-                      <button 
-                        onClick={(e) => handleDismiss(e, notification.id, notification.type)}
-                        className="text-neutral-400 hover:text-primary-600 flex-shrink-0 p-1 rounded-md hover:bg-primary-50 transition-colors"
-                        title="Mark as read"
-                      >
-                        <span className="text-xs font-medium">Read</span>
-                      </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

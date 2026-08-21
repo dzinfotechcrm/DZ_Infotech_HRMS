@@ -111,7 +111,7 @@ export default function AmcList() {
         className="mb-8"
         actions={
           <div className="flex items-center gap-3">
-            <NotificationsDropdown />
+            <NotificationsDropdown showAmc={true} />
             <Button className="gap-2" onClick={() => handleOpenModal()}>
               <PlusIcon className="h-4 w-4" /> New AMC
             </Button>
