@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function Modal({ open, title, onClose, children, footer, disableBackdropClick = false, overflowVisible = false, maxWidth = '780px' }) {
+export default function Modal({ open, title, onClose, children, footer, headerActions, disableBackdropClick = false, overflowVisible = false, maxWidth = '780px' }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !disableBackdropClick) {
@@ -53,9 +53,12 @@ export default function Modal({ open, title, onClose, children, footer, disableB
             <div>
               <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>
             </div>
-            <button onClick={onClose} className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100">
-              ×
-            </button>
+            <div className="flex items-center gap-2">
+              {headerActions}
+              <button type="button" onClick={onClose} className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 flex items-center justify-center">
+                <span className="text-xl leading-none">×</span>
+              </button>
+            </div>
           </div>
         </div>
 
