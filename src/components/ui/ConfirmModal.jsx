@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Button from './Button';
 
-export default function ConfirmModal({ open, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', confirmVariant = 'primary' }) {
+export default function ConfirmModal({ open, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', confirmVariant = 'primary', confirmButtonClassName = '' }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -65,7 +65,7 @@ export default function ConfirmModal({ open, title, message, onConfirm, onCancel
           <Button variant="primary" onClick={onCancel} type="button">
             {cancelText}
           </Button>
-          <Button variant={confirmVariant} onClick={onConfirm} type="button">
+          <Button variant={confirmVariant} className={confirmButtonClassName} onClick={onConfirm} type="button">
             {confirmText}
           </Button>
         </div>
