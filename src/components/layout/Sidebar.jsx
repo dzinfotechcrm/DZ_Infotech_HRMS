@@ -213,7 +213,8 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
             </>
           )}
 
-{/*
+
+          {/*
           {isAdminLikeRole && (
             <>
               <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
