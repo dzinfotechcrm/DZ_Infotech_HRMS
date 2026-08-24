@@ -15,6 +15,7 @@ export default function AttendanceControl({ user }) {
   const [checkOutModalOpen, setCheckOutModalOpen] = useState(false);
   const [workNotes, setWorkNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [now, setNow] = useState(new Date());
 
   const todayStr = formatDate(new Date(), 'yyyy-MM-dd');
 
@@ -42,6 +43,60 @@ export default function AttendanceControl({ user }) {
   const isOnLeaveToday = useMemo(() => {
     return approvedLeaves.some(leave => todayStr >= leave.fromDate && todayStr <= leave.toDate);
   }, [approvedLeaves, todayStr]);
+
+  useEffect(() => {
+    let interval;
+    if (hasCheckedIn && !hasCheckedOut && !isOnBreak) {
+      interval = setInterval(() => {
+        setNow(new Date());
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [hasCheckedIn, hasCheckedOut, isOnBreak]);
+
+  const workingSeconds = useMemo(() => {
+    if (!todayRecord?.check_in) return 0;
+    
+    const checkInTime = new Date(todayRecord.check_in).getTime();
+    const endTime = todayRecord.check_out ? new Date(todayRecord.check_out).getTime() : now.getTime();
+    
+    let totalElapsedMs = endTime - checkInTime;
+    
+    const breaks = todayRecord.data?.breaks || [];
+    const dateStr = todayRecord.date; 
+    
+    breaks.forEach(b => {
+      if (b.in) {
+        const [hIn, mIn, sIn] = b.in.split(':').map(Number);
+        const bInDate = new Date(`${dateStr}T00:00:00`);
+        bInDate.setHours(hIn, mIn, sIn, 0);
+        const bInTime = bInDate.getTime();
+        
+        let bOutTime;
+        if (b.out) {
+          const [hOut, mOut, sOut] = b.out.split(':').map(Number);
+          const bOutDate = new Date(`${dateStr}T00:00:00`);
+          bOutDate.setHours(hOut, mOut, sOut, 0);
+          bOutTime = bOutDate.getTime();
+        } else {
+          bOutTime = endTime;
+        }
+        
+        totalElapsedMs -= (bOutTime - bInTime);
+      }
+    });
+    
+    return Math.max(0, Math.floor(totalElapsedMs / 1000));
+  }, [todayRecord, now]);
+
+  const formatDuration = (totalSeconds) => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const handleCheckIn = async () => {
     if (!user) return;
@@ -190,9 +245,14 @@ export default function AttendanceControl({ user }) {
               </Button>
             ) : !hasCheckedOut ? (
               <>
-                <div className={`px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm ${isOnBreak ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                  <span className={`w-2 h-2 rounded-full animate-pulse ${isOnBreak ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                  {isOnBreak ? `On Break since ${activeBreak.in}` : `Checked In at ${todayRecord.checkIn}`}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className={`px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm ${isOnBreak ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                    <span className={`w-2 h-2 rounded-full ${(!isOnBreak && !hasCheckedOut) ? 'animate-pulse' : ''} ${isOnBreak ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                    {isOnBreak ? `On Break since ${activeBreak.in}` : `Checked In at ${todayRecord.data?.checkIn || todayRecord.checkIn}`}
+                  </div>
+                  <div className="px-4 py-2 rounded-xl font-mono font-bold bg-slate-800 text-white flex items-center justify-center text-sm">
+                    {formatDuration(workingSeconds)}
+                  </div>
                 </div>
                 
                 {isOnBreak ? (
@@ -213,8 +273,13 @@ export default function AttendanceControl({ user }) {
                 </Button>
               </>
             ) : (
-              <div className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-semibold text-sm">
-                Checked out at {todayRecord.checkOut}
+              <div className="flex gap-2 flex-col sm:flex-row">
+                <div className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-semibold text-sm flex items-center justify-center">
+                  Checked out at {todayRecord.data?.checkOut || todayRecord.checkOut}
+                </div>
+                <div className="px-4 py-2 rounded-xl font-mono font-bold bg-slate-800 text-white flex items-center justify-center text-sm">
+                  {formatDuration(workingSeconds)}
+                </div>
               </div>
             )}
           </div>
