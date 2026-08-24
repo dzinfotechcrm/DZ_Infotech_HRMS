@@ -8,23 +8,16 @@ import ConfirmModal from '../../../components/ui/ConfirmModal';
 import toast from 'react-hot-toast';
 import { DocumentIcon, TrashIcon, ArrowDownTrayIcon, EyeIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { uploadFile } from '../../../supabase/storage';
+import { useSupabaseCollection } from '../../../hooks/useSupabase';
+import { createDocument, removeDocument } from '../../../supabase/db';
 
 const initialDocs = [];
 
 export default function CompanyDocuments() {
   const [pptFile, setPptFile] = useState(null);
   const [catalogueFile, setCatalogueFile] = useState(null);
-  const [documents, setDocuments] = useState(() => {
-    const saved = localStorage.getItem('companyDocuments');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { return initialDocs; }
-    }
-    return initialDocs;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('companyDocuments', JSON.stringify(documents));
-  }, [documents]);
+  
+  const { items: documents, refetch, loading } = useSupabaseCollection('companyDocuments');
   const [previewDoc, setPreviewDoc] = useState(null);
   const [deleteDocId, setDeleteDocId] = useState(null);
 
@@ -38,14 +31,21 @@ export default function CompanyDocuments() {
     try {
       const fileUrl = await uploadFile(pptFile, 'company_documents');
       const newDoc = {
-        id: Date.now(),
         type: 'PPT',
         name: pptFile.name,
         uploadDate: new Date().toISOString().split('T')[0],
         size: (pptFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-        url: fileUrl
+        url: fileUrl,
+        data: {
+          type: 'PPT',
+          name: pptFile.name,
+          uploadDate: new Date().toISOString().split('T')[0],
+          size: (pptFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+          url: fileUrl
+        }
       };
-      setDocuments(prev => [newDoc, ...prev]);
+      await createDocument('companyDocuments', newDoc);
+      refetch();
       toast.success('PPT uploaded successfully', { id: toastId });
       setPptFile(null);
     } catch (error) {
@@ -64,14 +64,21 @@ export default function CompanyDocuments() {
     try {
       const fileUrl = await uploadFile(catalogueFile, 'company_documents');
       const newDoc = {
-        id: Date.now(),
         type: 'Catalogue',
         name: catalogueFile.name,
         uploadDate: new Date().toISOString().split('T')[0],
         size: (catalogueFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-        url: fileUrl
+        url: fileUrl,
+        data: {
+          type: 'Catalogue',
+          name: catalogueFile.name,
+          uploadDate: new Date().toISOString().split('T')[0],
+          size: (catalogueFile.size / (1024 * 1024)).toFixed(2) + ' MB',
+          url: fileUrl
+        }
       };
-      setDocuments(prev => [newDoc, ...prev]);
+      await createDocument('companyDocuments', newDoc);
+      refetch();
       toast.success('Service Catalogue uploaded successfully', { id: toastId });
       setCatalogueFile(null);
     } catch (error) {
@@ -120,10 +127,15 @@ export default function CompanyDocuments() {
     setDeleteDocId(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteDocId) {
-      setDocuments(prev => prev.filter(doc => doc.id !== deleteDocId));
-      toast.success('Document deleted successfully');
+      try {
+        await removeDocument('companyDocuments', deleteDocId);
+        refetch();
+        toast.success('Document deleted successfully');
+      } catch (e) {
+        toast.error('Failed to delete document');
+      }
       setDeleteDocId(null);
     }
   };
@@ -242,7 +254,11 @@ export default function CompanyDocuments() {
 
       <div className="pt-4">
         <h3 className="text-lg font-semibold text-neutral-900 mb-4">Uploaded Documents</h3>
-        <Table columns={columns} data={documents} renderRow={renderRow} emptyMessage="No documents uploaded yet." />
+        {loading ? (
+           <div className="text-center py-8 text-neutral-500">Loading documents...</div>
+        ) : (
+           <Table columns={columns} data={documents} renderRow={renderRow} emptyMessage="No documents uploaded yet." />
+        )}
       </div>
 
       <ConfirmModal
