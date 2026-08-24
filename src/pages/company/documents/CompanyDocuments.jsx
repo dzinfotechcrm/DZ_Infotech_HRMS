@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PageHeader from '../../../components/ui/PageHeader';
 import Card from '../../../components/ui/Card';
 import Button from '../../../components/ui/Button';
@@ -9,15 +9,27 @@ import toast from 'react-hot-toast';
 import { DocumentIcon, TrashIcon, ArrowDownTrayIcon, EyeIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { uploadFile } from '../../../supabase/storage';
 import { useSupabaseCollection } from '../../../hooks/useSupabase';
-import { createDocument, removeDocument } from '../../../supabase/db';
+import { createDocument, removeDocument, query, where } from '../../../supabase/db';
 
 const initialDocs = [];
 
 export default function CompanyDocuments() {
   const [pptFile, setPptFile] = useState(null);
   const [catalogueFile, setCatalogueFile] = useState(null);
+  const companyDocsQuery = useMemo(() => (base) => query(base, where('employeeId', '==', 'company')), []);
+  const { items: rawDocuments, refetch, loading } = useSupabaseCollection('documents', companyDocsQuery);
   
-  const { items: documents, refetch, loading } = useSupabaseCollection('companyDocuments');
+  const documents = useMemo(() => {
+    return rawDocuments.map(doc => ({
+      id: doc.id,
+      name: doc.fileName || doc.name,
+      type: doc.docType === 'Company PPT' ? 'PPT' : 'Catalogue',
+      uploadDate: (doc.createdAt || new Date().toISOString()).split('T')[0],
+      size: doc.fileSize ? (doc.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : doc.size || 'Unknown',
+      url: doc.fileURL || doc.url
+    }));
+  }, [rawDocuments]);
+
   const [previewDoc, setPreviewDoc] = useState(null);
   const [deleteDocId, setDeleteDocId] = useState(null);
 
@@ -31,20 +43,15 @@ export default function CompanyDocuments() {
     try {
       const fileUrl = await uploadFile(pptFile, 'company_documents');
       const newDoc = {
-        type: 'PPT',
-        name: pptFile.name,
-        uploadDate: new Date().toISOString().split('T')[0],
-        size: (pptFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-        url: fileUrl,
+        employee_id: 'company',
         data: {
-          type: 'PPT',
-          name: pptFile.name,
-          uploadDate: new Date().toISOString().split('T')[0],
-          size: (pptFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-          url: fileUrl
+          docType: 'Company PPT',
+          fileName: pptFile.name,
+          fileURL: fileUrl,
+          fileSize: pptFile.size,
         }
       };
-      await createDocument('companyDocuments', newDoc);
+      await createDocument('documents', newDoc);
       refetch();
       toast.success('PPT uploaded successfully', { id: toastId });
       setPptFile(null);
@@ -64,20 +71,15 @@ export default function CompanyDocuments() {
     try {
       const fileUrl = await uploadFile(catalogueFile, 'company_documents');
       const newDoc = {
-        type: 'Catalogue',
-        name: catalogueFile.name,
-        uploadDate: new Date().toISOString().split('T')[0],
-        size: (catalogueFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-        url: fileUrl,
+        employee_id: 'company',
         data: {
-          type: 'Catalogue',
-          name: catalogueFile.name,
-          uploadDate: new Date().toISOString().split('T')[0],
-          size: (catalogueFile.size / (1024 * 1024)).toFixed(2) + ' MB',
-          url: fileUrl
+          docType: 'Company Catalogue',
+          fileName: catalogueFile.name,
+          fileURL: fileUrl,
+          fileSize: catalogueFile.size,
         }
       };
-      await createDocument('companyDocuments', newDoc);
+      await createDocument('documents', newDoc);
       refetch();
       toast.success('Service Catalogue uploaded successfully', { id: toastId });
       setCatalogueFile(null);
@@ -130,7 +132,7 @@ export default function CompanyDocuments() {
   const confirmDelete = async () => {
     if (deleteDocId) {
       try {
-        await removeDocument('companyDocuments', deleteDocId);
+        await removeDocument('documents', deleteDocId);
         refetch();
         toast.success('Document deleted successfully');
       } catch (e) {
