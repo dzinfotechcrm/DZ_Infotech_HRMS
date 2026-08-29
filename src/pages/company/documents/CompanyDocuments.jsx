@@ -276,17 +276,11 @@ export default function CompanyDocuments() {
       <Modal open={!!previewDoc} title={`Viewing: ${previewDoc?.name}`} onClose={() => setPreviewDoc(null)} maxWidth="95vw">
         {previewDoc?.url ? (
           <div className="h-[65vh] sm:h-[80vh] w-full rounded-lg overflow-hidden border border-neutral-200">
-            {previewDoc.type === 'Catalogue' ? (
-              <iframe src={`${previewDoc.url}#toolbar=0`} className="w-full h-full border-0" title="Document Preview" />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-4 text-neutral-500 bg-neutral-50">
-                <DocumentIcon className="h-16 w-16 text-neutral-400" />
-                <p>This file type cannot be previewed directly in the browser.</p>
-                <Button variant="outline" onClick={() => handleDownload(previewDoc)}>
-                  Download to View
-                </Button>
-              </div>
-            )}
+            <iframe 
+              src={`https://docs.google.com/viewer?url=${encodeURIComponent(previewDoc.url)}&embedded=true`} 
+              className="w-full h-full border-0" 
+              title="Document Preview" 
+            />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-64 gap-4 text-neutral-500 bg-neutral-50 rounded-lg border border-neutral-200 border-dashed">
