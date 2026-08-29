@@ -275,7 +275,7 @@ export default function CompanyDocuments() {
 
       <Modal open={!!previewDoc} title={`Viewing: ${previewDoc?.name}`} onClose={() => setPreviewDoc(null)} maxWidth="95vw">
         {previewDoc?.url ? (
-          <div className="h-[85vh] w-full rounded-lg overflow-hidden border border-neutral-200">
+          <div className="h-[65vh] sm:h-[80vh] w-full rounded-lg overflow-hidden border border-neutral-200">
             {previewDoc.type === 'Catalogue' ? (
               <iframe src={`${previewDoc.url}#toolbar=0`} className="w-full h-full border-0" title="Document Preview" />
             ) : (

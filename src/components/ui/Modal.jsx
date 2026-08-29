@@ -48,21 +48,21 @@ export default function Modal({ open, title, onClose, children, footer, headerAc
           zIndex: 1001
         }}
       >
-        <div className="border-b border-neutral-200 px-6 py-4 flex-shrink-0">
+        <div className="border-b border-neutral-200 px-4 sm:px-6 py-4 flex-shrink-0">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-semibold text-neutral-900 truncate">{title}</h3>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {headerActions}
-              <button type="button" onClick={onClose} className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 flex items-center justify-center">
-                <span className="text-xl leading-none">×</span>
+              <button type="button" onClick={onClose} className="rounded-lg p-2 text-neutral-500 hover:bg-neutral-100 flex items-center justify-center transition-colors">
+                <span className="text-xl leading-none">&times;</span>
               </button>
             </div>
           </div>
         </div>
 
-        <div className={`px-6 py-5 flex-1 ${overflowVisible ? 'overflow-visible' : 'overflow-y-auto'}`}>
+        <div className={`px-4 sm:px-6 py-4 sm:py-5 flex-1 ${overflowVisible ? 'overflow-visible' : 'overflow-y-auto'}`}>
           {children}
         </div>
 
