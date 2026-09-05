@@ -356,7 +356,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
                   label="Next Follow-Up Date *"
                   error={errors.nextFollowUp}
                   type="date"
-                  min={new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0]}
+                  min={new Date().toISOString().split('T')[0]}
                   value={formData.nextFollowUp}
                   onChange={(e) => handleChange('nextFollowUp', e.target.value)}
                 />
