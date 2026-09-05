@@ -211,7 +211,7 @@ export default function AdminDashboard() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                 <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="#94A3B8" />
-                <YAxis tick={{ fontSize: 12 }} stroke="#94A3B8" />
+                <YAxis tick={{ fontSize: 12 }} stroke="#94A3B8" allowDecimals={false} />
                 <Tooltip />
                 <Legend />
                 <Area type="monotone" dataKey="present" stroke="#1D4ED8" fillOpacity={1} fill="url(#colorPresent)" />
