@@ -13,6 +13,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import AttendanceControl from '../../components/dashboard/AttendanceControl';
+import MissingCheckoutWarning from '../../components/dashboard/MissingCheckoutWarning';
 import InternDocumentsCard from '../../components/dashboard/InternDocumentsCard';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
@@ -77,6 +78,7 @@ export default function EmployeeDashboard() {
         </div>
       </div>
 
+      <MissingCheckoutWarning user={user} />
       <AttendanceControl user={user} />
 
       {currentIntern && (

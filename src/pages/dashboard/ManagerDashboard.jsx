@@ -14,6 +14,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import AttendanceControl from '../../components/dashboard/AttendanceControl';
+import MissingCheckoutWarning from '../../components/dashboard/MissingCheckoutWarning';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle }) {
   const tones = {
@@ -104,6 +105,7 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
+      <MissingCheckoutWarning user={user} />
       <AttendanceControl user={user} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

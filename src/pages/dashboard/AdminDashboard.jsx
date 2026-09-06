@@ -18,6 +18,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import UpcomingBirthdays from '../../components/dashboard/UpcomingBirthdays';
+import MissingCheckoutWarning from '../../components/dashboard/MissingCheckoutWarning';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle, onClick, className = '' }) {
   const tones = {
@@ -172,6 +173,8 @@ export default function AdminDashboard() {
           </p>
         </div>
       </div>
+
+      <MissingCheckoutWarning user={user} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard 
