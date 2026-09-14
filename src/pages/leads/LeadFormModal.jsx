@@ -73,7 +73,23 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
   useEffect(() => {
     if (lead) {
       setFormData({
+        ...INITIAL_STATE,
         ...lead,
+        companyName: lead.companyName ?? '',
+        contactPerson: lead.contactPerson ?? '',
+        phone: lead.phone ?? '',
+        whatsapp: lead.whatsapp ?? '',
+        email: lead.email ?? '',
+        address: lead.address ?? '',
+        industry: lead.industry ?? '',
+        expectedValue: lead.expectedValue ?? '',
+        leadSource: lead.leadSource ?? 'Website',
+        assignedTo: lead.assignedTo ?? '',
+        stage: lead.stage ?? 'New Lead',
+        nextFollowUp: lead.nextFollowUp ?? '',
+        interestLevel: lead.interestLevel ?? '',
+        notes: lead.notes ?? '',
+        lostDate: lead.lostDate ?? '',
         serviceInterested: typeof lead.serviceInterested === 'string'
           ? (lead.serviceInterested ? lead.serviceInterested.split(',').map(s => s.trim()) : [])
           : (Array.isArray(lead.serviceInterested) ? lead.serviceInterested : [])

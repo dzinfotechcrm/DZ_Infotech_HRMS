@@ -243,6 +243,11 @@ export default function LeadsPipeline() {
       }
 
       refetch();
+      if (isNewLead) {
+        toast.success('Lead created successfully');
+      } else {
+        toast.success('Lead updated successfully');
+      }
     } catch (err) {
       console.error(err);
       toast.error('Database operation failed: ' + err.message);
