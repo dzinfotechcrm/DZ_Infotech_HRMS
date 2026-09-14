@@ -25,6 +25,8 @@ const INITIAL_STATE = {
   owner: '',
   status: 'Active',
   since: new Date().toISOString().split('T')[0],
+  birthday: '',
+  anniversary: '',
   notes: ''
 };
 
@@ -123,6 +125,8 @@ export default function ClientFormModal({ client, clients = [], employees, open,
             <Input label="Phone" error={errors.phone} value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
             <Input label="Email" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
             <Input label="Industry" value={formData.industry} onChange={(e) => handleChange('industry', e.target.value)} />
+            <Input label="Birthday" type="date" value={formData.birthday || ''} onChange={(e) => handleChange('birthday', e.target.value)} />
+            <Input label="Anniversary" type="date" value={formData.anniversary || ''} onChange={(e) => handleChange('anniversary', e.target.value)} />
             <div className="sm:col-span-2 lg:col-span-3">
               <Input label="Address" value={formData.address} onChange={(e) => handleChange('address', e.target.value)} />
             </div>
