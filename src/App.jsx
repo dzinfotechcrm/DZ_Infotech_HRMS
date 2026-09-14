@@ -31,6 +31,7 @@ const LeadsPipeline = lazy(() => import('./pages/leads/LeadsPipeline'));
 const ClientsList = lazy(() => import('./pages/clients/ClientsList'));
 const ProjectsList = lazy(() => import('./pages/projects/ProjectsList'));
 const AmcList = lazy(() => import('./pages/amc/AmcList'));
+const RevenueDashboard = lazy(() => import('./pages/revenue/RevenueDashboard'));
 const Finance = lazy(() => import('./pages/revenue/Finance'));
 const BucketSettings = lazy(() => import('./pages/revenue/BucketSettings'));
 const Expense = lazy(() => import('./pages/revenue/Expense'));
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="clients" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ClientsList /></ProtectedRoute>} />
           <Route path="projects" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><ProjectsList /></ProtectedRoute>} />
           <Route path="amc" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><AmcList /></ProtectedRoute>} />
+          <Route path="revenue-dashboard" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><RevenueDashboard /></ProtectedRoute>} />
           <Route path="finance" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Finance /></ProtectedRoute>} />
           <Route path="expense" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><Expense /></ProtectedRoute>} />
           <Route path="bucket-settings" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><BucketSettings /></ProtectedRoute>} />

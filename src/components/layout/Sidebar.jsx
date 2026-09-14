@@ -51,6 +51,7 @@ const hrmsNavigation = [
 ];
 
 const revenueNavigation = [
+  { to: '/revenue-dashboard', label: 'Dashboard', icon: PresentationChartLineIcon, adminOnly: true },
   { to: '/leads', label: 'Leads', icon: FunnelIcon, adminOnly: true },
   { to: '/clients', label: 'Clients', icon: BriefcaseIcon, adminOnly: true },
   { to: '/projects', label: 'Projects', icon: FolderIcon, adminOnly: true },
