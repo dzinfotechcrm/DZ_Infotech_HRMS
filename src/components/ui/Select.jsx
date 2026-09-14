@@ -50,9 +50,12 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
     }
   };
 
+  const isRequired = required || (label && String(label).trim().endsWith('*'));
+  const cleanLabel = label ? String(label).replace(/\s*\*$/, '') : '';
+
   return (
     <div className="flex flex-col gap-1.5 text-sm font-medium text-neutral-700" ref={containerRef}>
-      {label && <span>{label}{required && <span className="text-danger-600 ml-1">*</span>}</span>}
+      {label && <span>{cleanLabel}{isRequired && <span className="text-danger-600 ml-1">*</span>}</span>}
       <div className="relative">
         <button
           type="button"

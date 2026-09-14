@@ -13,6 +13,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, 
   CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer 
 } from 'recharts';
+import UpcomingClientEvents from '../../components/dashboard/UpcomingClientEvents';
 
 const COLORS = ['#8b5cf6', '#0ea5e9', '#f59e0b', '#10b981', '#f43f5e', '#64748b', '#ec4899', '#14b8a6'];
 
@@ -207,9 +208,9 @@ export default function RevenueDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Trend Chart */}
-        <Card className="p-6 lg:col-span-2">
+        <Card className="p-6 lg:col-span-3">
           <h3 className="text-lg font-bold text-neutral-900 mb-6">Revenue vs Expense Trend</h3>
           <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -289,6 +290,9 @@ export default function RevenueDashboard() {
             </ResponsiveContainer>
           </div>
         </Card>
+
+        {/* Upcoming Client Events */}
+        <UpcomingClientEvents clients={clients} />
       </div>
     </div>
   );
