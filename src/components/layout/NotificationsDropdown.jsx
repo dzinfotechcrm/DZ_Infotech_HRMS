@@ -8,6 +8,8 @@ export default function NotificationsDropdown({ showAmc = false }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
+  const [optimisticDeleted, setOptimisticDeleted] = useState(new Set());
+  const [optimisticRead, setOptimisticRead] = useState(new Set());
 
   const { items: notifications, refetch } = useSupabaseCollection('notifications', (query) => query.order('createdAt', { ascending: false }));
 
@@ -32,29 +34,34 @@ export default function NotificationsDropdown({ showAmc = false }) {
   const todayStr = new Date().toDateString();
 
   const isNotificationRead = (n) => {
+    if (optimisticRead.has(n.id)) return true;
     if (n.type === 'amc_expiry') {
       return dismissedNotifs[n.id] === todayStr;
     }
     return n.is_read || n.isRead || n.data?.isRead;
   };
 
-  const handleMarkAsRead = async (e, id, type) => {
+  const handleMarkAsRead = (e, id, type) => {
     e.stopPropagation();
     if (type === 'amc_expiry') {
       const newDismissed = { ...dismissedNotifs, [id]: todayStr };
       setDismissedNotifs(newDismissed);
       localStorage.setItem('dismissed_amc_notifications', JSON.stringify(newDismissed));
     } else {
-      await updateDocument('notifications', id, { is_read: true });
+      setOptimisticRead(prev => new Set(prev).add(id));
+      updateDocument('notifications', id, { is_read: true }).catch(console.error);
     }
   };
 
-  const handleDelete = async (e, id) => {
+  const handleDelete = (e, id) => {
     e.stopPropagation();
-    await removeDocument('notifications', id);
+    setOptimisticDeleted(prev => new Set(prev).add(id));
+    removeDocument('notifications', id).catch(console.error);
   };
 
   const visibleNotifications = notifications.filter(n => {
+    if (optimisticDeleted.has(n.id)) return false;
+
     if (showAmc) {
       // AMC Module: ONLY show amc_expiry notifications
       return n.type === 'amc_expiry';
@@ -79,16 +86,21 @@ export default function NotificationsDropdown({ showAmc = false }) {
   const handleMarkAllAsRead = (e) => {
     e.stopPropagation();
     const newDismissed = { ...dismissedNotifs };
+    const newOptimisticRead = new Set(optimisticRead);
+
     visibleNotifications.forEach((n) => {
       if (!isNotificationRead(n)) {
         if (n.type === 'amc_expiry') {
           newDismissed[n.id] = todayStr;
         } else {
-          updateDocument('notifications', n.id, { is_read: true });
+          newOptimisticRead.add(n.id);
+          updateDocument('notifications', n.id, { is_read: true }).catch(console.error);
         }
       }
     });
+
     setDismissedNotifs(newDismissed);
+    setOptimisticRead(newOptimisticRead);
     localStorage.setItem('dismissed_amc_notifications', JSON.stringify(newDismissed));
   };
 

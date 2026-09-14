@@ -17,6 +17,7 @@ import MeetingCompletedModal from './MeetingCompletedModal';
 import ProposalSentModal from './ProposalSentModal';
 import NegotiationModal from './NegotiationModal';
 import WonModal from './WonModal';
+import LostModal from './LostModal';
 import LeadActionModal from './LeadActionModal';
 import LeadStageDetailsModal from './LeadStageDetailsModal';
 
@@ -98,6 +99,7 @@ export default function LeadsPipeline() {
   const [proposalSentModal, setProposalSentModal] = useState({ open: false, lead: null, stage: null });
   const [negotiationModal, setNegotiationModal] = useState({ open: false, lead: null, stage: null });
   const [wonModal, setWonModal] = useState({ open: false, lead: null, stage: null });
+  const [lostModal, setLostModal] = useState({ open: false, lead: null, stage: null });
   const [filterSource, setFilterSource] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
   const [filterFollowUp, setFilterFollowUp] = useState('');
@@ -304,6 +306,9 @@ export default function LeadsPipeline() {
       } else if (wonModal.open) {
         leadId = wonModal.lead?.id;
         stage = wonModal.stage;
+      } else if (lostModal.open) {
+        leadId = lostModal.lead?.id;
+        stage = lostModal.stage;
       }
     }
 
@@ -349,6 +354,11 @@ export default function LeadsPipeline() {
         return;
       }
 
+      if (lead.stage !== 'Lost' && stage === 'Lost' && !extraDetails) {
+        setLostModal({ open: true, lead, stage });
+        return;
+      }
+
       try {
         const payload = extraDetails ? { stage, ...extraDetails } : { stage };
         await updateDocument('leads', lead.id, payload);
@@ -368,6 +378,7 @@ export default function LeadsPipeline() {
           setProposalSentModal({ open: false, lead: null, stage: null });
           setNegotiationModal({ open: false, lead: null, stage: null });
           setWonModal({ open: false, lead: null, stage: null });
+          setLostModal({ open: false, lead: null, stage: null });
         }
       }
     }
@@ -798,6 +809,15 @@ export default function LeadsPipeline() {
         onClose={() => setWonModal({ open: false, lead: null, stage: null })}
         onSubmit={(details) => executeDrop(details)}
         leadName={wonModal.lead?.companyName || 'this lead'}
+      />
+      <LostModal
+        open={lostModal.open}
+        onClose={() => setLostModal({ open: false, lead: null, stage: null })}
+        onSubmit={(details) => {
+          // ensure we also save today's date as lostDate
+          executeDrop({ ...details, lostDate: new Date().toISOString().split('T')[0] });
+        }}
+        leadName={lostModal.lead?.companyName || 'this lead'}
       />
 
       <LeadStageDetailsModal

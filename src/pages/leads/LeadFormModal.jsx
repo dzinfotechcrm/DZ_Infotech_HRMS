@@ -13,6 +13,7 @@ import MeetingCompletedModal from './MeetingCompletedModal';
 import ProposalSentModal from './ProposalSentModal';
 import NegotiationModal from './NegotiationModal';
 import WonModal from './WonModal';
+import LostModal from './LostModal';
 
 const STAGES = [
   'New Lead',
@@ -47,7 +48,8 @@ const INITIAL_STATE = {
   stage: 'New Lead',
   nextFollowUp: '',
   interestLevel: '',
-  notes: ''
+  notes: '',
+  lostDate: ''
 };
 
 const TABS = ['Basic Information', 'Business Details', 'Sales Pipeline Info'];
@@ -66,6 +68,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
   const [proposalSentModal, setProposalSentModal] = useState({ open: false, payload: null });
   const [negotiationModal, setNegotiationModal] = useState({ open: false, payload: null });
   const [wonModal, setWonModal] = useState({ open: false, payload: null });
+  const [lostModal, setLostModal] = useState({ open: false, payload: null });
 
   useEffect(() => {
     if (lead) {
@@ -120,7 +123,11 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
     } else if (tabIndex === 2) {
       if (!formData.stage || String(formData.stage).trim() === '') { newErrors.stage = 'This field is required'; isValid = false; }
       if (!formData.assignedTo || String(formData.assignedTo).trim() === '') { newErrors.assignedTo = 'This field is required'; isValid = false; }
-      if (!formData.nextFollowUp || String(formData.nextFollowUp).trim() === '') { newErrors.nextFollowUp = 'This field is required'; isValid = false; }
+      if (formData.stage === 'Lost') {
+        if (!formData.lostDate || String(formData.lostDate).trim() === '') { newErrors.lostDate = 'This field is required'; isValid = false; }
+      } else {
+        if (!formData.nextFollowUp || String(formData.nextFollowUp).trim() === '') { newErrors.nextFollowUp = 'This field is required'; isValid = false; }
+      }
     }
 
     if (!isValid) {
@@ -227,6 +234,12 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
       return;
     }
 
+    if (lead && lead.stage !== 'Lost' && payloadToSave.stage === 'Lost' && !extraDetails) {
+      setConfirmStageChange({ open: false, payload: null });
+      setLostModal({ open: true, payload: payloadToSave });
+      return;
+    }
+
     setSaving(true);
     try {
       const finalPayload = extraDetails ? { ...payloadToSave, ...extraDetails } : payloadToSave;
@@ -244,6 +257,7 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
       setProposalSentModal({ open: false, payload: null });
       setNegotiationModal({ open: false, payload: null });
       setWonModal({ open: false, payload: null });
+      setLostModal({ open: false, payload: null });
     }
   };
 
@@ -352,14 +366,24 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
                     );
                   })}
                 </Select>
-                <Input
-                  label="Next Follow-Up Date *"
-                  error={errors.nextFollowUp}
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  value={formData.nextFollowUp}
-                  onChange={(e) => handleChange('nextFollowUp', e.target.value)}
-                />
+                {formData.stage === 'Lost' ? (
+                  <Input
+                    label="Lost Date *"
+                    error={errors.lostDate}
+                    type="date"
+                    value={formData.lostDate}
+                    onChange={(e) => handleChange('lostDate', e.target.value)}
+                  />
+                ) : (
+                  <Input
+                    label="Next Follow-Up Date *"
+                    error={errors.nextFollowUp}
+                    type="date"
+                    min={new Date().toISOString().split('T')[0]}
+                    value={formData.nextFollowUp}
+                    onChange={(e) => handleChange('nextFollowUp', e.target.value)}
+                  />
+                )}
                 <Select label="Interest Level" value={formData.interestLevel} onChange={(e) => handleChange('interestLevel', e.target.value)}>
                   <option value="">Select Interest Level</option>
                   <option value="Very Interested">Very Interested</option>
@@ -460,6 +484,12 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
         onClose={() => setWonModal({ open: false, payload: null })}
         onSubmit={(details) => executeSave(wonModal.payload, details)}
         leadName={wonModal.payload?.companyName || 'this lead'}
+      />
+      <LostModal
+        open={lostModal.open}
+        onClose={() => setLostModal({ open: false, payload: null })}
+        onSubmit={(details) => executeSave(lostModal.payload, details)}
+        leadName={lostModal.payload?.companyName || 'this lead'}
       />
     </>
   );

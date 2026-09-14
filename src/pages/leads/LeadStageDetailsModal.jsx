@@ -42,7 +42,7 @@ export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead,
     'quotation', 'quotationAmount', 'proposalTimeline', 'amcIncluded', 'amcAmount',
     'currentPrice', 'clientCounterOffer', 'latestOffer', 'discountReason',
     'advancePaymentReceived',
-    'nextFollowUp', 'interestLevel'
+    'nextFollowUp', 'interestLevel', 'lostDate', 'lostReason'
   ];
 
   const extraFields = Object.keys(lead).filter(key =>
@@ -53,7 +53,7 @@ export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead,
     return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
   };
 
-  const TABS = ['Contacted', 'Demo Prep', 'Scheduled', 'Completed', 'Proposal', 'Negotiation', 'Won'];
+  const TABS = ['Contacted', 'Demo Prep', 'Scheduled', 'Completed', 'Proposal', 'Negotiation', 'Won', 'Lost'];
 
   const tabGroups = [
     // Contacted
@@ -69,7 +69,9 @@ export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead,
     // Negotiation
     ['currentPrice', 'clientCounterOffer', 'latestOffer', 'discountReason', 'nextFollowUp'],
     // Won
-    ['advancePaymentReceived']
+    ['advancePaymentReceived'],
+    // Lost
+    ['lostDate', 'lostReason']
   ];
 
   const uniqueStageKeys = [
@@ -79,7 +81,8 @@ export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead,
     ['attendedBy', 'meetingNotes', 'servicesDiscussed', 'interestedServices', 'quotationEstimate', 'negotiatedAmount'],
     ['quotation', 'quotationAmount', 'proposalTimeline', 'amcIncluded', 'amcAmount'],
     ['currentPrice', 'clientCounterOffer', 'latestOffer', 'discountReason'],
-    ['advancePaymentReceived']
+    ['advancePaymentReceived'],
+    ['lostDate', 'lostReason']
   ];
 
   const hasUniqueData = uniqueStageKeys[currentTab].some(key => extraFields.includes(key));
