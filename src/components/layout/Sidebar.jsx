@@ -269,20 +269,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
           )}
         </nav>
 
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-sm font-semibold uppercase">
-              {user?.displayName?.slice(0, 1) || 'D'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold">{user?.displayName || 'Guest'}</div>
-              <div className="mt-1 flex items-center gap-2">
-                <Badge tone="accent" className="bg-accent-500/20 text-accent-100">{roleLabel(user?.role)}</Badge>
-              </div>
-            </div>
-          </div>
-          <div className="mt-3 text-xs text-white/50">Signed in to DZ Infotech OS</div>
-        </div>
+
       </aside>
     </>
   );
