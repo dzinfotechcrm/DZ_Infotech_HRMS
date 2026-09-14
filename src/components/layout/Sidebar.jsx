@@ -109,14 +109,14 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-[260px] transform border-r border-primary-800/70 bg-primary-900 text-white transition-transform duration-300 flex flex-col lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static`}
       >
-        <div className="flex h-[105px] items-center justify-between border-b border-white/10 px-5">
+        <div className="flex h-[76px] items-center justify-between border-b border-white/10 px-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white p-1">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
               <img src="/DZ_Infotech_Logo.jpeg" alt="DZ Infotech" className="h-full w-full object-contain" />
             </div>
-            <div>
-              <div className="text-3xl font-black uppercase tracking-wider text-white leading-none">DZ</div>
-              <div className="text-xs font-bold uppercase tracking-[0.3em] text-white/70 mt-1">INFOTECH</div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-xl font-black uppercase tracking-wider text-white leading-none">DZ</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-white/80 leading-none">INFOTECH</span>
             </div>
           </div>
           <button className="rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden" onClick={onClose}>
