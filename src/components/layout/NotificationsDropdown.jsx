@@ -55,8 +55,14 @@ export default function NotificationsDropdown({ showAmc = false }) {
   };
 
   const visibleNotifications = notifications.filter(n => {
+    if (showAmc) {
+      // AMC Module: ONLY show amc_expiry notifications
+      return n.type === 'amc_expiry';
+    }
+
+    // General Topbar: Exclude amc_expiry notifications
     if (n.type === 'amc_expiry') {
-      return showAmc;
+      return false;
     }
 
     // Check if the notification is targeted to the current user

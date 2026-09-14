@@ -46,7 +46,7 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
           <LiveClock />
         </div>
 
-        {['employee', 'manager', 'intern'].includes(user?.role) && <NotificationsDropdown />}
+        {user && <NotificationsDropdown showAmc={false} />}
 
         <div className="relative" ref={menuRef}>
           <button onClick={() => setOpen((value) => !value)} className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-left shadow-sm">

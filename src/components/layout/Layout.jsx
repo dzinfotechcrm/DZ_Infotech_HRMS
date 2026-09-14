@@ -9,6 +9,7 @@ import { isAdminLike } from '../../utils/rbac';
 import { logout } from '../../supabase/auth';
 import toast from 'react-hot-toast';
 import { useAmcNotifier } from '../../hooks/useAmcNotifier';
+import { useLeadNotifier } from '../../hooks/useLeadNotifier';
 import InternBankDetailsPrompt from './InternBankDetailsPrompt';
 import ConfirmModal from '../ui/ConfirmModal';
 
@@ -40,6 +41,9 @@ export default function Layout() {
 
   // Initialize AMC Expiry Notifier
   useAmcNotifier();
+  
+  // Initialize Lead Follow-up Notifier
+  useLeadNotifier();
 
   async function handleLogout() {
     setConfirmLogout(false);
