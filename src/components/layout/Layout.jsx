@@ -35,6 +35,7 @@ function getTitle(pathname) {
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const { user } = useAuth();
   const location = useLocation();
@@ -53,7 +54,14 @@ export default function Layout() {
 
   return (
     <div className="page-shell flex h-screen w-full overflow-hidden">
-      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} user={user} isAdminLikeRole={isAdminLike(user?.role)} />
+      <Sidebar 
+        open={menuOpen} 
+        onClose={() => setMenuOpen(false)} 
+        user={user} 
+        isAdminLikeRole={isAdminLike(user?.role)} 
+        isCollapsed={isCollapsed}
+        onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+      />
       <div className="flex flex-1 flex-col h-screen min-w-0 overflow-hidden lg:ml-0">
         <Topbar
           title={getTitle(location.pathname)}

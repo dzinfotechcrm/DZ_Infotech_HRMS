@@ -29,7 +29,9 @@ import {
   DocumentChartBarIcon,
   ComputerDesktopIcon,
   MegaphoneIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -86,7 +88,7 @@ const agentPortalNavigation = [
   { to: '/my-commissions', label: 'My Commissions', icon: CurrencyRupeeIcon },
 ];
 
-export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
+export default function Sidebar({ open, onClose, user, isAdminLikeRole, isCollapsed, onToggleCollapse }) {
   const { items: employees } = useSupabaseCollection('employees');
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
 
@@ -107,28 +109,32 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
     <>
       {open && <div className="fixed inset-0 z-30 bg-neutral-950/50 lg:hidden" onClick={onClose} />}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[260px] transform border-r border-primary-800/70 bg-primary-900 text-white transition-transform duration-300 flex flex-col lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static`}
+        className={`fixed inset-y-0 left-0 z-40 transform border-r border-primary-800/70 bg-primary-900 text-white transition-all duration-300 flex flex-col lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static ${isCollapsed ? 'w-[80px]' : 'w-[260px]'}`}
       >
-        <div className="flex h-[76px] items-center justify-between border-b border-white/10 px-4">
+        <div className={`flex h-[76px] items-center border-b border-white/10 ${isCollapsed ? 'justify-center' : 'justify-between px-4'}`}>
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+            <div className={`flex items-center justify-center rounded-xl bg-white p-1 shadow-sm ${isCollapsed ? 'h-9 w-9' : 'h-11 w-11'}`}>
               <img src="/DZ_Infotech_Logo.jpeg" alt="DZ Infotech" className="h-full w-full object-contain" />
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-black uppercase tracking-wider text-white leading-none">DZ</span>
-              <span className="text-sm font-bold uppercase tracking-widest text-white/80 leading-none">INFOTECH</span>
-            </div>
+            {!isCollapsed && (
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-black uppercase tracking-wider text-white leading-none">DZ</span>
+                <span className="text-sm font-bold uppercase tracking-widest text-white/80 leading-none">INFOTECH</span>
+              </div>
+            )}
           </div>
-          <button className="rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden" onClick={onClose}>
-            <XMarkIcon className="h-5 w-5" />
-          </button>
+          {!isCollapsed && (
+            <button className="rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden" onClick={onClose}>
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
           {isAdminLikeRole && (
             <>
-              <div className="px-4 py-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase">
-                Revenue
+              <div className={`py-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase ${isCollapsed ? 'text-center px-1' : 'px-4'}`}>
+                {isCollapsed ? '...' : 'Revenue'}
               </div>
               {revenueNavigation.map((item) => {
                 const Icon = item.icon;
@@ -137,13 +143,14 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
                     key={item.to}
                     to={item.to}
                     onClick={onClose}
+                    title={isCollapsed ? item.label : ''}
                     className={({ isActive }) =>
-                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                      `relative flex items-center ${isCollapsed ? 'justify-center mx-2 px-0 py-3' : 'justify-between px-4 py-3'} gap-3 rounded-xl border-l-4 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
                     }
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5" />
-                      <span>{item.label}</span>
+                      {!isCollapsed && <span>{item.label}</span>}
                     </div>
                   </NavLink>
                 );
@@ -153,8 +160,8 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
 
           {!isAgent(user?.role) && (
             <>
-              <div className={`px-4 py-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase ${isAdminLikeRole ? 'mt-6 border-t border-white/10 pt-4' : ''}`}>
-                HRMS
+              <div className={`py-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase ${isCollapsed ? 'text-center px-1 mt-6 border-t border-white/10 pt-4' : 'px-4'} ${isAdminLikeRole && !isCollapsed ? 'mt-6 border-t border-white/10 pt-4' : ''}`}>
+                {isCollapsed ? '...' : 'HRMS'}
               </div>
               {hrmsNavigation.map((item) => {
                 if (item.adminOnly && !isAdminLikeRole) return null;
@@ -167,18 +174,23 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
                     key={item.to}
                     to={item.to}
                     onClick={onClose}
+                    title={isCollapsed ? item.label : ''}
                     className={({ isActive }) =>
-                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                      `relative flex items-center ${isCollapsed ? 'justify-center mx-2 px-0 py-3' : 'justify-between px-4 py-3'} gap-3 rounded-xl border-l-4 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
                     }
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5" />
-                      <span>{item.label}</span>
+                      {!isCollapsed && <span>{item.label}</span>}
                     </div>
                     {item.to === '/leave' && pendingCount > 0 && (
-                      <span className="flex h-5 items-center justify-center rounded-full bg-danger-500 px-2 text-xs font-bold text-white shadow-sm">
-                        {pendingCount}
-                      </span>
+                      isCollapsed ? (
+                        <span className="absolute top-2 right-2 flex h-2 w-2 rounded-full bg-danger-500"></span>
+                      ) : (
+                        <span className="flex h-5 items-center justify-center rounded-full bg-danger-500 px-2 text-xs font-bold text-white shadow-sm">
+                          {pendingCount}
+                        </span>
+                      )
                     )}
                   </NavLink>
                 );
@@ -188,8 +200,8 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
 
           {user?.role === 'admin' && (
             <>
-              <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
-                Company
+              <div className={`py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4 ${isCollapsed ? 'text-center px-1' : 'px-4'}`}>
+                {isCollapsed ? '...' : 'Company'}
               </div>
               {companyNavigation.map((item) => {
                 if (item.adminOnly && !isAdminLikeRole) return null;
@@ -200,52 +212,25 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
                     key={item.to}
                     to={item.to}
                     onClick={onClose}
+                    title={isCollapsed ? item.label : ''}
                     className={({ isActive }) =>
-                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                      `relative flex items-center ${isCollapsed ? 'justify-center mx-2 px-0 py-3' : 'justify-between px-4 py-3'} gap-3 rounded-xl border-l-4 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
                     }
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5" />
-                      <span>{item.label}</span>
+                      {!isCollapsed && <span>{item.label}</span>}
                     </div>
                   </NavLink>
                 );
               })}
             </>
           )}
-
-          {/*
-          {isAdminLikeRole && (
-            <>
-              <div className="px-4 py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4">
-                Field Sales
-              </div>
-              {fieldSalesNavigation.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={onClose}
-                    className={({ isActive }) =>
-                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
-                    }
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </div>
-                  </NavLink>
-                );
-              })}
-            </>
-          )}
-*/}
 
           {isAgent(user?.role) && (
             <>
-              <div className="px-4 py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase">
-                Agent Portal
+              <div className={`py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase ${isCollapsed ? 'text-center px-1' : 'px-4'}`}>
+                {isCollapsed ? '...' : 'Agent Portal'}
               </div>
               {agentPortalNavigation.map((item) => {
                 const Icon = item.icon;
@@ -254,13 +239,14 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
                     key={item.to}
                     to={item.to}
                     onClick={onClose}
+                    title={isCollapsed ? item.label : ''}
                     className={({ isActive }) =>
-                      `flex items-center justify-between gap-3 rounded-xl border-l-4 px-4 py-3 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                      `relative flex items-center ${isCollapsed ? 'justify-center mx-2 px-0 py-3' : 'justify-between px-4 py-3'} gap-3 rounded-xl border-l-4 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
                     }
                   >
                     <div className="flex items-center gap-3">
                       <Icon className="h-5 w-5" />
-                      <span>{item.label}</span>
+                      {!isCollapsed && <span>{item.label}</span>}
                     </div>
                   </NavLink>
                 );
@@ -269,6 +255,22 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole }) {
           )}
         </nav>
 
+        <div className="border-t border-white/10 p-2 hidden lg:block">
+          <button
+            onClick={onToggleCollapse}
+            className={`flex w-full items-center ${isCollapsed ? 'justify-center' : 'justify-start px-4'} gap-3 rounded-xl py-3 text-sm font-medium text-white/75 hover:bg-white/5 hover:text-white transition-colors`}
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isCollapsed ? (
+              <ChevronRightIcon className="h-5 w-5" />
+            ) : (
+              <>
+                <ChevronLeftIcon className="h-5 w-5" />
+                <span>Collapse Sidebar</span>
+              </>
+            )}
+          </button>
+        </div>
 
       </aside>
     </>
