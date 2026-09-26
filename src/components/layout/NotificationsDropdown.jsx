@@ -119,7 +119,7 @@ export default function NotificationsDropdown({ showAmc = false }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-xl border border-neutral-200 bg-white shadow-soft focus:outline-none z-50 overflow-hidden">
+        <div className="absolute -right-16 sm:right-0 mt-2 w-[300px] sm:w-80 rounded-xl border border-neutral-200 bg-white shadow-soft focus:outline-none z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-50/50 flex justify-between items-center">
             <h3 className="text-sm font-semibold text-neutral-900">Notifications</h3>
             {unreadCount > 0 && (
