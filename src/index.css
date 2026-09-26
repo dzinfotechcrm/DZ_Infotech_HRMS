@@ -51,7 +51,7 @@ body {
   }
 
   .page-title {
-    @apply text-2xl md:text-3xl font-bold tracking-tight text-neutral-900;
+    @apply text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-neutral-900;
   }
 
   .section-title {

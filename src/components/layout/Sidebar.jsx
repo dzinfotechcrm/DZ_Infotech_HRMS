@@ -198,14 +198,39 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole, isCollap
             </>
           )}
 
-          {user?.role === 'admin' && (
+          {/* {isAdminLikeRole && (
             <>
               <div className={`py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4 ${isCollapsed ? 'text-center px-1' : 'px-4'}`}>
-                {isCollapsed ? '...' : 'Company'}
+                {isCollapsed ? '...' : 'Field Sales'}
               </div>
-              {companyNavigation.map((item) => {
-                if (item.adminOnly && !isAdminLikeRole) return null;
-                if (item.hideForAdmin && isAdminLikeRole) return null;
+              {fieldSalesNavigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onClose}
+                    title={isCollapsed ? item.label : ''}
+                    className={({ isActive }) =>
+                      `relative flex items-center ${isCollapsed ? 'justify-center mx-2 px-0 py-3' : 'justify-between px-4 py-3'} gap-3 rounded-xl border-l-4 text-sm font-medium transition ${isActive ? 'border-accent-500 bg-primary-800 text-white' : 'border-transparent text-white/75 hover:bg-white/5 hover:text-white'}`
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="h-5 w-5" />
+                      {!isCollapsed && <span>{item.label}</span>}
+                    </div>
+                  </NavLink>
+                );
+              })}
+            </>
+          )} */}
+
+          {isAgent(user?.role) && (
+            <>
+              <div className={`py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase ${isCollapsed ? 'text-center px-1' : 'px-4'}`}>
+                {isCollapsed ? '...' : 'Agent Portal'}
+              </div>
+              {agentPortalNavigation.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink
@@ -227,12 +252,14 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole, isCollap
             </>
           )}
 
-          {isAgent(user?.role) && (
+          {user?.role === 'admin' && (
             <>
-              <div className={`py-2 mt-2 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase ${isCollapsed ? 'text-center px-1' : 'px-4'}`}>
-                {isCollapsed ? '...' : 'Agent Portal'}
+              <div className={`py-2 mt-6 mb-1 text-xs font-bold tracking-wider text-white/50 uppercase border-t border-white/10 pt-4 ${isCollapsed ? 'text-center px-1' : 'px-4'}`}>
+                {isCollapsed ? '...' : 'Company'}
               </div>
-              {agentPortalNavigation.map((item) => {
+              {companyNavigation.map((item) => {
+                if (item.adminOnly && !isAdminLikeRole) return null;
+                if (item.hideForAdmin && isAdminLikeRole) return null;
                 const Icon = item.icon;
                 return (
                   <NavLink

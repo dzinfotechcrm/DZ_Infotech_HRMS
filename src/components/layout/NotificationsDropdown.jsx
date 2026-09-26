@@ -105,7 +105,7 @@ export default function NotificationsDropdown({ showAmc = false }) {
   };
 
   return (
-    <div className="relative mr-2" ref={menuRef}>
+    <div className="relative mr-2 flex-shrink-0" ref={menuRef}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="relative flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors shadow-sm"

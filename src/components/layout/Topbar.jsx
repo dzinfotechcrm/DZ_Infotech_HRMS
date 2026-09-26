@@ -36,19 +36,19 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 h-[76px] border-b border-neutral-200 bg-white/95 backdrop-blur">
-      <div className="flex h-full items-center gap-4 px-4 md:px-6 lg:px-8">
-        <button className="rounded-xl border border-neutral-200 p-2 text-neutral-700 lg:hidden" onClick={onMenuClick}>
+    <header className="sticky top-0 z-20 min-h-[76px] border-b border-neutral-200 bg-white/95 backdrop-blur">
+      <div className="flex min-h-[76px] items-center gap-3 px-4 py-3 md:gap-4 md:px-6 lg:px-8">
+        <button className="rounded-xl border border-neutral-200 p-2 text-neutral-700 lg:hidden flex-shrink-0" onClick={onMenuClick}>
           <UserCircleIcon className="h-5 w-5" />
         </button>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="page-title">{title}</div>
           <LiveClock />
         </div>
 
         {user && <NotificationsDropdown showAmc={false} />}
 
-        <div className="relative" ref={menuRef}>
+        <div className="relative flex-shrink-0" ref={menuRef}>
           <button onClick={() => setOpen((value) => !value)} className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-left shadow-sm">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
               {user?.displayName?.slice(0, 1) || 'D'}
@@ -59,30 +59,30 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
             </div>
           </button>
           {open && (
-              <div className="absolute right-0 mt-2 w-52 rounded-xl border border-neutral-200 bg-white p-2 shadow-soft focus:outline-none">
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    navigate('/profile');
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-neutral-100"
-                >
-                  <UserCircleIcon className="h-4 w-4" />
-                  Profile
-                </button>
-                <button
-                  onClick={() => {
-                    setOpen(false);
-                    onLogout();
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger-600 hover:bg-danger-100"
-                >
-                  <ArrowRightOnRectangleIcon className="h-4 w-4" />
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
+            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-neutral-200 bg-white p-2 shadow-soft focus:outline-none">
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  navigate('/profile');
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-neutral-100"
+              >
+                <UserCircleIcon className="h-4 w-4" />
+                Profile
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onLogout();
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger-600 hover:bg-danger-100"
+              >
+                <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
