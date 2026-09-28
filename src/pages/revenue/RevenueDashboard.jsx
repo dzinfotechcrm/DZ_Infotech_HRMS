@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import PageHeader from '../../components/ui/PageHeader';
+import { getISOWeek, getISOWeekYear, isSameWeek } from 'date-fns';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
 import { 
@@ -98,6 +99,16 @@ export default function RevenueDashboard() {
       return a.dateObj - b.dateObj;
     });
 
+    // Current Week Lead Data
+    const currentWeekKey = `${getISOWeekYear(new Date())}-W${getISOWeek(new Date())}`;
+    const storedTargets = JSON.parse(localStorage.getItem('companyLeadTargets') || '{}');
+    const currentWeekTarget = storedTargets[currentWeekKey] || 0;
+
+    const currentWeekLeads = leads.filter(l => {
+      if (!l.created_at) return false;
+      return isSameWeek(new Date(l.created_at), new Date(), { weekStartsOn: 1 });
+    }).length;
+
     return {
       totalLeads,
       totalClients: clients.length,
@@ -110,7 +121,9 @@ export default function RevenueDashboard() {
       leadStatusData,
       expenseData,
       trendData,
-      netProfit: collectedRevenue - totalExpenses
+      netProfit: collectedRevenue - totalExpenses,
+      currentWeekTarget,
+      currentWeekLeads
     };
   }, [leads, clients, projects, expenses, amcs, loading]);
 
@@ -181,7 +194,19 @@ export default function RevenueDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-6">
+        <Card className="p-4 border-l-4 border-indigo-500 flex justify-between items-center">
+          <div>
+            <p className="text-xs font-bold text-neutral-500 uppercase">This Week Target</p>
+            <p className="text-xl font-black text-neutral-900 mt-1">{analytics.currentWeekTarget}</p>
+          </div>
+        </Card>
+        <Card className="p-4 border-l-4 border-rose-500 flex justify-between items-center">
+          <div>
+            <p className="text-xs font-bold text-neutral-500 uppercase">This Week Leads</p>
+            <p className="text-xl font-black text-neutral-900 mt-1">{analytics.currentWeekLeads}</p>
+          </div>
+        </Card>
         <Card className="p-4 border-l-4 border-accent-500 flex justify-between items-center">
           <div>
             <p className="text-xs font-bold text-neutral-500 uppercase">Total Leads</p>

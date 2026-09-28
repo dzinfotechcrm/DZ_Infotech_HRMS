@@ -12,6 +12,7 @@ import { useAmcNotifier } from '../../hooks/useAmcNotifier';
 import { useLeadNotifier } from '../../hooks/useLeadNotifier';
 import InternBankDetailsPrompt from './InternBankDetailsPrompt';
 import ConfirmModal from '../ui/ConfirmModal';
+import WeeklyTargetPrompt from './WeeklyTargetPrompt';
 
 const titleMap = [
   ['/dashboard', 'Dashboard'],
@@ -74,6 +75,7 @@ export default function Layout() {
         </main>
       </div>
       <InternBankDetailsPrompt user={user} />
+      <WeeklyTargetPrompt user={user} />
       <ConfirmModal
         open={confirmLogout}
         title="Confirm Logout"
