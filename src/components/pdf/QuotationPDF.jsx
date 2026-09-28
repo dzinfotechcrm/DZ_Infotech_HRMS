@@ -505,23 +505,19 @@ export const QuotationPDF = ({ data }) => {
             <View style={{ ...styles.tableColHeader, width: '30%' }}><Text style={styles.tableCellHeaderWhite}>% of Total</Text></View>
           </View>
           <View style={styles.tableRow}>
-            <View style={{ ...styles.tableCol, width: '70%' }}><Text style={styles.tableCell}>Advance — on project confirmation</Text></View>
-            <View style={{ ...styles.tableCol, width: '30%' }}><Text style={styles.tableCell}>30%</Text></View>
+            <View style={{ ...styles.tableCol, width: '70%' }}><Text style={styles.tableCell}>Advance — Before project starts</Text></View>
+            <View style={{ ...styles.tableCol, width: '30%' }}><Text style={styles.tableCell}>50%</Text></View>
           </View>
           <View style={styles.tableRow}>
-            <View style={{ ...styles.tableCol, width: '70%' }}><Text style={styles.tableCell}>Core modules completed</Text></View>
-            <View style={{ ...styles.tableCol, width: '30%' }}><Text style={styles.tableCell}>30%</Text></View>
-          </View>
-          <View style={styles.tableRow}>
-            <View style={{ ...styles.tableCol, width: '70%' }}><Text style={styles.tableCell}>UAT deployment</Text></View>
-            <View style={{ ...styles.tableCol, width: '30%' }}><Text style={styles.tableCell}>25%</Text></View>
-          </View>
-          <View style={styles.tableRow}>
-            <View style={{ ...styles.tableCol, width: '70%' }}><Text style={styles.tableCell}>Production go-live</Text></View>
-            <View style={{ ...styles.tableCol, width: '30%' }}><Text style={styles.tableCell}>15%</Text></View>
+            <View style={{ ...styles.tableCol, width: '70%' }}><Text style={styles.tableCell}>Final Payment — After project completion</Text></View>
+            <View style={{ ...styles.tableCol, width: '30%' }}><Text style={styles.tableCell}>50%</Text></View>
           </View>
         </View>
         <Text style={styles.textItalic}>Production deployment, source-code handover, and final documentation will be completed after receipt of all outstanding project payments.</Text>
+
+        <Text style={styles.subTitle}>Cancellation & Refund Policy</Text>
+        <Bullet>If the client cancels the project after the delivery of the first prototype, 20% of the advance amount will be refunded.</Bullet>
+        <Bullet>If the project is cancelled by the client at any other stage or for any other reason, no refund will be provided from the advance amount.</Bullet>
 
         <SectionHeader number="05" title="Support & Maintenance" pageBreak={true} />
         <Text style={styles.text}>Post-implementation support is provided for 6 months from the go-live date.</Text>
@@ -610,7 +606,7 @@ export const QuotationPDF = ({ data }) => {
         <Text style={styles.subTitle}>Data Security & Backup</Text>
         <Text style={styles.text}>The system will implement role-based access control and appropriate application-level security measures. Database backups will be configured according to the agreed hosting architecture. Backup retention, disaster recovery, and infrastructure-level security will depend on the selected hosting environment.</Text>
 
-        <Text style={styles.subTitle}>Client Responsibilities</Text>
+        <Text style={styles.subTitle} break>Client Responsibilities</Text>
         <Text style={styles.text}>{clientName || '[Client Company Name]'} shall provide accurate business process information, master data (item, vendor, customer, and employee masters, BOMs, process/routing information, opening stock, salary structures), required approvals, authorized users, timely feedback, and necessary access to relevant personnel for requirement validation and UAT.</Text>
 
         <Text style={styles.subTitle}>Dependencies & Assumptions</Text>
