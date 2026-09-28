@@ -48,8 +48,8 @@ export default function UpcomingClientEvents({ clients = [] }) {
   const event = upcoming[currentIndex];
 
   return (
-    <Card className="p-5 min-w-0 overflow-hidden flex flex-col justify-between flex-1" style={{ minHeight: '240px' }}>
-      <div className="mb-4 flex items-center justify-between shrink-0">
+    <Card className="p-4 min-w-0 overflow-hidden flex flex-col justify-between flex-1" style={{ minHeight: '200px' }}>
+      <div className="mb-3 flex items-center justify-between shrink-0">
         <div>
           <h2 className="section-title">This Month's Anniversaries</h2>
           <p className="muted-text">Client Anniversaries</p>
@@ -69,12 +69,12 @@ export default function UpcomingClientEvents({ clients = [] }) {
             </button>
             
             <div className="flex flex-col items-center text-center px-4">
-              <div className="flex h-16 w-16 mb-3 shrink-0 items-center justify-center overflow-hidden rounded-full bg-purple-100 text-purple-700">
-                <SparklesIcon className="h-8 w-8" />
+              <div className="flex h-12 w-12 mb-2 shrink-0 items-center justify-center overflow-hidden rounded-full bg-purple-100 text-purple-700">
+                <SparklesIcon className="h-6 w-6" />
               </div>
-              <div className="text-lg font-semibold text-neutral-900">{event.nameDisplay}</div>
-              <div className="text-sm text-neutral-500 mb-2">{event.clientId}</div>
-              <div className="text-sm font-semibold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
+              <div className="text-base font-semibold text-neutral-900">{event.nameDisplay}</div>
+              <div className="text-sm text-neutral-500 mb-1">{event.clientId}</div>
+              <div className="text-xs font-semibold text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded-full">
                 {event.daysUntil === 0 ? 'Today! 🎉' : event.daysUntil === 1 ? 'Tomorrow' : event.daysUntil < 0 ? 'Passed' : `In ${event.daysUntil} days`}
                 {' • '}
                 {formatDate(event.nextEvent, 'dd MMM')}

@@ -61,8 +61,8 @@ export default function UpcomingBirthdays({ employees = [], interns = [] }) {
   const person = upcoming[currentIndex];
 
   return (
-    <Card className="p-5 min-w-0 overflow-hidden flex flex-col justify-between flex-1" style={{ minHeight: '240px' }}>
-      <div className="mb-4 flex items-center justify-between">
+    <Card className="p-4 min-w-0 overflow-hidden flex flex-col justify-between flex-1" style={{ minHeight: '200px' }}>
+      <div className="mb-3 flex items-center justify-between">
         <div>
           <h2 className="section-title">This Month's Birthdays</h2>
           <p className="muted-text">Employee birthdays</p>
@@ -82,16 +82,16 @@ export default function UpcomingBirthdays({ employees = [], interns = [] }) {
             </button>
             
             <div className="flex flex-col items-center text-center px-4">
-              <div className="flex h-16 w-16 mb-3 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-100 text-xl font-bold text-primary-700">
+              <div className="flex h-12 w-12 mb-2 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-100 text-lg font-bold text-primary-700">
                 {person.photoURL ? (
                   <img src={person.photoURL} alt={person.nameDisplay} className="h-full w-full object-cover" />
                 ) : (
                   `${person.nameDisplay.split(' ')[0]?.[0] || ''}${person.nameDisplay.split(' ')[1]?.[0] || ''}`
                 )}
               </div>
-              <div className="text-lg font-semibold text-neutral-900">{person.nameDisplay}</div>
-              <div className="text-sm text-neutral-500 capitalize mb-2">{person.type}</div>
-              <div className="text-sm font-semibold text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+              <div className="text-base font-semibold text-neutral-900">{person.nameDisplay}</div>
+              <div className="text-sm text-neutral-500 capitalize mb-1">{person.type}</div>
+              <div className="text-xs font-semibold text-primary-600 bg-primary-50 px-2.5 py-0.5 rounded-full">
                 {person.daysUntil === 0 ? 'Today! 🎉' : person.daysUntil === 1 ? 'Tomorrow' : person.daysUntil < 0 ? 'Passed' : `In ${person.daysUntil} days`}
                 {' • '}
                 {formatDate(person.nextBirthday, 'dd MMM')}
