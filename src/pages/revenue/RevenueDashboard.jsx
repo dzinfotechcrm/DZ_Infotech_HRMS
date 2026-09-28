@@ -312,14 +312,14 @@ export default function RevenueDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Lead Status Distribution */}
+        {/* Lead Source Distribution */}
         <Card className="p-6">
-          <h3 className="text-lg font-bold text-neutral-900 mb-6">Lead Status Distribution</h3>
+          <h3 className="text-lg font-bold text-neutral-900 mb-6">Lead Source</h3>
           <div className="h-[340px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={analytics.leadStatusData}
+                  data={analytics.leadSourceData}
                   cx="50%"
                   cy="45%"
                   innerRadius={70}
@@ -327,8 +327,8 @@ export default function RevenueDashboard() {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {analytics.leadStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {analytics.leadSourceData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
                   ))}
                 </Pie>
                 <RechartsTooltip
@@ -372,9 +372,9 @@ export default function RevenueDashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Monthly Lead Conversion */}
-        <Card className="p-6 h-full flex flex-col">
-          <h3 className="text-lg font-bold text-neutral-900 mb-6 shrink-0">Monthly Lead Conversion</h3>
-          <div className="space-y-6 flex-1 flex flex-col justify-center">
+        <Card className="p-6">
+          <h3 className="text-lg font-bold text-neutral-900 mb-6">Monthly Lead Conversion</h3>
+          <div className="space-y-6">
             {analytics.conversionData.map(data => (
               <div key={data.month} className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
@@ -391,34 +391,6 @@ export default function RevenueDashboard() {
                 </div>
               </div>
             ))}
-          </div>
-        </Card>
-
-        {/* Lead Source Distribution */}
-        <Card className="p-6 h-full flex flex-col">
-          <h3 className="text-lg font-bold text-neutral-900 mb-6 shrink-0">Lead Source</h3>
-          <div className="min-h-[320px] w-full flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={analytics.leadSourceData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {analytics.leadSourceData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
-                  ))}
-                </Pie>
-                <RechartsTooltip
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Legend iconType="circle" verticalAlign="bottom" wrapperStyle={{ paddingTop: '10px' }} />
-              </PieChart>
-            </ResponsiveContainer>
           </div>
         </Card>
       </div>
