@@ -293,15 +293,15 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-6 xl:grid-cols-12">
         {user?.role === 'admin' && (
-          <div className="flex flex-col gap-6 min-w-0">
+          <div className="flex flex-col gap-6 min-w-0 xl:col-span-3">
             <UpcomingBirthdays employees={employees} interns={interns} />
             <UpcomingClientEvents clients={clients} />
           </div>
         )}
         
-        <Card className="p-5 min-w-0 overflow-hidden">
+        <Card className="p-5 min-w-0 overflow-hidden xl:col-span-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="section-title">Recent Leave Requests</h2>
@@ -328,7 +328,7 @@ export default function AdminDashboard() {
           />
         </Card>
 
-        <Card className="p-5 min-w-0 overflow-hidden">
+        <Card className="p-5 min-w-0 overflow-hidden xl:col-span-3">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="section-title">Recent Activity</h2>
