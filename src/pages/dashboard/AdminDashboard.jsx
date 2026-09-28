@@ -18,6 +18,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { formatDate } from '../../utils/dateHelpers';
 import UpcomingBirthdays from '../../components/dashboard/UpcomingBirthdays';
+import UpcomingClientEvents from '../../components/dashboard/UpcomingClientEvents';
 import MissingCheckoutWarning from '../../components/dashboard/MissingCheckoutWarning';
 
 function StatCard({ title, value, icon: Icon, tone = 'primary', subtitle, onClick, className = '' }) {
@@ -59,6 +60,7 @@ export default function AdminDashboard() {
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests', leaveQuery);
   const { items: departments } = useSupabaseCollection('departments', departmentQuery);
   const { items: expenses } = useSupabaseCollection('expenses', expensesQuery);
+  const { items: clients } = useSupabaseCollection('clients');
 
   const getEmpName = (id) => {
     let emp = employees.find((e) => e.uid === id || e.id === id);
@@ -293,7 +295,10 @@ export default function AdminDashboard() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         {user?.role === 'admin' && (
-          <UpcomingBirthdays employees={employees} interns={interns} />
+          <div className="flex flex-col gap-6 min-w-0">
+            <UpcomingBirthdays employees={employees} interns={interns} />
+            <UpcomingClientEvents clients={clients} />
+          </div>
         )}
         
         <Card className="p-5 min-w-0 overflow-hidden">

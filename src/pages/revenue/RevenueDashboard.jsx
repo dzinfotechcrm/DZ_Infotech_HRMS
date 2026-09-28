@@ -14,7 +14,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis,
   CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import UpcomingClientEvents from '../../components/dashboard/UpcomingClientEvents';
+
 
 const COLORS = ['#8b5cf6', '#0ea5e9', '#f59e0b', '#10b981', '#f43f5e', '#64748b', '#ec4899', '#14b8a6'];
 
@@ -305,10 +305,28 @@ export default function RevenueDashboard() {
           </div>
         </Card>
 
-        {/* Upcoming Client Events */}
-        <div className="lg:col-span-1 h-full flex flex-col">
-          <UpcomingClientEvents clients={clients} />
-        </div>
+        {/* Monthly Lead Conversion */}
+        <Card className="p-6 lg:col-span-1 h-full flex flex-col justify-center">
+          <h3 className="text-lg font-bold text-neutral-900 mb-6 shrink-0">Monthly Lead Conversion</h3>
+          <div className="space-y-6 flex-1 flex flex-col justify-center">
+            {analytics.conversionData.map(data => (
+              <div key={data.month} className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-neutral-900">{data.month}</p>
+                  <p className="text-sm font-bold text-primary-600">{data.rate}%</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary-500 rounded-full transition-all duration-500" style={{ width: `${data.rate}%` }}></div>
+                  </div>
+                  <span className="text-xs text-neutral-500 whitespace-nowrap min-w-[80px] text-right">
+                    {data.converted} / {data.total} Leads
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -370,30 +388,7 @@ export default function RevenueDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Monthly Lead Conversion */}
-        <Card className="p-6">
-          <h3 className="text-lg font-bold text-neutral-900 mb-6">Monthly Lead Conversion</h3>
-          <div className="space-y-6">
-            {analytics.conversionData.map(data => (
-              <div key={data.month} className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-neutral-900">{data.month}</p>
-                  <p className="text-sm font-bold text-primary-600">{data.rate}%</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary-500 rounded-full transition-all duration-500" style={{ width: `${data.rate}%` }}></div>
-                  </div>
-                  <span className="text-xs text-neutral-500 whitespace-nowrap min-w-[80px] text-right">
-                    {data.converted} / {data.total} Leads
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+
     </div>
   );
 }

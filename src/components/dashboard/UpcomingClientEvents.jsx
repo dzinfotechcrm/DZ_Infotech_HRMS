@@ -48,7 +48,7 @@ export default function UpcomingClientEvents({ clients = [] }) {
   const event = upcoming[currentIndex];
 
   return (
-    <Card className="p-5 min-w-0 overflow-hidden flex flex-col justify-between h-full" style={{ minHeight: '220px' }}>
+    <Card className="p-5 min-w-0 overflow-hidden flex flex-col justify-between flex-1" style={{ minHeight: '240px' }}>
       <div className="mb-4 flex items-center justify-between shrink-0">
         <div>
           <h2 className="section-title">This Month's Anniversaries</h2>
