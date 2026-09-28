@@ -4,15 +4,15 @@ import PageHeader from '../../components/ui/PageHeader';
 import { getISOWeek, getISOWeekYear, isSameWeek } from 'date-fns';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
-import { 
-  CurrencyRupeeIcon, 
+import {
+  CurrencyRupeeIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   FolderIcon
 } from '@heroicons/react/24/outline';
-import { 
-  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, 
-  CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer 
+import {
+  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis,
+  CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import UpcomingClientEvents from '../../components/dashboard/UpcomingClientEvents';
 
@@ -70,7 +70,7 @@ export default function RevenueDashboard() {
 
     // Monthly Revenue vs Expense Trend
     const monthlyDataMap = {};
-    
+
     const getMonthYear = (dateStr) => {
       if (!dateStr) return null;
       const d = new Date(dateStr);
@@ -85,7 +85,7 @@ export default function RevenueDashboard() {
         monthlyDataMap[monthYear].Revenue += parseFloat(p.advanceReceived) || 0;
       }
     });
-    
+
     expenses.forEach(e => {
       const monthYear = getMonthYear(e.date || e.created_at);
       if (monthYear && parseFloat(e.amount)) {
@@ -93,7 +93,7 @@ export default function RevenueDashboard() {
         monthlyDataMap[monthYear].Expense += parseFloat(e.amount) || 0;
       }
     });
-    
+
     // Sort monthly data chronologically
     const trendData = Object.values(monthlyDataMap).sort((a, b) => {
       return a.dateObj - b.dateObj;
@@ -109,6 +109,48 @@ export default function RevenueDashboard() {
       return isSameWeek(new Date(l.created_at), new Date(), { weekStartsOn: 1 });
     }).length;
 
+    // Monthly Conversion Data
+    const getMonthData = (monthsAgo) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - monthsAgo);
+      const targetMonth = date.getMonth();
+      const targetYear = date.getFullYear();
+
+      const monthLeads = leads.filter(l => {
+        if (!l.created_at) return false;
+        const d = new Date(l.created_at);
+        return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+      });
+
+      const total = monthLeads.length;
+      const converted = monthLeads.filter(l => l.stage === 'Won').length;
+      const rate = total > 0 ? Math.round((converted / total) * 100) : 0;
+      
+      return {
+        month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        total,
+        converted,
+        rate
+      };
+    };
+
+    const conversionData = [
+      getMonthData(0), // Current Month
+      getMonthData(1), // 1 Month Ago
+      getMonthData(2)  // 2 Months Ago
+    ];
+
+    // Lead Source Data
+    const leadsBySource = leads.reduce((acc, lead) => {
+      const source = lead.leadSource || 'Other';
+      acc[source] = (acc[source] || 0) + 1;
+      return acc;
+    }, {});
+    const leadSourceData = Object.keys(leadsBySource).map(source => ({
+      name: source,
+      value: leadsBySource[source]
+    }));
+
     return {
       totalLeads,
       totalClients: clients.length,
@@ -123,7 +165,9 @@ export default function RevenueDashboard() {
       trendData,
       netProfit: collectedRevenue - totalExpenses,
       currentWeekTarget,
-      currentWeekLeads
+      currentWeekLeads,
+      conversionData,
+      leadSourceData
     };
   }, [leads, clients, projects, expenses, amcs, loading]);
 
@@ -156,7 +200,7 @@ export default function RevenueDashboard() {
             </div>
           </div>
         </Card>
-        
+
         <Card className="p-6 border border-danger-100 bg-gradient-to-br from-danger-50 to-white hover:shadow-md transition-shadow">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-danger-100 text-danger-600">
@@ -180,7 +224,7 @@ export default function RevenueDashboard() {
             </div>
           </div>
         </Card>
-        
+
         <Card className="p-6 border border-warning-100 bg-gradient-to-br from-warning-50 to-white hover:shadow-md transition-shadow">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning-100 text-warning-600">
@@ -235,20 +279,21 @@ export default function RevenueDashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Trend Chart */}
-        <Card className="p-6 lg:col-span-3">
-          <h3 className="text-lg font-bold text-neutral-900 mb-6">Revenue vs Expense Trend</h3>
-          <div className="h-[400px] w-full">
+        {/* Trend Chart */}
+        <Card className="p-6 lg:col-span-2 flex flex-col h-full">
+          <h3 className="text-lg font-bold text-neutral-900 mb-6 shrink-0">Revenue vs Expense Trend</h3>
+          <div className="flex-1 w-full min-h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analytics.trendData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
                   tick={{ fontSize: 12, fill: '#737373' }}
-                  tickFormatter={(val) => `₹${(val/1000).toFixed(0)}k`}
+                  tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`}
                 />
-                <RechartsTooltip 
+                <RechartsTooltip
                   formatter={(value) => formatCurrency(value)}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
@@ -260,18 +305,25 @@ export default function RevenueDashboard() {
           </div>
         </Card>
 
+        {/* Upcoming Client Events */}
+        <div className="lg:col-span-1 h-full flex flex-col">
+          <UpcomingClientEvents clients={clients} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Lead Status Distribution */}
         <Card className="p-6">
           <h3 className="text-lg font-bold text-neutral-900 mb-6">Lead Status Distribution</h3>
-          <div className="h-80 w-full">
+          <div className="h-[340px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={analytics.leadStatusData}
                   cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={120}
+                  cy="45%"
+                  innerRadius={70}
+                  outerRadius={100}
                   paddingAngle={5}
                   dataKey="value"
                 >
@@ -279,10 +331,10 @@ export default function RevenueDashboard() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <RechartsTooltip 
+                <RechartsTooltip
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
-                <Legend iconType="circle" />
+                <Legend iconType="circle" verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -291,15 +343,15 @@ export default function RevenueDashboard() {
         {/* Expense Category Distribution */}
         <Card className="p-6">
           <h3 className="text-lg font-bold text-neutral-900 mb-6">Expenses by Category</h3>
-          <div className="h-80 w-full">
+          <div className="h-[340px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={analytics.expenseData}
                   cx="50%"
-                  cy="50%"
+                  cy="45%"
                   innerRadius={0}
-                  outerRadius={120}
+                  outerRadius={85}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 >
@@ -307,17 +359,68 @@ export default function RevenueDashboard() {
                     <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
                   ))}
                 </Pie>
-                <RechartsTooltip 
+                <RechartsTooltip
                   formatter={(value) => formatCurrency(value)}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
+                <Legend iconType="circle" verticalAlign="bottom" wrapperStyle={{ paddingTop: '20px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </Card>
+      </div>
 
-        {/* Upcoming Client Events */}
-        <UpcomingClientEvents clients={clients} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Monthly Lead Conversion */}
+        <Card className="p-6 h-full flex flex-col">
+          <h3 className="text-lg font-bold text-neutral-900 mb-6 shrink-0">Monthly Lead Conversion</h3>
+          <div className="space-y-6 flex-1 flex flex-col justify-center">
+            {analytics.conversionData.map(data => (
+              <div key={data.month} className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-neutral-900">{data.month}</p>
+                  <p className="text-sm font-bold text-primary-600">{data.rate}%</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary-500 rounded-full transition-all duration-500" style={{ width: `${data.rate}%` }}></div>
+                  </div>
+                  <span className="text-xs text-neutral-500 whitespace-nowrap min-w-[80px] text-right">
+                    {data.converted} / {data.total} Leads
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Lead Source Distribution */}
+        <Card className="p-6 h-full flex flex-col">
+          <h3 className="text-lg font-bold text-neutral-900 mb-6 shrink-0">Lead Source</h3>
+          <div className="min-h-[320px] w-full flex-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={analytics.leadSourceData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {analytics.leadSourceData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Legend iconType="circle" verticalAlign="bottom" wrapperStyle={{ paddingTop: '10px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
       </div>
     </div>
   );
