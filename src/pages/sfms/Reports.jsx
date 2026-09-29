@@ -239,9 +239,9 @@ export default function Reports() {
             <PlusIcon className="h-4 w-4 mr-2" /> Submit Daily Report
           </Button>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto">
           <table className="w-full text-left text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-white">
               <tr className="bg-neutral-50/50 text-neutral-500 border-b border-neutral-100">
                 <th className="px-6 py-3 font-medium">DATE</th>
                 <th className="px-6 py-3 font-medium">TEAM</th>
@@ -280,9 +280,9 @@ export default function Reports() {
         <div className="px-6 py-4 border-b border-neutral-100">
           <h3 className="text-lg font-bold text-neutral-900">Team Performance Overview</h3>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto">
           <table className="w-full text-left text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-white">
               <tr className="bg-neutral-50/50 text-neutral-500 border-b border-neutral-100">
                 <th className="px-6 py-3 font-medium">TEAM</th>
                 <th className="px-6 py-3 font-medium text-center">LEADS ASSIGNED</th>

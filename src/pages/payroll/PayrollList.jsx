@@ -586,9 +586,9 @@ function EmployeePayrollView({ user, payroll, activeEmployees, onOpenPayslip }) 
       <div className="mt-8">
         <h3 className="text-lg font-bold text-neutral-900 mb-4">Salary History</h3>
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="overflow-auto">
             <table className="min-w-full divide-y divide-neutral-200 text-sm">
-              <thead className="bg-neutral-50">
+              <thead className="sticky top-0 z-10 bg-neutral-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-widest text-neutral-400">Month / Year</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-widest text-neutral-400">Basic Salary</th>
@@ -1070,9 +1070,9 @@ export default function PayrollList() {
 
       {/* ── Payroll Table ──────────────────────────────────────────────────── */}
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto">
           <table className="min-w-full divide-y divide-neutral-200 text-sm">
-            <thead className="bg-neutral-50">
+            <thead className="sticky top-0 z-10 bg-neutral-50">
               <tr>
                 {adminView && (
                   <th className="w-10 px-4 py-3">

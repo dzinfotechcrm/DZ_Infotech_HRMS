@@ -148,9 +148,9 @@ export default function ClientsList() {
         <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50/50">
           <h2 className="text-sm font-semibold text-neutral-900">All clients</h2>
         </div>
-        <div className="overflow-x-auto flex-1">
+        <div className="overflow-auto flex-1">
           <table className="w-full text-left border-collapse">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-neutral-200 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-white">
                 <th className="px-6 py-4 font-semibold">Client</th>
                 <th className="px-6 py-4 font-semibold">Industry</th>

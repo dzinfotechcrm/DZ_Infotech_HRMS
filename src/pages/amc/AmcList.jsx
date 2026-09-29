@@ -175,9 +175,9 @@ export default function AmcList() {
         <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50/50 flex justify-between items-center">
           <h2 className="text-sm font-semibold text-neutral-900">Contracts</h2>
         </div>
-        <div className="overflow-x-auto flex-1">
+        <div className="overflow-auto flex-1">
           <table className="min-w-full text-left text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-neutral-200 bg-white text-xs uppercase tracking-wider text-neutral-500">
                 <th className="px-6 py-4 font-semibold">Client</th>
                 <th className="px-6 py-4 font-semibold">Project</th>

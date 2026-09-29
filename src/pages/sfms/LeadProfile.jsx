@@ -277,7 +277,7 @@ export default function LeadProfile({ isAgent = false }) {
 
       {/* Pipeline Stepper */}
       <Card className="p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 overflow-x-auto pb-2">
+        <div className="flex flex-wrap items-center justify-between gap-4 overflow-auto pb-2">
           {STAGES.map((stage, idx) => {
             const isCompleted = STAGES.indexOf(lead.stage) >= idx;
             const isCurrent = lead.stage === stage;

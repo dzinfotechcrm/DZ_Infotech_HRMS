@@ -276,7 +276,7 @@ export default function SfmsLeadsBoard({
 
       {/* Kanban Board vs List View */}
       {viewMode === 'kanban' ? (
-        <div className="flex-1 overflow-x-auto pb-4 min-h-[500px]">
+        <div className="flex-1 overflow-auto pb-4 min-h-[500px]">
           <div className="flex gap-4 min-w-max h-full items-start">
             {STAGES.map((stage) => {
               const stageLeads = filteredLeads.filter(l => l.stage === stage);
@@ -363,9 +363,9 @@ export default function SfmsLeadsBoard({
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col mb-4 min-h-[500px]">
-          <div className="overflow-x-auto flex-1">
+          <div className="overflow-auto flex-1">
             <table className="w-full text-left border-collapse">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-white">
                 <tr className="border-b border-neutral-200 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-white">
                   <th className="px-6 py-4 font-semibold">Lead</th>
                   <th className="px-6 py-4 font-semibold">Contact</th>

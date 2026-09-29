@@ -96,9 +96,9 @@ export default function Finance() {
 
       {viewMode === 'table' ? (
         <Card className="p-0 overflow-hidden shadow-sm border border-neutral-200">
-          <div className="overflow-x-auto">
+          <div className="overflow-auto">
             <table className="min-w-full divide-y divide-neutral-200 whitespace-nowrap text-sm">
-              <thead className="bg-primary-900 text-white">
+              <thead className="sticky top-0 z-10 bg-primary-900 text-white">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold">Client Name</th>
                   <th className="px-4 py-3 text-left font-semibold">Project Name</th>

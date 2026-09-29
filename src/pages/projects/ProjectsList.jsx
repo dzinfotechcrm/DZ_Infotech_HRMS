@@ -222,7 +222,7 @@ export default function ProjectsList() {
         <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50/50 flex justify-between items-center">
           <h2 className="text-sm font-semibold text-neutral-900">All projects</h2>
         </div>
-        <div className="overflow-x-auto flex-1 p-6 space-y-6">
+        <div className="overflow-auto flex-1 p-6 space-y-6">
           {projects.length === 0 ? (
             <div className="text-center py-12 text-neutral-500">
               No projects found. Start by creating a new one!

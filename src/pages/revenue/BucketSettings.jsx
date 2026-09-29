@@ -230,9 +230,9 @@ export default function BucketSettings() {
             <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-white">
               <h2 className="section-title text-neutral-800">Current Buckets</h2>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-auto">
               <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50/50">
+                <thead className="sticky top-0 z-10 bg-neutral-50/50">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider">Bucket Name</th>
                     <th className="px-6 py-4 text-right text-xs font-semibold text-neutral-500 uppercase tracking-wider">Target Amount</th>

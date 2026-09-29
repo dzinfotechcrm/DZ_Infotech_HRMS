@@ -238,9 +238,9 @@ export default function Agents() {
       </div>
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto">
           <table className="w-full text-left text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-neutral-100 bg-neutral-50/50 text-neutral-500">
                 <th className="px-4 py-3 font-medium">AGENT</th>
                 <th className="px-4 py-3 font-medium">TEAM</th>

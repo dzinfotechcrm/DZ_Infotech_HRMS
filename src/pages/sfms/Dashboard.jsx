@@ -316,9 +316,9 @@ export default function Dashboard() {
         
         <Card className="p-5 lg:col-span-2">
           <h3 className="text-lg font-bold text-neutral-900 mb-4">Latest Leads</h3>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto">
             <table className="w-full text-left text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-white">
                 <tr className="border-b border-neutral-100 text-neutral-500">
                   <th className="pb-3 font-medium">Company</th>
                   <th className="pb-3 font-medium">Team</th>

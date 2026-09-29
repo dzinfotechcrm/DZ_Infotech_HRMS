@@ -358,9 +358,9 @@ Best regards,
               No saved quotations found. Create a new quotation to see it here.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto">
               <table className="w-full text-sm text-left">
-                <thead className="text-xs text-neutral-500 uppercase bg-neutral-50 border-b">
+                <thead className="sticky top-0 z-10 text-xs text-neutral-500 uppercase bg-neutral-50 border-b">
                   <tr>
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Quotation No.</th>

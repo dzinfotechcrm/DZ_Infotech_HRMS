@@ -22,6 +22,7 @@ import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { isAdminLike } from '../../utils/rbac';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import PageHeader from '../../components/ui/PageHeader';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
@@ -1827,9 +1828,9 @@ export default function EmployeeList() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
+            <div className="overflow-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="bg-slate-50">
+                <thead className="sticky top-0 z-10 bg-slate-50">
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold text-slate-900">Employee</th>
                     <th className="px-6 py-4 text-left font-semibold text-slate-900">Contact</th>
@@ -1927,14 +1928,13 @@ export default function EmployeeList() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-[2rem] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6 text-slate-50 shadow-2xl">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-sky-300/80">Employee Management</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Directory and access control</h1>
-            <p className="mt-2 text-sm text-slate-300/80">Search, filter, and manage employee records in real time.</p>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+      <PageHeader
+        eyebrow="HRMS"
+        title="Employee Management"
+        description="Search, filter, and manage employee records in real time."
+        className="mb-8"
+        actions={
+          <>
             {isAdminLike(user?.role) && (
               <Button
                 variant="secondary"
@@ -1957,9 +1957,9 @@ export default function EmployeeList() {
                 </Button>
               </div>
             )}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex space-x-1 rounded-xl bg-slate-100 p-1 w-full max-w-md mb-6">

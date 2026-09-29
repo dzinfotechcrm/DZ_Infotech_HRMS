@@ -241,9 +241,9 @@ export default function Expense() {
 
 
       <Card className="p-0 overflow-hidden shadow-sm border border-neutral-200">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto">
           <table className="min-w-full divide-y divide-neutral-200 whitespace-nowrap text-sm">
-            <thead className="bg-white border-b border-neutral-200 text-neutral-700">
+            <thead className="sticky top-0 z-10 bg-white border-b border-neutral-200 text-neutral-700">
               <tr>
                 <th className="px-6 py-4 text-left font-semibold">Date</th>
                 <th className="px-6 py-4 text-left font-semibold">Category</th>

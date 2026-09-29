@@ -39,9 +39,9 @@ export default function ActiveLicenses() {
       />
 
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto">
           <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
+            <thead className="sticky top-0 z-10 bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Software Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Provider/Vendor</th>

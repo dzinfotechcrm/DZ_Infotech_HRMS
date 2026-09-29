@@ -336,7 +336,7 @@ export default function AdminDashboard() {
             </div>
             <ArrowTrendingUpIcon className="h-5 w-5 text-primary-600" />
           </div>
-          <div className="space-y-3 overflow-x-auto pb-2">
+          <div className="space-y-3 overflow-auto pb-2">
             {recentActivity.map((activity, index) => (
               <div key={`${activity.label}-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 min-w-max md:min-w-0">
                 <div className="text-sm font-semibold text-neutral-900">{activity.label}</div>

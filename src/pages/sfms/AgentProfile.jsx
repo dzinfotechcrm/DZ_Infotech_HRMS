@@ -159,9 +159,9 @@ export default function AgentProfile() {
               <h3 className="text-lg font-bold text-neutral-900">Recent Leads (Team)</h3>
               <Button variant="outline" size="sm" onClick={() => navigate('/sfms/leads')}>View All</Button>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-auto">
               <table className="w-full text-left text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-white">
                   <tr className="bg-neutral-50/50 text-neutral-500 border-b border-neutral-100">
                     <th className="px-6 py-3 font-medium">COMPANY</th>
                     <th className="px-6 py-3 font-medium">STAGE</th>
@@ -196,9 +196,9 @@ export default function AgentProfile() {
               <h3 className="text-lg font-bold text-neutral-900">Commission History</h3>
               <Button variant="outline" size="sm" onClick={() => navigate('/sfms/commissions')}>View All</Button>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-auto">
               <table className="w-full text-left text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-white">
                   <tr className="bg-neutral-50/50 text-neutral-500 border-b border-neutral-100">
                     <th className="px-6 py-3 font-medium">DATE</th>
                     <th className="px-6 py-3 font-medium">TYPE</th>
