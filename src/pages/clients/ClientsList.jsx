@@ -21,6 +21,7 @@ export default function ClientsList() {
   const { items: clients, refetch } = useSupabaseCollection('clients');
   const { items: employees } = useSupabaseCollection('employees');
   const { items: projects } = useSupabaseCollection('projects');
+  const { items: amcs } = useSupabaseCollection('amcs');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
@@ -35,6 +36,18 @@ export default function ClientsList() {
     try {
       if (selectedClient) {
         await updateDocument('clients', selectedClient.id, formData);
+        
+        // Auto-drop 'In Progress' projects if client becomes 'Inactive'
+        if (formData.status === 'Inactive' && selectedClient.status !== 'Inactive') {
+          const activeProjects = projects.filter(p => p.clientId === selectedClient.id && p.projectStatus === 'In Progress');
+          for (const proj of activeProjects) {
+            await updateDocument('projects', proj.id, { projectStatus: 'Dropped' });
+          }
+          if (activeProjects.length > 0) {
+            toast.success(`Dropped ${activeProjects.length} in-progress project(s)`);
+          }
+        }
+        
         toast.success('Client updated successfully');
       } else {
         await createDocument('clients', formData);
@@ -72,9 +85,12 @@ export default function ClientsList() {
     return `₹${val}`;
   };
 
-  // Mock data for AMC and Docs since it's not in schema
-  const onAmcCount = Math.floor(totalClients * 0.52);
-  const docsCount = totalClients * 7;
+  // Real data for AMC and Docs
+  const activeAmcs = amcs.filter(a => a.status === 'Active' || a.status === 'At Risk' || a.status === 'Renewed');
+  const uniqueClientsOnAmc = new Set(activeAmcs.map(a => a.clientId)).size;
+  const onAmcCount = uniqueClientsOnAmc;
+  
+  const docsCount = projects.reduce((acc, p) => acc + (p.files ? Object.keys(p.files).length : 0), 0);
 
   return (
     <div className="flex flex-col h-full bg-transparent text-neutral-900 min-h-[calc(100vh-64px)]">

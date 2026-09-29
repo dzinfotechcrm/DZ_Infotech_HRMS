@@ -104,6 +104,7 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
     description: '',
     totalValue: '',
     advanceReceived: '',
+    projectStatus: 'In Progress',
     files: {} // Store URLs for Requirements, Quotations, Designs, Source Files
   });
 
@@ -126,6 +127,7 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
         description: '',
         totalValue: '',
         advanceReceived: '',
+        projectStatus: 'In Progress',
         files: {}
       });
     }
@@ -255,6 +257,16 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
               error={errors.status}
             >
               {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
+            <Select
+              label="Project Status *"
+              name="projectStatus"
+              value={formData.projectStatus}
+              onChange={handleChange}
+            >
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Dropped">Dropped</option>
             </Select>
             <Input
               label="Start Date"

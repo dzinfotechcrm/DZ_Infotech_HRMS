@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
@@ -28,6 +28,25 @@ export default function ProjectsList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+
+  // Self-heal projects with inactive clients
+  const hasHealed = useRef(false);
+  useEffect(() => {
+    if (clients.length > 0 && projects.length > 0 && !hasHealed.current) {
+      hasHealed.current = true;
+      let healedCount = 0;
+      projects.forEach(p => {
+        const c = clients.find(cl => cl.id === p.clientId);
+        if (c?.status === 'Inactive' && (!p.projectStatus || p.projectStatus === 'In Progress')) {
+          updateDocument('projects', p.id, { projectStatus: 'Dropped' });
+          healedCount++;
+        }
+      });
+      if (healedCount > 0) {
+        toast.success(`Auto-dropped ${healedCount} project(s) belonging to inactive clients.`);
+      }
+    }
+  }, [clients, projects]);
 
   const handleOpenModal = (project = null) => {
     setSelectedProject(project);
@@ -108,7 +127,11 @@ export default function ProjectsList() {
   };
 
   // KPIs calculations
-  const activeProjects = projects.filter(p => p.status !== 'Completed');
+  const activeProjects = projects.filter(p => 
+    p.status !== 'Completed' && 
+    p.projectStatus !== 'Completed' && 
+    p.projectStatus !== 'Dropped'
+  );
   const activeCount = activeProjects.length;
 
   // Define "On Track" as not past deadline (simplified)
@@ -119,7 +142,10 @@ export default function ProjectsList() {
   const atRiskCount = activeProjects.filter(p => p.deadline && p.deadline < today).length;
 
   // Calculate Average Cycle Time based on Completed projects
-  const completedProjects = projects.filter(p => p.status === 'Completed' && p.startDate && p.deadline);
+  const completedProjects = projects.filter(p => 
+    (p.status === 'Completed' || p.projectStatus === 'Completed') && 
+    p.startDate && p.deadline
+  );
   let totalDays = 0;
   completedProjects.forEach(p => {
     const start = new Date(p.startDate);
@@ -218,11 +244,7 @@ export default function ProjectsList() {
       </div>
 
       {/* Projects List */}
-      <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-        <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50/50 flex justify-between items-center">
-          <h2 className="text-sm font-semibold text-neutral-900">All projects</h2>
-        </div>
-        <div className="overflow-auto flex-1 p-6 space-y-6">
+      <div className="flex-1 space-y-4 pb-6">
           {projects.length === 0 ? (
             <div className="text-center py-12 text-neutral-500">
               No projects found. Start by creating a new one!
@@ -271,6 +293,9 @@ export default function ProjectsList() {
                       </div>
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${currentTheme.badgeBg} ${currentTheme.badgeText} ${currentTheme.badgeBorder}`}>
                         {project.status}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${(project.projectStatus || 'In Progress') === 'Completed' ? 'bg-emerald-100 text-emerald-800' : (project.projectStatus || 'In Progress') === 'Dropped' ? 'bg-rose-100 text-rose-800' : 'bg-blue-100 text-blue-800'}`}>
+                        {project.projectStatus || 'In Progress'}
                       </span>
                       <button
                         onClick={(e) => handleDelete(e, project.id)}
@@ -329,7 +354,7 @@ export default function ProjectsList() {
               );
             })
           )}
-        </div>
+        {/* End of projects map */}
       </div>
 
       <ProjectFormModal
