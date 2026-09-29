@@ -198,6 +198,10 @@ export default function LeadFormModal({ lead, leads = [], employees, open, onClo
     delete payload.departmentId;
     delete payload.firstName;
     delete payload.lastName;
+    
+    // Prevent "invalid input syntax for type date: ''" error
+    if (payload.lostDate === '') payload.lostDate = null;
+    if (payload.nextFollowUp === '') payload.nextFollowUp = null;
 
     if (lead && lead.stage !== formData.stage) {
       setConfirmStageChange({ open: true, payload });

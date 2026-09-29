@@ -200,7 +200,8 @@ export default function LeadsPipeline() {
         owner: lead.assignedTo || '',
         status: initialStatus,
         since: new Date().toISOString().split('T')[0],
-        notes: `Converted from lead ${lead.leadId || ''}`
+        notes: `Converted from lead ${lead.leadId || ''}`,
+        source: 'Lead Conversion'
       };
 
       await createDocument('clients', clientData);

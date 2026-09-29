@@ -29,7 +29,9 @@ export default function LostModal({ open, onClose, onSubmit, leadName }) {
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-slate-900">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Lost Reason *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Lost Reason <span className="text-danger-600 ml-1">*</span>
+          </label>
           <textarea
             required
             rows="4"

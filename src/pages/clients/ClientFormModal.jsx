@@ -20,6 +20,7 @@ const INITIAL_STATE = {
   email: '',
   address: '',
   industry: '',
+  source: 'Direct',
   projects: 0,
   ltv: 0,
   owner: '',
@@ -124,6 +125,10 @@ export default function ClientFormModal({ client, clients = [], employees, open,
             <Input label="Contact Person *" error={errors.contactPerson} value={formData.contactPerson} onChange={(e) => handleChange('contactPerson', e.target.value)} />
             <Input label="Phone" error={errors.phone} value={formData.phone} onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
             <Input label="Email" type="email" error={errors.email} value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
+            <Select label="Source" value={formData.source || 'Direct'} onChange={(e) => handleChange('source', e.target.value)}>
+              <option value="Direct">Direct</option>
+              <option value="Lead Conversion">Lead Conversion</option>
+            </Select>
             <Input label="Industry" value={formData.industry} onChange={(e) => handleChange('industry', e.target.value)} />
             <Input label="Birthday" type="date" value={formData.birthday || ''} onChange={(e) => handleChange('birthday', e.target.value)} />
             <Input label="Anniversary" type="date" value={formData.anniversary || ''} onChange={(e) => handleChange('anniversary', e.target.value)} />

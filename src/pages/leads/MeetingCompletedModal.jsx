@@ -3,6 +3,7 @@ import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Button from '../../components/ui/Button';
+import { toast } from 'react-hot-toast';
 
 const SERVICES_LIST = [
   'Static Website', 'Dynamic Website', 'Ecommerce Website',
@@ -48,7 +49,7 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.interestedServices || formData.interestedServices.length === 0) {
-      alert("Please select at least one interested service.");
+      toast.error("Please select at least one interested service.");
       return;
     }
     onSubmit({
@@ -75,7 +76,9 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
         />
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Meeting Notes *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Meeting Notes <span className="text-danger-600 ml-1">*</span>
+          </label>
           <textarea
             required
             rows="3"
@@ -87,7 +90,9 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Services Discussed *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Services Discussed <span className="text-danger-600 ml-1">*</span>
+          </label>
           <textarea
             required
             rows="2"
@@ -99,7 +104,9 @@ export default function MeetingCompletedModal({ open, onClose, onSubmit, leadNam
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">Interested Services *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Interested Services <span className="text-danger-600 ml-1">*</span>
+          </label>
           <div className="flex flex-wrap gap-2">
             {SERVICES_LIST.map(service => {
               const currentServices = Array.isArray(formData.interestedServices) ? formData.interestedServices : [];

@@ -154,6 +154,7 @@ export default function ClientsList() {
               <tr className="border-b border-neutral-200 text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-white">
                 <th className="px-6 py-4 font-semibold">Client</th>
                 <th className="px-6 py-4 font-semibold">Industry</th>
+                <th className="px-6 py-4 font-semibold">Source</th>
                 <th className="px-6 py-4 font-semibold text-center">Projects</th>
                 <th className="px-6 py-4 font-semibold">LTV</th>
                 <th className="px-6 py-4 font-semibold">Since</th>
@@ -165,7 +166,7 @@ export default function ClientsList() {
             <tbody className="divide-y divide-neutral-100">
               {clients.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-neutral-500">
+                  <td colSpan="9" className="px-6 py-12 text-center text-neutral-500">
                     No clients found. Add your first client to get started.
                   </td>
                 </tr>
@@ -185,6 +186,9 @@ export default function ClientsList() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
                         {client.industry || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
+                        {client.source || 'Direct'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900 font-medium text-center">
                         {projects.filter(p => p.clientId === client.id).length}

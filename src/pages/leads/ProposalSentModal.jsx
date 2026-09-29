@@ -56,7 +56,9 @@ export default function ProposalSentModal({ open, onClose, onSubmit, leadName })
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 text-slate-900">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Quotation (Details/Link) *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Quotation (Details/Link) <span className="text-danger-600 ml-1">*</span>
+          </label>
           <textarea
             required
             rows="2"
