@@ -108,11 +108,11 @@ export default function NotificationsDropdown({ showAmc = false }) {
     <div className="relative mr-2 flex-shrink-0" ref={menuRef}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 transition-colors shadow-sm"
+        className="relative flex h-10 w-10 items-center justify-center text-neutral-500 hover:text-neutral-900 transition-colors"
       >
-        <BellIcon className="h-5 w-5" />
+        <BellIcon className="h-6 w-6" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+          <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}

@@ -36,27 +36,23 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 min-h-[76px] border-b border-neutral-200 bg-white/95 backdrop-blur">
-      <div className="flex min-h-[76px] items-center gap-3 px-4 py-3 md:gap-4 md:px-6 lg:px-8">
+    <header className="sticky top-0 z-20 h-14 border-b border-neutral-200 bg-white/95 backdrop-blur">
+      <div className="flex h-14 items-center gap-3 px-4 md:gap-4 md:px-6 lg:px-8">
         <button className="rounded-xl border border-neutral-200 p-2 text-neutral-700 lg:hidden flex-shrink-0" onClick={onMenuClick}>
           <UserCircleIcon className="h-5 w-5" />
         </button>
-        <div className="flex-1 min-w-0">
-          <div className="page-title">{title}</div>
-          <LiveClock />
-        </div>
+        
+        {/* Empty flex-1 to push right items */}
+        <div className="flex-1 min-w-0"></div>
 
         {user && <NotificationsDropdown showAmc={false} />}
 
-        <div className="relative flex-shrink-0" ref={menuRef}>
-          <button onClick={() => setOpen((value) => !value)} className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-left shadow-sm">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
-              {user?.displayName?.slice(0, 1) || 'D'}
-            </div>
-            <div className="hidden sm:block">
-              <div className="text-sm font-semibold text-neutral-900">{user?.displayName || 'Guest'}</div>
-              <div className="text-xs text-neutral-500">{user?.role || 'role'}</div>
-            </div>
+        <div className="relative flex-shrink-0 flex items-center" ref={menuRef}>
+          <button 
+            onClick={() => setOpen((value) => !value)} 
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700 hover:ring-2 hover:ring-primary-500 hover:ring-offset-1 transition-all"
+          >
+            {user?.displayName?.slice(0, 1) || 'D'}
           </button>
           {open && (
             <div className="absolute right-0 mt-2 w-52 rounded-xl border border-neutral-200 bg-white p-2 shadow-soft focus:outline-none">
