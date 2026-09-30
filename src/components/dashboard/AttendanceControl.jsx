@@ -226,61 +226,57 @@ export default function AttendanceControl({ user }) {
 
   return (
     <>
-      <Card className="p-5 mb-6 border border-primary-100 bg-primary-50/50">
-        <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
-          <div className="flex flex-wrap gap-3 items-center justify-center sm:justify-end">
-            {isOnLeaveToday && (
-              <span className="text-sm font-semibold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
-                On Approved Leave
-              </span>
-            )}
-            {!hasCheckedIn ? (
-              <Button disabled={isOnLeaveToday} onClick={() => setCheckInModalOpen(true)} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
-                <PlayIcon className="h-5 w-5" />
-                Check In
-              </Button>
-            ) : !hasCheckedOut ? (
-              <>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className={`px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm ${isOnBreak ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                    <span className={`w-2 h-2 rounded-full ${(!isOnBreak && !hasCheckedOut) ? 'animate-pulse' : ''} ${isOnBreak ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                    {isOnBreak ? `On Break since ${activeBreak.in}` : `Checked In at ${todayRecord.data?.checkIn || todayRecord.checkIn}`}
-                  </div>
-                  <div className="px-4 py-2 rounded-xl font-mono font-bold bg-slate-800 text-white flex items-center justify-center text-sm">
-                    {formatDuration(workingSeconds)}
-                  </div>
-                </div>
-                
-                {isOnBreak ? (
-                  <Button disabled={isOnLeaveToday || loading} onClick={handleBreakOut} className="gap-2 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50">
-                    <StopIcon className="h-5 w-5" />
-                    Break Out
-                  </Button>
-                ) : (
-                  <Button disabled={isOnLeaveToday || loading} onClick={handleBreakIn} className="gap-2 bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50">
-                    <PlayIcon className="h-5 w-5" />
-                    Break In
-                  </Button>
-                )}
-
-                <Button disabled={isOnLeaveToday || isOnBreak} onClick={() => setCheckOutModalOpen(true)} className="gap-2 bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 disabled:cursor-not-allowed">
-                  <StopIcon className="h-5 w-5" />
-                  Check Out
-                </Button>
-              </>
-            ) : (
-              <div className="flex gap-2 flex-col sm:flex-row">
-                <div className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-semibold text-sm flex items-center justify-center">
-                  Checked out at {todayRecord.data?.checkOut || todayRecord.checkOut}
-                </div>
-                <div className="px-4 py-2 rounded-xl font-mono font-bold bg-slate-800 text-white flex items-center justify-center text-sm">
-                  {formatDuration(workingSeconds)}
-                </div>
+      <div className="flex items-center gap-2">
+        {isOnLeaveToday && (
+          <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+            On Leave
+          </span>
+        )}
+        {!hasCheckedIn ? (
+          <Button disabled={isOnLeaveToday} onClick={() => setCheckInModalOpen(true)} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 !px-2.5 !py-1.5 !text-xs">
+            <PlayIcon className="h-4 w-4" />
+            Check In
+          </Button>
+        ) : !hasCheckedOut ? (
+          <>
+            <div className="flex items-center gap-1.5">
+              <div className={`px-2 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 text-xs ${isOnBreak ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${(!isOnBreak && !hasCheckedOut) ? 'animate-pulse' : ''} ${isOnBreak ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                {isOnBreak ? `Break` : `${todayRecord.data?.checkIn || todayRecord.checkIn}`}
               </div>
+              <div className="px-2 py-1.5 rounded-lg font-mono font-bold bg-slate-800 text-white flex items-center justify-center text-xs">
+                {formatDuration(workingSeconds)}
+              </div>
+            </div>
+            
+            {isOnBreak ? (
+              <Button disabled={isOnLeaveToday || loading} onClick={handleBreakOut} className="gap-1 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50 !px-2.5 !py-1.5 !text-xs">
+                <StopIcon className="h-4 w-4" />
+                Resume
+              </Button>
+            ) : (
+              <Button disabled={isOnLeaveToday || loading} onClick={handleBreakIn} className="gap-1 bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 !px-2.5 !py-1.5 !text-xs">
+                <PlayIcon className="h-4 w-4" />
+                Break
+              </Button>
             )}
+
+            <Button disabled={isOnLeaveToday || isOnBreak} onClick={() => setCheckOutModalOpen(true)} className="gap-1 bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 !px-2.5 !py-1.5 !text-xs">
+              <StopIcon className="h-4 w-4" />
+              Check Out
+            </Button>
+          </>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <div className="px-2 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-semibold text-xs flex items-center justify-center">
+              Out: {todayRecord.data?.checkOut || todayRecord.checkOut}
+            </div>
+            <div className="px-2 py-1.5 rounded-lg font-mono font-bold bg-slate-800 text-white flex items-center justify-center text-xs">
+              {formatDuration(workingSeconds)}
+            </div>
           </div>
-        </div>
-      </Card>
+        )}
+      </div>
 
       <Modal open={checkInModalOpen} onClose={() => setCheckInModalOpen(false)} title="Confirm Check In">
         <p className="text-slate-600 text-sm">Are you sure you want to check in for today?</p>

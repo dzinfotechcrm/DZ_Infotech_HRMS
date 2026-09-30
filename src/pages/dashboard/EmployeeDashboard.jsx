@@ -67,7 +67,6 @@ export default function EmployeeDashboard() {
   return (
     <div className="space-y-6">
       <MissingCheckoutWarning user={user} />
-      <AttendanceControl user={user} />
 
       {currentIntern && (
         <InternDocumentsCard intern={currentIntern} onUpdate={refetchInterns} />
