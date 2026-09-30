@@ -67,6 +67,11 @@ export default function EmployeeDashboard() {
   return (
     <div className="space-y-6">
       <MissingCheckoutWarning user={user} />
+      <div className="block sm:hidden">
+        <Card className="p-4 border border-primary-100 bg-primary-50/50 flex justify-center">
+          <AttendanceControl user={user} />
+        </Card>
+      </div>
 
       {currentIntern && (
         <InternDocumentsCard intern={currentIntern} onUpdate={refetchInterns} />
