@@ -43,19 +43,22 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
           <UserCircleIcon className="h-5 w-5" />
         </button>
         
-        {/* Hello Text & Spacer */}
-        <div className="flex-1 min-w-0 flex items-center gap-4">
+        {/* Hello Text */}
+        <div className="flex-1 min-w-0 flex items-center">
           {user && (
             <span className="text-sm font-semibold text-slate-700 hidden sm:block">
               Hello, {user?.displayName?.split(' ')[0] || 'User'}
             </span>
           )}
-          {user && !isAdminLike(user) && (
-            <div className="hidden lg:block">
-              <AttendanceControl user={user} />
-            </div>
-          )}
         </div>
+
+        {/* Centered Attendance Control */}
+        {user && !isAdminLike(user) && (
+          <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 top-0 h-14 items-center">
+            <AttendanceControl user={user} />
+          </div>
+        )}
+
         {user && <NotificationsDropdown showAmc={false} />}
 
         <div className="relative flex-shrink-0 flex items-center" ref={menuRef}>
