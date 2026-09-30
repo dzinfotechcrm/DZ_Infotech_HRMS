@@ -11,7 +11,8 @@ import toast from 'react-hot-toast';
 import { CheckIcon } from '@heroicons/react/24/outline';
 
 export default function LeaveBalances() {
-  const { items: employees } = useSupabaseCollection('employees', useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []));
+  const { items: allEmployees } = useSupabaseCollection('employees', useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []));
+  const employees = allEmployees.filter(emp => emp.role !== 'admin');
   const { items: interns } = useSupabaseCollection('interns', useMemo(() => (base) => query(base, orderBy('created_at', 'desc')), []));
   const { items: departments } = useSupabaseCollection('departments');
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests');

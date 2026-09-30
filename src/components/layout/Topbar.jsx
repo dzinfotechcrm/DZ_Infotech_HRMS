@@ -42,8 +42,14 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
           <UserCircleIcon className="h-5 w-5" />
         </button>
         
-        {/* Empty flex-1 to push right items */}
-        <div className="flex-1 min-w-0"></div>
+        {/* Hello Text & Spacer */}
+        <div className="flex-1 min-w-0 flex items-center">
+          {user && (
+            <span className="text-sm font-semibold text-slate-700 hidden sm:block">
+              Hello, {user?.displayName?.split(' ')[0] || 'User'}
+            </span>
+          )}
+        </div>
 
         {user && <NotificationsDropdown showAmc={false} />}
 
@@ -55,7 +61,7 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
             {user?.displayName?.slice(0, 1) || 'D'}
           </button>
           {open && (
-            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-neutral-200 bg-white p-2 shadow-soft focus:outline-none">
+            <div className="absolute right-0 top-full mt-2 w-52 rounded-xl border border-neutral-200 bg-white p-2 shadow-soft focus:outline-none z-50">
               <button
                 onClick={() => {
                   setOpen(false);

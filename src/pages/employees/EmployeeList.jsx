@@ -2104,7 +2104,7 @@ export default function EmployeeList() {
         employee={enrichedEmployees.find(e => e.id === selectedEmployee?.id) || selectedEmployee}
         departments={allDepartments}
         managers={managers}
-        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean)}
+        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean).concat(interns.map(i => (i.email || '').toLowerCase()).filter(Boolean))}
         existingPhones={employees.map(e => e.phone).filter(Boolean)}
         existingEmployeeIds={employees.map(e => e.employeeId).filter(Boolean)}
         open={editModalOpen}
@@ -2117,7 +2117,7 @@ export default function EmployeeList() {
       <AddEmployeeModal
         departments={allDepartments}
         managers={managers}
-        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean)}
+        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean).concat(interns.map(i => (i.email || '').toLowerCase()).filter(Boolean))}
         existingPhones={employees.map(e => e.phone).filter(Boolean)}
         existingEmployeeIds={employees.map(e => e.employeeId).filter(Boolean)}
         open={addModalOpen}
@@ -2145,7 +2145,7 @@ export default function EmployeeList() {
       <AddInternModal
         departments={allDepartments}
         managers={managers}
-        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean).concat(interns.map(i => i.email))}
+        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean).concat(interns.map(i => (i.email || '').toLowerCase()).filter(Boolean))}
         open={addInternModalOpen}
         onClose={() => setAddInternModalOpen(false)}
         onSave={handleAddIntern}
@@ -2154,7 +2154,7 @@ export default function EmployeeList() {
         intern={groupedEmployees.interns.find(i => i.id === selectedIntern?.id) || selectedIntern}
         departments={allDepartments}
         managers={managers}
-        existingEmails={interns.map(i => (i.email || '').toLowerCase()).filter(Boolean)}
+        existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean).concat(interns.map(i => (i.email || '').toLowerCase()).filter(Boolean))}
         open={editInternModalOpen}
         onClose={() => {
           setEditInternModalOpen(false);

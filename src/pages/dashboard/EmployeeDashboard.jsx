@@ -66,18 +66,6 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-r from-primary-900 via-primary-800 to-accent-600 p-6 text-white shadow-soft">
-        <div className="max-w-3xl">
-          <div className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
-            EMPLOYEE DASHBOARD
-          </div>
-          <h1 className="mt-4 text-3xl font-bold md:text-4xl">Hello, {user?.displayName?.split(' ')[0] || 'Employee'}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">
-            Welcome to your personal portal. Review your attendance, track leave requests, and manage your daily activities.
-          </p>
-        </div>
-      </div>
-
       <MissingCheckoutWarning user={user} />
       <AttendanceControl user={user} />
 

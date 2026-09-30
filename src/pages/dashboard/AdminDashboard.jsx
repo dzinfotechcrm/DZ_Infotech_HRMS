@@ -164,15 +164,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl bg-gradient-to-r from-primary-900 via-primary-800 to-accent-600 p-6 text-white shadow-soft">
-        <div className="max-w-3xl">
-          <div className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
-            ADMIN DASHBOARD
-          </div>
-          <h1 className="mt-4 text-3xl font-bold md:text-4xl">Welcome back, {user?.displayName?.split(' ')[0] || 'Admin'}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">
-            Live workforce snapshot, attendance trend, department headcount, and approval queue driven directly from Firestore.
-          </p>
+      <div className="mb-2">
+        <div className="inline-flex rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary-700">
+          ADMIN DASHBOARD
         </div>
       </div>
 
@@ -245,63 +239,17 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="p-5">
-          <div className="mb-4">
-            <h2 className="section-title">Expenses by Category</h2>
-            <p className="muted-text">Distribution of expenses</p>
-          </div>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={expenseCategoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={60}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {expenseCategoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Legend iconType="circle" iconSize={10} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
 
-        <Card className="p-5">
-          <div className="mb-4">
-            <h2 className="section-title">Expense Trend</h2>
-            <p className="muted-text">Daily expenses</p>
-          </div>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={expenseTimeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={(val) => formatCurrency(val)} />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </div>
+
+      {user?.role === 'admin' && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <UpcomingBirthdays employees={employees} interns={interns} />
+          <UpcomingClientEvents clients={clients} />
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-12">
-        {user?.role === 'admin' && (
-          <div className="flex flex-col gap-6 min-w-0 xl:col-span-3">
-            <UpcomingBirthdays employees={employees} interns={interns} />
-            <UpcomingClientEvents clients={clients} />
-          </div>
-        )}
-        
-        <Card className="p-5 min-w-0 overflow-hidden xl:col-span-6">
+        <Card className="p-5 min-w-0 overflow-hidden xl:col-span-8">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="section-title">Recent Leave Requests</h2>
@@ -328,7 +276,7 @@ export default function AdminDashboard() {
           />
         </Card>
 
-        <Card className="p-5 min-w-0 overflow-hidden xl:col-span-3">
+        <Card className="p-5 min-w-0 overflow-hidden xl:col-span-4">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="section-title">Recent Activity</h2>

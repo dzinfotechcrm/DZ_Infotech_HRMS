@@ -227,11 +227,7 @@ export default function AttendanceControl({ user }) {
   return (
     <>
       <Card className="p-5 mb-6 border border-primary-100 bg-primary-50/50">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-center sm:text-left">
-            <h2 className="text-lg font-bold text-slate-900">Attendance Control</h2>
-            <p className="text-sm text-slate-500">Record your working hours for {formatDate(new Date(), 'dd MMM yyyy')}</p>
-          </div>
+        <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
           <div className="flex flex-wrap gap-3 items-center justify-center sm:justify-end">
             {isOnLeaveToday && (
               <span className="text-sm font-semibold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
