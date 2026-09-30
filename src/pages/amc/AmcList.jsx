@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import PageHeader from '../../components/ui/PageHeader';
 import { PlusIcon, ShieldCheckIcon, CurrencyRupeeIcon, ArrowPathIcon, ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import AmcFormModal from './AmcFormModal';
@@ -21,6 +22,7 @@ export default function AmcList() {
   const [selectedAmc, setSelectedAmc] = useState(null);
 
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleOpenModal = (amc = null) => {
     setSelectedAmc(amc);
@@ -62,7 +64,19 @@ export default function AmcList() {
   };
 
   // KPIs
-  const activeAmcs = amcs.filter(a => a.status === 'Active' || a.status === 'At Risk');
+  const filteredAmcs = amcs.filter(a => {
+    const client = clients.find(c => c.id === a.clientId);
+    const project = projects.find(p => p.id === a.projectId);
+    const q = searchQuery.toLowerCase();
+    return (
+      client?.companyName?.toLowerCase().includes(q) ||
+      project?.name?.toLowerCase().includes(q) ||
+      a.status?.toLowerCase().includes(q) ||
+      a.renewalDate?.toLowerCase().includes(q)
+    );
+  });
+
+  const activeAmcs = filteredAmcs.filter(a => a.status === 'Active' || a.status === 'At Risk');
   const activeCount = activeAmcs.length;
 
   const totalValue = activeAmcs.reduce((sum, a) => sum + (parseFloat(a.annualValue) || 0), 0);
@@ -80,7 +94,7 @@ export default function AmcList() {
   const renewals60Count = renewalsNext60.length;
   const renewals60Value = renewalsNext60.reduce((sum, a) => sum + (parseFloat(a.annualValue) || 0), 0);
 
-  const atRiskCount = amcs.filter(a => a.status === 'At Risk').length;
+  const atRiskCount = filteredAmcs.filter(a => a.status === 'At Risk').length;
 
   const formatCurrencyShort = (value) => {
     if (value >= 100000) {
@@ -110,7 +124,15 @@ export default function AmcList() {
         description="Recurring maintenance contracts · renewals · reminders"
         className="mb-8"
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <div className="w-64">
+              <Input
+                placeholder="Search AMCs..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="py-1.5"
+              />
+            </div>
             <NotificationsDropdown showAmc={true} />
             <Button className="gap-2" onClick={() => handleOpenModal()}>
               <PlusIcon className="h-4 w-4" /> New AMC
@@ -189,14 +211,14 @@ export default function AmcList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {amcs.length === 0 ? (
+              {filteredAmcs.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-12 text-center text-neutral-500">
-                    No AMCs found. Add your first contract to get started.
+                    No AMCs found.
                   </td>
                 </tr>
               ) : (
-                amcs.map((amc) => {
+                filteredAmcs.map((amc) => {
                   const client = clients.find(c => c.id === amc.clientId);
                   const project = projects.find(p => p.id === amc.projectId);
 
