@@ -21,6 +21,7 @@ const LeaveApproval = lazy(() => import('./pages/leave/LeaveApproval'));
 const PayrollList = lazy(() => import('./pages/payroll/PayrollList'));
 const Payslip = lazy(() => import('./pages/payroll/Payslip'));
 const Profile = lazy(() => import('./pages/profile/Profile'));
+const LeaveBalances = lazy(() => import('./pages/leave/LeaveBalances'));
 
 const SoftwareLicenses = lazy(() => import('./pages/assets/SoftwareLicenses'));
 const ActiveLicenses = lazy(() => import('./pages/assets/ActiveLicenses'));
@@ -107,6 +108,7 @@ export default function App() {
           <Route path="leave/new" element={<ProtectedRoute allowedRoles={PERMISSIONS.leave}><LeaveForm mode="create" /></ProtectedRoute>} />
           <Route path="leave/:id/edit" element={<ProtectedRoute allowedRoles={PERMISSIONS.leave}><LeaveForm mode="edit" /></ProtectedRoute>} />
           <Route path="leave/approval" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr, ROLES.manager]}><LeaveApproval /></ProtectedRoute>} />
+          <Route path="leave/balances" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr]}><LeaveBalances /></ProtectedRoute>} />
           <Route path="payroll" element={<ProtectedRoute allowedRoles={PERMISSIONS.payroll}><PayrollList /></ProtectedRoute>} />
           <Route path="payroll/payslip/:id" element={<ProtectedRoute allowedRoles={PERMISSIONS.payroll}><Payslip /></ProtectedRoute>} />
           <Route path="profile" element={<ProtectedRoute allowedRoles={PERMISSIONS.profile}><Profile /></ProtectedRoute>} />

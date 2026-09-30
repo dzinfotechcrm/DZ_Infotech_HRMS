@@ -233,6 +233,11 @@ export default function LeaveList() {
         description="Apply for leave, review pending approvals, and monitor employee leave balances in one place."
         actions={(
           <div className="flex flex-wrap gap-2">
+            {isAdmin && (
+              <Link to="/leave/balances" target="_blank">
+                <Button variant="secondary">Check Leave Balance</Button>
+              </Link>
+            )}
             {!isAdmin && <Link to="/leave/new"><Button>Apply Leave</Button></Link>}
           </div>
         )}
