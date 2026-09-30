@@ -299,6 +299,9 @@ export default function AttendanceControl({ user }) {
       </Modal>
 
       <Modal open={checkOutModalOpen} onClose={() => setCheckOutModalOpen(false)} title="Check Out">
+        <label className="block text-sm font-medium text-slate-700 mb-2">
+          Work Notes <span className="text-danger-600 ml-1">*</span>
+        </label>
         <p className="text-slate-600 text-sm mb-4">Please provide a brief summary of what you accomplished today.</p>
         <textarea
           className="w-full rounded-xl border-slate-200 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-3"

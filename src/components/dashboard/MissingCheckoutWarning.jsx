@@ -131,7 +131,7 @@ export default function MissingCheckoutWarning({ user }) {
             
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Checkout Time
+                Checkout Time <span className="text-danger-600 ml-1">*</span>
               </label>
               <input
                 type="time"
@@ -144,7 +144,7 @@ export default function MissingCheckoutWarning({ user }) {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Work Notes
+                Work Notes <span className="text-danger-600 ml-1">*</span>
               </label>
               <textarea
                 className="w-full rounded-xl border-slate-200 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-3 border border-slate-300"

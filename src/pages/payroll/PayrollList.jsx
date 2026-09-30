@@ -251,16 +251,16 @@ function exportCSV(rows) {
 
 function SummaryCard({ icon: Icon, label, value, sub, gradient }) {
   return (
-    <div className={`relative overflow-hidden rounded-2xl p-5 text-white shadow-lg ${gradient}`}>
-      <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10" />
-      <div className="absolute -bottom-6 -right-2 h-28 w-28 rounded-full bg-white/5" />
+    <div className={`relative overflow-hidden rounded-xl p-4 text-white shadow-md ${gradient}`}>
+      <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-white/10" />
+      <div className="absolute -bottom-6 -right-2 h-24 w-24 rounded-full bg-white/5" />
       <div className="relative">
         <div className="flex items-center gap-2">
-          <Icon className="h-5 w-5 text-white/80" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-white/70">{label}</span>
+          <Icon className="h-4 w-4 text-white/80" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-white/70">{label}</span>
         </div>
-        <div className="mt-3 text-3xl font-extrabold tracking-tight">{value}</div>
-        {sub && <div className="mt-1 text-xs font-medium text-white/60">{sub}</div>}
+        <div className="mt-2 text-2xl font-bold tracking-tight">{value}</div>
+        {sub && <div className="mt-0.5 text-[10px] font-medium text-white/60">{sub}</div>}
       </div>
     </div>
   );
@@ -944,49 +944,47 @@ export default function PayrollList() {
         title="Payroll processing & salary history"
         description="All active employees are shown below. Process payroll, review payslips and approve payments."
         actions={
-          <>
+          <div className="flex items-center gap-3">
+            {adminView && (
+              <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shadow-sm mr-2">
+                <button
+                  onClick={() => setEmpTypeTab('employees')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    empTypeTab === 'employees' 
+                      ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                  }`}
+                >
+                  Employee / Manager
+                </button>
+                <button
+                  onClick={() => setEmpTypeTab('interns')}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    empTypeTab === 'interns' 
+                      ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                  }`}
+                >
+                  Interns
+                </button>
+              </div>
+            )}
             <Button
               variant="secondary"
               onClick={() => exportCSV(filtered)}
-              className="gap-2"
+              className="!p-2.5"
+              title="Export CSV"
             >
-              <ArrowDownTrayIcon className="h-4 w-4" />
-              Export CSV
+              <ArrowDownTrayIcon className="h-5 w-5" />
             </Button>
             {adminView && (
-              <Button onClick={runAllPending} className="gap-2">
-                <PlayIcon className="h-4 w-4" />
-                Run Payroll
+              <Button onClick={runAllPending} className="!p-2.5" title="Run Payroll">
+                <PlayIcon className="h-5 w-5" />
               </Button>
             )}
-          </>
+          </div>
         }
       />
-
-      {adminView && (
-        <div className="flex bg-slate-100/80 p-1 rounded-xl w-fit border border-slate-200/60 shadow-sm">
-          <button
-            onClick={() => setEmpTypeTab('employees')}
-            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              empTypeTab === 'employees' 
-                ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-            }`}
-          >
-            Employee / Manager
-          </button>
-          <button
-            onClick={() => setEmpTypeTab('interns')}
-            className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
-              empTypeTab === 'interns' 
-                ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/50' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-            }`}
-          >
-            Interns
-          </button>
-        </div>
-      )}
 
       {/* ── Summary Cards ──────────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
