@@ -104,6 +104,7 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
     description: '',
     totalValue: '',
     advanceReceived: '',
+    returnedAmount: '',
     projectStatus: 'In Progress',
     files: {} // Store URLs for Requirements, Quotations, Designs, Source Files
   });
@@ -127,6 +128,7 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
         description: '',
         totalValue: '',
         advanceReceived: '',
+        returnedAmount: '',
         projectStatus: 'In Progress',
         files: {}
       });
@@ -192,6 +194,7 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
         ...formData,
         totalValue: parseFloat(formData.totalValue) || 0,
         advanceReceived: parseFloat(formData.advanceReceived) || 0,
+        returnedAmount: formData.projectStatus === 'Dropped' ? (parseFloat(formData.returnedAmount) || 0) : null,
       };
 
       // Strip virtual fields if editing
@@ -320,6 +323,15 @@ export default function ProjectFormModal({ open, project, clients, onClose, onSa
               value={(parseFloat(formData.totalValue || 0) - parseFloat(formData.advanceReceived || 0))}
               className="bg-neutral-50"
             />
+            {formData.projectStatus === 'Dropped' && (
+              <Input
+                label="Returned Amount (₹)"
+                type="number"
+                name="returnedAmount"
+                value={formData.returnedAmount}
+                onChange={handleChange}
+              />
+            )}
           </div>
         </div>
 

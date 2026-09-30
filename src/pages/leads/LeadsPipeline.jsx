@@ -105,6 +105,7 @@ export default function LeadsPipeline() {
   const [filterFollowUp, setFilterFollowUp] = useState('');
   const [filterInterest, setFilterInterest] = useState('');
   const [sortBy, setSortBy] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const filterRef = useRef(null);
   const sortRef = useRef(null);
@@ -133,6 +134,19 @@ export default function LeadsPipeline() {
     }
     if (filterFollowUp) {
       result = result.filter(l => l.nextFollowUp && l.nextFollowUp.startsWith(filterFollowUp));
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(l => 
+        l.companyName?.toLowerCase().includes(q) || 
+        l.contactPerson?.toLowerCase().includes(q) ||
+        l.email?.toLowerCase().includes(q) ||
+        l.phone?.toLowerCase().includes(q) ||
+        l.leadSource?.toLowerCase().includes(q) ||
+        l.stage?.toLowerCase().includes(q) ||
+        l.interestLevel?.toLowerCase().includes(q)
+      );
     }
 
     if (filterInterest) {
@@ -164,7 +178,7 @@ export default function LeadsPipeline() {
     }
 
     return result;
-  }, [leads, filterSource, filterAssignee, filterFollowUp, filterInterest, sortBy]);
+  }, [leads, filterSource, filterAssignee, filterFollowUp, filterInterest, sortBy, searchQuery]);
 
   const createClientFromLead = async (lead, initialStatus = 'Active') => {
     try {
@@ -421,6 +435,14 @@ export default function LeadsPipeline() {
         className="mb-8"
         actions={
           <div className="flex flex-wrap gap-3 items-center">
+            <div className="w-48">
+              <Input
+                placeholder="Search leads..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="py-1.5"
+              />
+            </div>
             <div className="flex bg-neutral-100 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode('kanban')}

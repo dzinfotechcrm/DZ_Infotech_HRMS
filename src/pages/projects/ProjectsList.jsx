@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useSupabaseCollection, useSupabaseDocument } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import PageHeader from '../../components/ui/PageHeader';
 import Modal from '../../components/ui/Modal';
 import ConfirmModal from '../../components/ui/ConfirmModal';
+import Select from '../../components/ui/Select';
 import { PlusIcon, FolderIcon, ChartBarIcon, ExclamationTriangleIcon, ClockIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ProjectFormModal from './ProjectFormModal';
 import { toast } from 'react-hot-toast';
@@ -28,6 +30,8 @@ export default function ProjectsList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [selectedClientId, setSelectedClientId] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Self-heal projects with inactive clients
   const hasHealed = useRef(false);
@@ -127,7 +131,25 @@ export default function ProjectsList() {
   };
 
   // KPIs calculations
-  const activeProjects = projects.filter(p => 
+  const filteredProjects = projects.filter(p => {
+    const matchesClient = selectedClientId === 'all' || p.clientId === selectedClientId;
+    
+    const client = clients.find(c => c.id === p.clientId);
+    const clientName = client?.companyName || '';
+    const q = searchQuery.toLowerCase();
+    
+    const matchesSearch = 
+      p.name?.toLowerCase().includes(q) ||
+      p.projectId?.toLowerCase().includes(q) ||
+      clientName.toLowerCase().includes(q) ||
+      p.status?.toLowerCase().includes(q) ||
+      p.projectStatus?.toLowerCase().includes(q) ||
+      p.serviceType?.toLowerCase().includes(q);
+      
+    return matchesClient && matchesSearch;
+  });
+
+  const activeProjects = filteredProjects.filter(p => 
     p.status !== 'Completed' && 
     p.projectStatus !== 'Completed' && 
     p.projectStatus !== 'Dropped'
@@ -142,7 +164,7 @@ export default function ProjectsList() {
   const atRiskCount = activeProjects.filter(p => p.deadline && p.deadline < today).length;
 
   // Calculate Average Cycle Time based on Completed projects
-  const completedProjects = projects.filter(p => 
+  const completedProjects = filteredProjects.filter(p => 
     (p.status === 'Completed' || p.projectStatus === 'Completed') && 
     p.startDate && p.deadline
   );
@@ -188,9 +210,30 @@ export default function ProjectsList() {
         description="Workflow · tasks · health · timelines"
         className="mb-8"
         actions={
-          <Button className="gap-2" onClick={() => handleOpenModal()}>
-            <PlusIcon className="h-4 w-4" /> New project
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="w-48">
+              <Input
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="py-1.5"
+              />
+            </div>
+            <div className="w-48">
+              <Select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Clients' },
+                  ...clients.map(c => ({ value: c.id, label: c.companyName }))
+                ]}
+                className="py-1.5"
+              />
+            </div>
+            <Button className="gap-2" onClick={() => handleOpenModal()}>
+              <PlusIcon className="h-4 w-4" /> New project
+            </Button>
+          </div>
         }
       />
 
@@ -245,12 +288,12 @@ export default function ProjectsList() {
 
       {/* Projects List */}
       <div className="flex-1 space-y-4 pb-6">
-          {projects.length === 0 ? (
+          {filteredProjects.length === 0 ? (
             <div className="text-center py-12 text-neutral-500">
               No projects found. Start by creating a new one!
             </div>
           ) : (
-            projects.map((project) => {
+            filteredProjects.map((project) => {
               const client = clients.find(c => c.id === project.clientId);
               const clientName = client?.companyName || 'Unknown Client';
               const clientInitials = clientName.substring(0, 2).toUpperCase();
@@ -308,47 +351,41 @@ export default function ProjectsList() {
                   </div>
 
                   {/* Progress visualization */}
-                  <div className="mt-6">
-                    {/* Top Continuous Bar & Percentage */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
-                      <div className="relative flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-                        <div
-                          className={`absolute top-0 left-0 h-full rounded-full transition-all duration-500 ${currentTheme.bg}`}
-                          style={{ width: `${progress}%` }}
-                        ></div>
+                  <div className="mt-3 flex items-center justify-between gap-4">
+                    {/* Segmented Bars & Stage Labels */}
+                    <div className="flex-1">
+                      <div className="flex gap-1 h-1.5 mb-1.5">
+                        {STAGES.map((stage, idx) => {
+                          const isCompleted = idx <= currentStageIndex;
+                          const segmentTheme = getStageTheme(idx, false);
+                          return (
+                            <div
+                              key={stage}
+                              className={`flex-1 rounded-full ${isCompleted ? segmentTheme.bg : 'bg-neutral-100'}`}
+                            ></div>
+                          );
+                        })}
                       </div>
-                      <span className="text-xs font-bold text-neutral-700 ml-4 w-8 text-right">{progress}%</span>
+
+                      {/* Stage Labels */}
+                      <div className="flex justify-between px-1">
+                        {STAGES.map((stage, idx) => {
+                          const isActive = idx === currentStageIndex;
+                          const isPast = idx < currentStageIndex;
+                          return (
+                            <div
+                              key={stage}
+                              className={`text-[9px] font-semibold w-0 flex-1 text-center truncate px-1 ${isActive ? currentTheme.text : (isPast ? 'text-neutral-600' : 'text-neutral-400')}`}
+                            >
+                              {stage}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    {/* Bottom Segmented Bars */}
-                    <div className="flex gap-1 h-1.5 mb-2">
-                      {STAGES.map((stage, idx) => {
-                        const isCompleted = idx <= currentStageIndex;
-                        const segmentTheme = getStageTheme(idx, false);
-                        return (
-                          <div
-                            key={stage}
-                            className={`flex-1 rounded-full ${isCompleted ? segmentTheme.bg : 'bg-neutral-100'}`}
-                          ></div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Stage Labels */}
-                    <div className="flex justify-between px-1">
-                      {STAGES.map((stage, idx) => {
-                        const isActive = idx === currentStageIndex;
-                        const isPast = idx < currentStageIndex;
-                        return (
-                          <div
-                            key={stage}
-                            className={`text-[9px] font-semibold w-0 flex-1 text-center truncate px-1 ${isActive ? currentTheme.text : (isPast ? 'text-neutral-600' : 'text-neutral-400')}`}
-                          >
-                            {stage}
-                          </div>
-                        );
-                      })}
-                    </div>
+                    {/* Percentage */}
+                    <span className="text-xs font-bold text-neutral-700 w-8 text-right shrink-0">{progress}%</span>
                   </div>
                 </div>
               );

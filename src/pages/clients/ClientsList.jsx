@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument } from '../../supabase/db';
 import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
 import PageHeader from '../../components/ui/PageHeader';
 import { PlusIcon, BriefcaseIcon, ShieldCheckIcon, DocumentTextIcon, ArrowTrendingUpIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ClientFormModal from './ClientFormModal';
@@ -26,6 +27,7 @@ export default function ClientsList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientToDelete, setClientToDelete] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleOpenModal = (client = null) => {
     setSelectedClient(client);
@@ -73,10 +75,23 @@ export default function ClientsList() {
     }
   };
 
-  // KPIs
-  const totalClients = clients.length;
+  const filteredClients = clients.filter(c => {
+    const q = searchQuery.toLowerCase();
+    return (
+      c.companyName?.toLowerCase().includes(q) ||
+      c.industry?.toLowerCase().includes(q) ||
+      c.source?.toLowerCase().includes(q) ||
+      c.status?.toLowerCase().includes(q) ||
+      c.contactPerson?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.phone?.toLowerCase().includes(q)
+    );
+  });
 
-  const lifetimeValue = clients.reduce((sum, c) => sum + (Number(c.ltv) || 0), 0);
+  // KPIs
+  const totalClients = filteredClients.length;
+
+  const lifetimeValue = filteredClients.reduce((sum, c) => sum + (Number(c.ltv) || 0), 0);
 
   const formatCurrency = (val) => {
     if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)}Cr`;
@@ -102,9 +117,19 @@ export default function ClientsList() {
         description="All accounts · projects · LTV · ownership"
         className="mb-8"
         actions={
-          <Button className="gap-2" onClick={() => handleOpenModal()}>
-            <PlusIcon className="h-4 w-4" /> New client
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="w-64">
+              <Input
+                placeholder="Search clients..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="py-1.5"
+              />
+            </div>
+            <Button className="gap-2" onClick={() => handleOpenModal()}>
+              <PlusIcon className="h-4 w-4" /> New client
+            </Button>
+          </div>
         }
       />
 
@@ -180,14 +205,14 @@ export default function ClientsList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {clients.length === 0 ? (
+              {filteredClients.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="px-6 py-12 text-center text-neutral-500">
-                    No clients found. Add your first client to get started.
+                    No clients found.
                   </td>
                 </tr>
               ) : (
-                clients.map((client) => {
+                filteredClients.map((client) => {
                   const owner = employees.find(e => e.uid === client.owner || e.id === client.owner);
                   const ownerInitials = client.companyName ? client.companyName.substring(0, 2).toUpperCase() : 'DZ';
 
