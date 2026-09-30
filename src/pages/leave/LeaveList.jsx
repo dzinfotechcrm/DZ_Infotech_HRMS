@@ -234,7 +234,7 @@ export default function LeaveList() {
         actions={(
           <div className="flex flex-wrap gap-2">
             {isAdmin && (
-              <Link to="/leave/balances" target="_blank">
+              <Link to="/leave/balances">
                 <Button variant="secondary">Check Leave Balance</Button>
               </Link>
             )}

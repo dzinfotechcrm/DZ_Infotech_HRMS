@@ -14,6 +14,7 @@ export default function LeaveBalances() {
   const { items: employees } = useSupabaseCollection('employees', useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []));
   const { items: interns } = useSupabaseCollection('interns', useMemo(() => (base) => query(base, orderBy('created_at', 'desc')), []));
   const { items: departments } = useSupabaseCollection('departments');
+  const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
 
   const [activeTab, setActiveTab] = useState('employees');
   const [editingId, setEditingId] = useState(null);
@@ -74,7 +75,7 @@ export default function LeaveBalances() {
   const internColumns = [
     { key: 'name', label: 'Intern Name' },
     { key: 'department', label: 'Department' },
-    { key: 'monthly', label: 'Monthly Max' },
+    { key: 'monthly', label: 'Monthly (Used / Max)' },
     { key: 'actions', label: 'Actions' }
   ];
 
@@ -223,21 +224,34 @@ export default function LeaveBalances() {
               };
               const isEditing = editingId === internInfo.id;
               
+              const now = new Date();
+              const internLeaves = leaveRequests.filter(l => l.employeeId === internInfo.id || l.employeeId === internInfo.uid);
+              const currentMonthLeaves = internLeaves.filter(leave => {
+                if (leave.status === 'rejected') return false;
+                const leaveDate = new Date(leave.fromDate);
+                return leaveDate.getMonth() === now.getMonth() && leaveDate.getFullYear() === now.getFullYear();
+              });
+              const used = currentMonthLeaves.reduce((acc, curr) => acc + (curr.totalDays || 0), 0);
+              
               return (
                 <tr key={internInfo.id} className="hover:bg-neutral-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-neutral-900">{internInfo.firstName} {internInfo.lastName}</td>
                   <td className="px-4 py-3 text-neutral-600">{getDeptName(internInfo.departmentId)}</td>
                   <td className="px-4 py-3">
                     {isEditing ? (
-                      <Input
-                        type="number"
-                        className="!w-24 !py-1"
-                        value={editValues.max_leave_per_month}
-                        onChange={(e) => setEditValues({ ...editValues, max_leave_per_month: e.target.value })}
-                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-neutral-500 w-6 text-right">{used}</span>
+                        <span className="text-neutral-400">/</span>
+                        <Input
+                          type="number"
+                          className="!w-20 !py-1"
+                          value={editValues.max_leave_per_month}
+                          onChange={(e) => setEditValues({ ...editValues, max_leave_per_month: e.target.value })}
+                        />
+                      </div>
                     ) : (
                       <span className="font-semibold text-neutral-700">
-                        {Number(internInfo.max_leave_per_month || 0)} <span className="text-neutral-400 font-normal text-xs ml-1">/ month</span>
+                        {used} <span className="text-neutral-400 font-normal">/ {Number(internInfo.max_leave_per_month || 0)}</span>
                       </span>
                     )}
                   </td>
