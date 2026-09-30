@@ -28,7 +28,11 @@ export default function DepartmentForm({ mode = 'create' }) {
 
   useEffect(() => {
     if (department) {
-      reset(department);
+      reset({
+        name: department.name,
+        description: department.description,
+        managerId: department.data?.managerId || '',
+      });
     }
   }, [department, reset]);
 

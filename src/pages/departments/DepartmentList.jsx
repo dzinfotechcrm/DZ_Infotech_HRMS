@@ -26,6 +26,17 @@ export default function DepartmentList() {
     const counts = {};
     const managers = {};
     
+    // Assign managers based on department's saved managerId
+    departments.forEach(dept => {
+      const managerId = dept.data?.managerId || dept.managerId;
+      if (managerId) {
+        const manager = employees.find(e => e.id === managerId);
+        if (manager) {
+          managers[dept.id] = `${manager.firstName || ''} ${manager.lastName || ''}`.trim();
+        }
+      }
+    });
+
     employees.forEach((employee) => {
       // Find the department to get its true ID, matching by ID or Name
       const dept = departments.find(d => d.id === employee.departmentId || d.name === employee.departmentId);
@@ -36,10 +47,12 @@ export default function DepartmentList() {
           counts[dept.id] = (counts[dept.id] || 0) + 1;
         }
 
-        // Identify manager
-        const isManager = employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager';
-        if (isManager) {
-          managers[dept.id] = `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
+        // Fallback manager identification if not explicitly set in department
+        if (!managers[dept.id]) {
+          const isManager = employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager';
+          if (isManager) {
+            managers[dept.id] = `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
+          }
         }
       }
     });
@@ -49,32 +62,6 @@ export default function DepartmentList() {
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
-
-  // Self-healing: Automatically fix database inconsistencies in department manager assignments
-  useEffect(() => {
-    if (!employees.length || !departments.length) return;
-
-    departments.forEach(async (dept) => {
-      // Find the true manager from the employees table
-      const trueManager = employees.find(e => 
-        (e.departmentId === dept.id || e.departmentId === dept.name) && 
-        (e.role?.toLowerCase() === 'manager' || e.designation?.toLowerCase() === 'manager')
-      );
-      
-      const trueManagerId = trueManager ? trueManager.id : '';
-      
-      // If the database has a stale or incorrect manager assigned, fix it automatically
-      if (dept.managerId !== trueManagerId) {
-        try {
-          // Dynamically import updateDocument to avoid cyclic dependency issues
-          const { updateDocument } = await import('../../supabase/db');
-          await updateDocument('departments', dept.id, { data: { ...(dept.data || {}), managerId: trueManagerId } });
-        } catch (e) {
-          console.error("Failed to auto-heal department manager", e);
-        }
-      }
-    });
-  }, [employees, departments]);
 
   function confirmDelete(id) {
     setDepartmentToDelete(id);

@@ -53,7 +53,7 @@ export default function Topbar({ title, notificationsCount = 0, onMenuClick, use
         </div>
 
         {/* Centered Attendance Control */}
-        {user && !isAdminLike(user) && (
+        {user && !isAdminLike(user?.role) && (
           <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-0 h-14 items-center">
             <AttendanceControl user={user} />
           </div>

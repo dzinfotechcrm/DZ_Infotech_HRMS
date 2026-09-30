@@ -414,8 +414,9 @@ function LeaveHistoryModal({ employee, open, onClose }) {
   );
 }
 
-// Component: Edit Employee Modal
-function EditEmployeeModal({ employee, departments, managers, existingEmails = [], existingPhones = [], existingEmployeeIds = [], open, onClose, onSave }) {
+// Component: Edit Employee Modal (DEPRECATED)
+function EditEmployeeModal() { return null; }
+function _deprecatedEditEmployeeModal({ employee, departments, managers, existingEmails = [], existingPhones = [], existingEmployeeIds = [], open, onClose, onSave }) {
   const [formData, setFormData] = useState(employee || {});
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -701,8 +702,8 @@ function EditEmployeeModal({ employee, departments, managers, existingEmails = [
   );
 }
 
-// Component: Add Employee Modal
-function AddEmployeeModal({ departments, managers, existingEmails = [], existingPhones = [], existingEmployeeIds = [], open, onClose, onSave }) {
+// Component: Employee Form Modal (Handles Add and Edit)
+function EmployeeFormModal({ employee, departments, managers, existingEmails = [], existingPhones = [], existingEmployeeIds = [], open, onClose, onSave }) {
   const [currentTab, setCurrentTab] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -751,6 +752,26 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
   const [errors, setErrors] = useState({});
   const [isIfscLoading, setIsIfscLoading] = useState(false);
   const [branchDetails, setBranchDetails] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      if (employee) {
+        setFormData({
+          ...initialFormState,
+          ...employee,
+          address: employee.address || initialFormState.address,
+          casualLeaves: employee.casual_leaves_total ?? '0',
+          paidLeaves: employee.paid_leaves_total ?? '0',
+          sickLeaves: employee.sick_leaves_total ?? '0',
+        });
+      } else {
+        setFormData(initialFormState);
+      }
+      setErrors({});
+      setCurrentTab(0);
+      setBranchDetails('');
+    }
+  }, [open, employee]);
 
   const bankOptions = useMemo(() => getBankOptions(), []);
 
@@ -843,11 +864,13 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
         newErrors['email'] = 'Please enter a valid email address';
         isValid = false;
       }
-      if (formData.email && existingEmails.includes(formData.email.trim().toLowerCase())) {
+      const otherEmails = existingEmails.filter(e => e !== (employee?.email || '').toLowerCase());
+      if (formData.email && otherEmails.includes(formData.email.trim().toLowerCase())) {
         newErrors['email'] = 'This email is already in use by another employee';
         isValid = false;
       }
-      if (formData.phone && existingPhones.includes(formData.phone.trim())) {
+      const otherPhones = existingPhones.filter(p => p !== (employee?.phone || ''));
+      if (formData.phone && otherPhones.includes(formData.phone.trim())) {
         newErrors['phone'] = 'This phone number is already in use by another employee';
         isValid = false;
       }
@@ -875,7 +898,8 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
       required.forEach(k => {
         if (!formData[k]) { newErrors[k] = 'This field is required'; isValid = false; }
       });
-      if (formData.employeeId && existingEmployeeIds.includes(formData.employeeId.trim())) {
+      const otherEmployeeIds = existingEmployeeIds.filter(id => id !== employee?.employeeId);
+      if (formData.employeeId && otherEmployeeIds.includes(formData.employeeId.trim())) {
         newErrors['employeeId'] = 'This Employee ID is already in use';
         isValid = false;
       }
@@ -948,31 +972,21 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
     setSaving(true);
     try {
       await onSave(formData);
-      toast.success('Employee added successfully');
+      toast.success(employee ? 'Employee updated successfully' : 'Employee added successfully');
 
       // Reset form and close
       setFormData(initialFormState);
       setCurrentTab(0);
       onClose();
     } catch (error) {
-      toast.error(error.message || 'Failed to add employee');
+      toast.error(error.message || `Failed to ${employee ? 'update' : 'add'} employee`);
     } finally {
       setSaving(false);
     }
   };
 
-  useEffect(() => {
-    if (open) {
-      setFormData(initialFormState);
-      setErrors({});
-      setCurrentTab(0);
-      setBranchDetails('');
-      setIsIfscLoading(false);
-    }
-  }, [open]);
-
   return (
-    <Modal open={open} title="Add New Employee" onClose={onClose} size="max-w-3xl">
+    <Modal open={open} title={employee ? "Edit Employee" : "Add New Employee"} onClose={onClose} size="max-w-3xl">
       <div className="mb-8">
         {/* Progress Indicator */}
         <div className="flex items-center justify-between relative">
@@ -1231,7 +1245,7 @@ function AddEmployeeModal({ departments, managers, existingEmails = [], existing
 
           {currentTab === TABS.length - 1 && (
             <Button type="submit" disabled={saving}>
-              {saving ? 'Adding Employee...' : 'Add Employee'}
+              {saving ? (employee ? 'Updating Employee...' : 'Adding Employee...') : (employee ? 'Update Employee' : 'Add Employee')}
             </Button>
           )}
         </div>
@@ -2100,7 +2114,7 @@ export default function EmployeeList() {
         employee={enrichedEmployees.find(e => e.id === selectedEmployee?.id) || selectedEmployee}
         onClose={() => setLeaveHistoryModalOpen(false)}
       />
-      <EditEmployeeModal
+      <EmployeeFormModal
         employee={enrichedEmployees.find(e => e.id === selectedEmployee?.id) || selectedEmployee}
         departments={allDepartments}
         managers={managers}
@@ -2114,7 +2128,7 @@ export default function EmployeeList() {
         }}
         onSave={handleSaveEdit}
       />
-      <AddEmployeeModal
+      <EmployeeFormModal
         departments={allDepartments}
         managers={managers}
         existingEmails={employees.map(e => (e.email || '').toLowerCase()).filter(Boolean).concat(interns.map(i => (i.email || '').toLowerCase()).filter(Boolean))}
