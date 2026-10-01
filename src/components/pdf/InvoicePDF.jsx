@@ -252,15 +252,15 @@ export const InvoicePDF = ({ data, items }) => {
           <View style={[styles.summaryBox, { width: '45%', marginTop: 0 }]}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>₹ {subtotal.toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>Rs. {subtotal.toLocaleString('en-IN')}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Discount</Text>
-              <Text style={styles.summaryValue}>- ₹ {Number(data.discount).toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>- Rs. {Number(data.discount).toLocaleString('en-IN')}</Text>
             </View>
             <View style={styles.summaryTotalRow}>
               <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalValue}>₹ {formattedTotal}</Text>
+              <Text style={styles.totalValue}>Rs. {formattedTotal}</Text>
             </View>
             
             <View style={{ marginTop: 15, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
