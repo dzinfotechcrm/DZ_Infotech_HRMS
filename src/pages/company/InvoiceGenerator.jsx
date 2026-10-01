@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { pdf } from '@react-pdf/renderer';
+import { InvoicePDF } from '../../components/pdf/InvoicePDF';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
@@ -86,95 +86,22 @@ export default function InvoiceGenerator() {
   const taxAmount = (subtotal * Number(invoiceData.taxPercentage)) / 100;
   const total = subtotal + taxAmount - Number(invoiceData.discount);
 
-  const generatePDFBytes = (data, invoiceItems) => {
-    const doc = new jsPDF();
-    const primaryColor = [14, 165, 233]; // Tailwind sky-500 roughly
-
-    // Header
-    doc.setFontSize(28);
-    doc.setTextColor(...primaryColor);
-    doc.text('INVOICE', 14, 25);
-    
-    // Company Info
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 60);
-    doc.text('DZ INFOTECH', 14, 35);
-    doc.text('support@dzinfotech.com', 14, 40);
-    doc.text('+91 1234567890', 14, 45);
-
-    // Invoice Details
-    doc.text(`Invoice No: ${data.invoiceNo}`, 140, 25);
-    doc.text(`Date: ${data.date}`, 140, 30);
-    doc.text(`Due Date: ${data.dueDate}`, 140, 35);
-
-    // Bill To
-    doc.setFontSize(12);
-    doc.setTextColor(...primaryColor);
-    doc.text('BILL TO', 14, 60);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 60);
-    let yPos = 67;
-    if (data.clientName) { doc.text(data.clientName, 14, yPos); yPos += 5; }
-    if (data.clientCompany) { doc.text(data.clientCompany, 14, yPos); yPos += 5; }
-    if (data.clientAddress) { doc.text(data.clientAddress, 14, yPos); yPos += 5; }
-    if (data.clientEmail) { doc.text(data.clientEmail, 14, yPos); yPos += 5; }
-    if (data.clientPhone) { doc.text(data.clientPhone, 14, yPos); yPos += 5; }
-
-    // Table
-    const tableColumn = ["Description", "Quantity", "Rate", "Amount"];
-    const tableRows = invoiceItems.map(item => [
-      item.description || '-',
-      item.quantity.toString(),
-      `${Number(item.rate).toFixed(2)}`,
-      `${(Number(item.quantity) * Number(item.rate)).toFixed(2)}`
-    ]);
-
-    doc.autoTable({
-      startY: 95,
-      head: [tableColumn],
-      body: tableRows,
-      theme: 'striped',
-      headStyles: { fillColor: primaryColor, textColor: 255 },
-      styles: { fontSize: 10, cellPadding: 5 },
-      columnStyles: {
-        0: { cellWidth: 80 },
-        1: { halign: 'center' },
-        2: { halign: 'right' },
-        3: { halign: 'right' }
-      }
-    });
-
-    const finalY = doc.lastAutoTable.finalY + 10;
-    
-    const subT = invoiceItems.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.rate)), 0);
-    const taxA = (subT * Number(data.taxPercentage)) / 100;
-    const tot = subT + taxA - Number(data.discount);
-    
-    // Summary
-    doc.text(`Subtotal:`, 130, finalY);
-    doc.text(`${subT.toFixed(2)}`, 180, finalY, { align: 'right' });
-    
-    doc.text(`Tax (${data.taxPercentage}%):`, 130, finalY + 7);
-    doc.text(`${taxA.toFixed(2)}`, 180, finalY + 7, { align: 'right' });
-    
-    doc.text(`Discount:`, 130, finalY + 14);
-    doc.text(`${Number(data.discount).toFixed(2)}`, 180, finalY + 14, { align: 'right' });
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(...primaryColor);
-    doc.text(`Grand Total:`, 130, finalY + 24);
-    doc.text(`${tot.toFixed(2)}`, 180, finalY + 24, { align: 'right' });
-
-    // Notes
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text('Notes:', 14, finalY + 10);
-    doc.text(data.notes || '', 14, finalY + 17, { maxWidth: 100 });
-
-    return doc;
+  const downloadPDF = async (dataToUse, itemsToUse) => {
+    try {
+      const blob = await pdf(<InvoicePDF data={dataToUse} items={itemsToUse} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${dataToUse.invoiceNo || 'Invoice'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to generate PDF', error);
+      toast.error('Failed to download invoice PDF');
+      throw error;
+    }
   };
 
   const handleSaveAndDownload = async () => {
@@ -189,11 +116,7 @@ export default function InvoiceGenerator() {
 
     setIsSaving(true);
     try {
-      // 1. Generate and auto-download PDF
-      const doc = generatePDFBytes(invoiceData, items);
-      doc.save(`${invoiceData.invoiceNo || 'Invoice'}.pdf`);
-
-      // 2. Save to database
+      // 1. Save to database first
       const payload = {
         invoiceNo: invoiceData.invoiceNo,
         date: invoiceData.date,
@@ -213,6 +136,10 @@ export default function InvoiceGenerator() {
       };
 
       await createDocument('invoices', payload);
+      
+      // 2. Download the PDF
+      await downloadPDF(invoiceData, items);
+
       toast.success('Invoice saved and downloaded successfully');
       
       // Reset form
@@ -239,9 +166,8 @@ export default function InvoiceGenerator() {
     }
   };
   
-  const handleDownloadSaved = (invoice) => {
-    const doc = generatePDFBytes(invoice, invoice.items || []);
-    doc.save(`${invoice.invoiceNo || 'Invoice'}.pdf`);
+  const handleDownloadSaved = async (invoice) => {
+    await downloadPDF(invoice, invoice.items || []);
   };
 
   const handleDelete = async () => {
