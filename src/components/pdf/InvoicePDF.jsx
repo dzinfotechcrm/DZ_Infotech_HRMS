@@ -231,12 +231,7 @@ export const InvoicePDF = ({ data, items }) => {
         </View>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <View style={{ width: '55%' }}>
-            <View style={{ marginBottom: 20 }}>
-              <Text style={styles.sectionTitle}>Amount in Words</Text>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.text }}>{amountInWords}</Text>
-            </View>
-
+          <View style={{ width: '50%' }}>
             <View style={{ backgroundColor: colors.bg, padding: 15, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: colors.secondary }}>
               <Text style={styles.sectionTitle}>Payment Details</Text>
               {data.bankName && <Text style={styles.clientInfo}>Bank Name: <Text style={{ color: colors.text }}>{data.bankName}</Text></Text>}
@@ -252,18 +247,23 @@ export const InvoicePDF = ({ data, items }) => {
             </View>
           </View>
 
-          <View style={[styles.summaryBox, { width: '40%', marginTop: 0 }]}>
+          <View style={[styles.summaryBox, { width: '45%', marginTop: 0 }]}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>₹ {subtotal.toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>Rs. {subtotal.toLocaleString('en-IN')}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Discount</Text>
-              <Text style={styles.summaryValue}>- ₹ {Number(data.discount).toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>- Rs. {Number(data.discount).toLocaleString('en-IN')}</Text>
             </View>
             <View style={styles.summaryTotalRow}>
               <Text style={styles.totalLabel}>Total Due</Text>
-              <Text style={styles.totalValue}>₹ {formattedTotal}</Text>
+              <Text style={styles.totalValue}>Rs. {formattedTotal}</Text>
+            </View>
+            
+            <View style={{ marginTop: 15, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
+              <Text style={{ fontSize: 9, color: colors.lightText, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Amount in Words</Text>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.text }}>{amountInWords}</Text>
             </View>
           </View>
         </View>

@@ -7,9 +7,9 @@ import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Table from '../../components/ui/Table';
 import ConfirmModal from '../../components/ui/ConfirmModal';
-import { PlusIcon, TrashIcon, DocumentArrowDownIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, DocumentArrowDownIcon, ArrowDownTrayIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
-import { createDocument, removeDocument, query, orderBy } from '../../supabase/db';
+import { createDocument, updateDocument, removeDocument, query, orderBy } from '../../supabase/db';
 import toast from 'react-hot-toast';
 
 export default function InvoiceGenerator() {
@@ -57,6 +57,7 @@ export default function InvoiceGenerator() {
   ]);
 
   const [deleteId, setDeleteId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -107,6 +108,51 @@ export default function InvoiceGenerator() {
     }
   };
 
+  const resetForm = () => {
+    setEditingId(null);
+    setInvoiceData({
+      invoiceNo: getNextInvoiceNo(savedInvoices),
+      date: new Date().toISOString().split('T')[0],
+      dueDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0],
+      clientName: '',
+      clientCompany: '',
+      clientAddress: '',
+      clientEmail: '',
+      clientPhone: '',
+      discount: 0,
+      notes: 'Thank you for your business!',
+      bankName: '',
+      accountName: '',
+      accountNo: '',
+      ifsc: '',
+      upiId: '',
+    });
+    setItems([{ id: Date.now(), description: '', quantity: 1, rate: 0 }]);
+  };
+
+  const handleEdit = (invoice) => {
+    setEditingId(invoice.id);
+    setInvoiceData({
+      invoiceNo: invoice.invoiceNo || '',
+      date: invoice.date || new Date().toISOString().split('T')[0],
+      dueDate: invoice.dueDate || new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0],
+      clientName: invoice.clientName || '',
+      clientCompany: invoice.clientCompany || '',
+      clientAddress: invoice.clientAddress || '',
+      clientEmail: invoice.clientEmail || '',
+      clientPhone: invoice.clientPhone || '',
+      discount: invoice.discount || 0,
+      notes: invoice.notes || 'Thank you for your business!',
+      bankName: invoice.bankName || '',
+      accountName: invoice.accountName || '',
+      accountNo: invoice.accountNo || '',
+      ifsc: invoice.ifsc || '',
+      upiId: invoice.upiId || '',
+    });
+    setItems(invoice.items && invoice.items.length > 0 ? invoice.items : [{ id: Date.now(), description: '', quantity: 1, rate: 0 }]);
+    setActiveTab('create');
+  };
+
   const handleSaveAndDownload = async () => {
     if (!invoiceData.clientName && !invoiceData.clientCompany) {
       toast.error('Please enter a client name or company');
@@ -141,32 +187,19 @@ export default function InvoiceGenerator() {
         total
       };
 
-      await createDocument('invoices', payload);
+      if (editingId) {
+        await updateDocument('invoices', editingId, payload);
+      } else {
+        await createDocument('invoices', payload);
+      }
       
       // 2. Download the PDF
       await downloadPDF(invoiceData, items);
 
-      toast.success('Invoice saved and downloaded successfully');
+      toast.success(editingId ? 'Invoice updated successfully' : 'Invoice saved successfully');
       
       // Reset form
-      setInvoiceData({
-        invoiceNo: getNextInvoiceNo(savedInvoices),
-        date: new Date().toISOString().split('T')[0],
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString().split('T')[0],
-        clientName: '',
-        clientCompany: '',
-        clientAddress: '',
-        clientEmail: '',
-        clientPhone: '',
-        discount: 0,
-        notes: 'Thank you for your business!',
-        bankName: '',
-        accountName: '',
-        accountNo: '',
-        ifsc: '',
-        upiId: '',
-      });
-      setItems([{ id: Date.now(), description: '', quantity: 1, rate: 0 }]);
+      resetForm();
       setActiveTab('saved');
     } catch (err) {
       console.error(err);
@@ -213,7 +246,7 @@ export default function InvoiceGenerator() {
                 : 'text-slate-700 hover:text-slate-900'
             }`}
           >
-            Create Invoice
+            {editingId ? 'Edit Invoice' : 'Create Invoice'}
           </button>
           <button
             onClick={() => setActiveTab('saved')}
@@ -330,9 +363,16 @@ export default function InvoiceGenerator() {
                 />
               </div>
 
-              <Button onClick={handleSaveAndDownload} disabled={isSaving} className="w-full gap-2 mt-4">
-                <DocumentArrowDownIcon className="w-5 h-5" /> {isSaving ? 'Saving...' : 'Save & Download PDF'}
-              </Button>
+              <div className="flex gap-4 mt-4">
+                {editingId && (
+                  <Button variant="secondary" onClick={resetForm} className="w-1/3">
+                    Cancel
+                  </Button>
+                )}
+                <Button onClick={handleSaveAndDownload} disabled={isSaving} className={`gap-2 ${editingId ? 'w-2/3' : 'w-full'}`}>
+                  <DocumentArrowDownIcon className="w-5 h-5" /> {isSaving ? 'Saving...' : (editingId ? 'Update & Download PDF' : 'Save & Download PDF')}
+                </Button>
+              </div>
             </Card>
           </div>
         </div>
@@ -356,6 +396,13 @@ export default function InvoiceGenerator() {
                 </td>
                 <td className="px-4 py-3 text-sm text-right">
                   <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => handleEdit(invoice)}
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      title="Edit Invoice"
+                    >
+                      <PencilIcon className="w-5 h-5" />
+                    </button>
                     <button
                       onClick={() => handleDownloadSaved(invoice)}
                       className="p-1.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
