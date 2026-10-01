@@ -12,8 +12,9 @@ import { CheckIcon } from '@heroicons/react/24/outline';
 
 export default function LeaveBalances() {
   const { items: allEmployees } = useSupabaseCollection('employees', useMemo(() => (base) => query(base, orderBy('createdAt', 'desc')), []));
-  const employees = allEmployees.filter(emp => emp.role !== 'admin');
-  const { items: interns } = useSupabaseCollection('interns', useMemo(() => (base) => query(base, orderBy('created_at', 'desc')), []));
+  const employees = allEmployees.filter(emp => emp.role !== 'admin' && emp.status !== 'deleted');
+  const { items: allInterns } = useSupabaseCollection('interns', useMemo(() => (base) => query(base, orderBy('created_at', 'desc')), []));
+  const interns = allInterns.filter(intern => intern.status !== 'deleted');
   const { items: departments } = useSupabaseCollection('departments');
   const { items: leaveRequests } = useSupabaseCollection('leaveRequests');
 

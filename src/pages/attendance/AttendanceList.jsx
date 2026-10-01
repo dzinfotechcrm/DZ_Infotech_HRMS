@@ -240,6 +240,8 @@ export default function AttendanceList() {
               }
             }
           } else {
+            if (emp.status === 'deleted') continue;
+
             const dateObj = new Date(d);
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
             if (isWeekend) continue;
@@ -292,6 +294,8 @@ export default function AttendanceList() {
             virtualRows.push(att);
             continue;
           }
+
+          if (emp.status === 'deleted') continue;
 
           const dateObj = new Date(d);
           const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
@@ -385,6 +389,8 @@ export default function AttendanceList() {
               continue;
             }
 
+            if (emp.status === 'deleted') continue;
+
             const dateObj = new Date(d);
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
             if (isWeekend) continue;
@@ -460,10 +466,10 @@ export default function AttendanceList() {
   const handleSaveNote = async () => {
     try {
       if (selectedNoteItem) {
-        await updateDocument('attendance', selectedNoteItem.id, { 
+        await updateDocument('attendance', selectedNoteItem.id, {
           data: {
             ...(selectedNoteItem.data || {}),
-            notes: editNoteText 
+            notes: editNoteText
           }
         });
         toast.success('Note updated successfully');
@@ -508,6 +514,8 @@ export default function AttendanceList() {
           else if (att.status === 'On Leave' || att.status === 'on leave') onLeaveCountStat++;
           continue;
         }
+
+        if (emp.status === 'deleted') continue;
 
         const dateObj = new Date(d);
         const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
@@ -768,20 +776,20 @@ export default function AttendanceList() {
         onClose={() => { setNoteModalOpen(false); setIsEditingNote(false); }}
         footer={
           <div className="flex gap-3 pt-3">
-            <Button 
-              variant="secondary" 
-              onClick={() => { setNoteModalOpen(false); setIsEditingNote(false); }} 
+            <Button
+              variant="secondary"
+              onClick={() => { setNoteModalOpen(false); setIsEditingNote(false); }}
               className={!isEditingNote && !isEmployee ? "w-full" : "flex-1"}
             >
               {isEditingNote ? 'Cancel' : 'Close'}
             </Button>
-            
+
             {isEditingNote && (
               <Button onClick={handleSaveNote} className="flex-1">
                 Save Changes
               </Button>
             )}
-            
+
             {!isEditingNote && isEmployee && (
               <Button onClick={() => setIsEditingNote(true)} className="flex-1">
                 Edit Note

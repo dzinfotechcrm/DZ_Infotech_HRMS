@@ -1386,6 +1386,8 @@ export default function EmployeeList() {
     return (empList) => {
       const term = search.trim().toLowerCase();
       return empList.filter((employee) => {
+        if (employee.status === 'deleted') return false;
+        
         const employeeName = `${employee.firstName || ''} ${employee.lastName || ''}`.toLowerCase();
         const matchesText = [employeeName, employee.email, employee.employeeId, employee.department, employee.designation]
           .some((value) => String(value || '').toLowerCase().includes(term));
@@ -1461,9 +1463,9 @@ export default function EmployeeList() {
     const employee = selectedEmployee;
     try {
       if (employee.isIntern) {
-        await removeDocument('interns', employee.id);
+        await updateDocument('interns', employee.id, { status: 'deleted' });
       } else {
-        await removeDocument('employees', employee.id);
+        await updateDocument('employees', employee.id, { status: 'deleted' });
       }
 
       // Audit log

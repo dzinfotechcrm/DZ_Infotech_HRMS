@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { query, orderBy, where } from '../../supabase/db';
 import {
   ArrowDownTrayIcon,
@@ -11,6 +12,7 @@ import {
   UsersIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
+  FunnelIcon,
 } from '@heroicons/react/24/outline';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
@@ -660,6 +662,7 @@ export default function PayrollList() {
   const [filterDept, setFilterDept] = useState('');   // department filter
   const [filterType, setFilterType] = useState('');   // 'manager' | 'employee'
   const [empTypeTab, setEmpTypeTab] = useState('employees');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [payslipRow, setPayslipRow] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -971,6 +974,14 @@ export default function PayrollList() {
             )}
             <Button
               variant="secondary"
+              onClick={() => setIsFilterOpen(true)}
+              className="flex items-center gap-2 !px-3 !py-1.5"
+            >
+              <FunnelIcon className="h-5 w-5" />
+              <span className="text-sm font-semibold">Filters</span>
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => exportCSV(filtered)}
               className="!p-2.5"
               title="Export CSV"
@@ -1018,53 +1029,72 @@ export default function PayrollList() {
         />
       </div>
 
-      {/* ── Filter Bar ─────────────────────────────────────────────────────── */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-4">
-          <FilterSelect label="Month" value={filterMonth} onChange={setFilterMonth}>
-            <option value="">All Months</option>
-            {MONTHS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-          </FilterSelect>
+      {/* ── Slide-over Filter Panel ────────────────────────────────────────── */}
+      {isFilterOpen && createPortal(
+        <div className="fixed inset-0 z-[1000] overflow-hidden">
+          <div className="absolute inset-0 bg-neutral-900/50 backdrop-blur-sm transition-opacity" onClick={() => setIsFilterOpen(false)} />
+          <div className="fixed inset-y-0 right-0 max-w-sm w-full flex">
+            <div className="w-full h-full bg-white shadow-2xl flex flex-col transform transition-transform">
+              <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50">
+                <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                  <FunnelIcon className="h-5 w-5 text-primary-600" />
+                  Filters
+                </h3>
+                <button onClick={() => setIsFilterOpen(false)} className="text-neutral-400 hover:text-neutral-600 bg-white shadow-sm border border-neutral-200 hover:bg-neutral-50 p-1.5 rounded-full transition-colors">
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <FilterSelect label="Month" value={filterMonth} onChange={setFilterMonth}>
+                  <option value="">All Months</option>
+                  {MONTHS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                </FilterSelect>
 
-          <FilterSelect label="Year" value={filterYear} onChange={setFilterYear}>
-            <option value="">All Years</option>
-            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-          </FilterSelect>
+                <FilterSelect label="Year" value={filterYear} onChange={setFilterYear}>
+                  <option value="">All Years</option>
+                  {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                </FilterSelect>
 
-          <FilterSelect label="Status" value={filterStatus} onChange={setFilterStatus}>
-            <option value="">All Statuses</option>
-            {Object.entries(STATUS).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </FilterSelect>
+                <FilterSelect label="Status" value={filterStatus} onChange={setFilterStatus}>
+                  <option value="">All Statuses</option>
+                  {Object.entries(STATUS).map(([k, v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </FilterSelect>
 
-          {empTypeTab === 'employees' && (
-            <FilterSelect label="Department" value={filterDept} onChange={setFilterDept}>
-              <option value="">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.name}>{d.name}</option>
-              ))}
-            </FilterSelect>
-          )}
+                {empTypeTab === 'employees' && (
+                  <FilterSelect label="Department" value={filterDept} onChange={setFilterDept}>
+                    <option value="">All Departments</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.name}>{d.name}</option>
+                    ))}
+                  </FilterSelect>
+                )}
 
-          {empTypeTab === 'employees' && (
-            <FilterSelect label="Type" value={filterType} onChange={setFilterType}>
-              <option value="">All Types</option>
-              <option value="manager">Manager</option>
-              <option value="employee">Employee</option>
-            </FilterSelect>
-          )}
-
-          {hasFilters && (
-            <button
-              onClick={() => { setFilterMonth(CUR_MONTH); setFilterYear(CUR_YEAR); setFilterStatus(''); setFilterDept(''); setFilterType(''); }}
-              className="flex items-center gap-1 self-end rounded-xl border border-neutral-200 px-3 py-2 text-xs font-semibold text-neutral-500 hover:bg-neutral-50 transition"
-            >
-              <XMarkIcon className="h-3.5 w-3.5" /> Reset
-            </button>
-          )}
-        </div>
-      </Card>
+                {empTypeTab === 'employees' && (
+                  <FilterSelect label="Type" value={filterType} onChange={setFilterType}>
+                    <option value="">All Types</option>
+                    <option value="manager">Manager</option>
+                    <option value="employee">Employee</option>
+                  </FilterSelect>
+                )}
+              </div>
+              
+              <div className="p-6 border-t border-neutral-100 bg-neutral-50/50 flex gap-3">
+                <Button variant="secondary" className="flex-1 justify-center bg-white" onClick={() => {
+                  setFilterMonth(CUR_MONTH); setFilterYear(CUR_YEAR); setFilterStatus(''); setFilterDept(''); setFilterType('');
+                }}>
+                  Reset Filters
+                </Button>
+                <Button className="flex-1 justify-center" onClick={() => setIsFilterOpen(false)}>
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── Payroll Table ──────────────────────────────────────────────────── */}
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
