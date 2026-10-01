@@ -428,7 +428,7 @@ export default function InvoiceGenerator() {
 
       <ConfirmModal
         open={!!deleteId}
-        onClose={() => setDeleteId(null)}
+        onCancel={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete Invoice"
         message="Are you sure you want to delete this invoice? This action cannot be undone."
