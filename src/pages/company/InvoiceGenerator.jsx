@@ -394,8 +394,8 @@ export default function InvoiceGenerator() {
                 <td className="px-4 py-3 text-sm font-medium text-slate-900">
                   ₹{Number(invoice.total || 0).toLocaleString()}
                 </td>
-                <td className="px-4 py-3 text-sm text-right">
-                  <div className="flex justify-end gap-2">
+                <td className="px-4 py-3 text-sm">
+                  <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(invoice)}
                       className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
