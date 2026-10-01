@@ -1448,7 +1448,7 @@ export default function EmployeeList() {
     }
     if (!dept) return true;
 
-    const hasEmployees = employees.some(e => e.id !== employee.id && e.departmentId === dept.id);
+    const hasEmployees = employees.some(e => e.id !== employee.id && e.departmentId === dept.id && e.status !== 'deleted');
     return !hasEmployees;
   };
 

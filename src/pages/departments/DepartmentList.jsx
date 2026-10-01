@@ -42,13 +42,13 @@ export default function DepartmentList() {
       const dept = departments.find(d => d.id === employee.departmentId || d.name === employee.departmentId);
       
       if (dept) {
-        // Count all employees (exclude only Admin)
-        if (employee.designation !== 'Admin') {
+        // Count all employees (exclude only Admin and deleted)
+        if (employee.designation !== 'Admin' && employee.status !== 'deleted') {
           counts[dept.id] = (counts[dept.id] || 0) + 1;
         }
 
         // Fallback manager identification if not explicitly set in department
-        if (!managers[dept.id]) {
+        if (!managers[dept.id] && employee.status !== 'deleted') {
           const isManager = employee.role?.toLowerCase() === 'manager' || employee.designation?.toLowerCase() === 'manager';
           if (isManager) {
             managers[dept.id] = `${employee.firstName || ''} ${employee.lastName || ''}`.trim();

@@ -243,22 +243,24 @@ export const InvoicePDF = ({ data, items }) => {
 
             <View style={styles.notesBox}>
               <Text style={[styles.sectionTitle, { color: colors.secondary }]}>Payment Terms / Notes</Text>
-              <Text style={styles.notesText}>{data.notes || 'Please pay the invoice by the due date. Thank you for your business!'}</Text>
+              <Text style={styles.notesText}>Payment is due within 7 days of the invoice date.</Text>
+              <Text style={styles.notesText}>Please mention {data.invoiceNo} when making the payment.</Text>
+              <Text style={[styles.notesText, { marginTop: 8 }]}>{data.notes || 'Thank you for your business!'}</Text>
             </View>
           </View>
 
           <View style={[styles.summaryBox, { width: '45%', marginTop: 0 }]}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>Rs. {subtotal.toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>₹ {subtotal.toLocaleString('en-IN')}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Discount</Text>
-              <Text style={styles.summaryValue}>- Rs. {Number(data.discount).toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>- ₹ {Number(data.discount).toLocaleString('en-IN')}</Text>
             </View>
             <View style={styles.summaryTotalRow}>
-              <Text style={styles.totalLabel}>Total Due</Text>
-              <Text style={styles.totalValue}>Rs. {formattedTotal}</Text>
+              <Text style={styles.totalLabel}>Total Amount</Text>
+              <Text style={styles.totalValue}>₹ {formattedTotal}</Text>
             </View>
             
             <View style={{ marginTop: 15, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
