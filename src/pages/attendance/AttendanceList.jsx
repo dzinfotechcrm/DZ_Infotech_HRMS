@@ -240,7 +240,10 @@ export default function AttendanceList() {
               }
             }
           } else {
-            if (emp.status === 'deleted') continue;
+            if (emp.status === 'deleted') {
+              const deletedDate = emp.updated_at ? emp.updated_at.split('T')[0] : null;
+              if (!deletedDate || d > deletedDate) continue;
+            }
 
             const dateObj = new Date(d);
             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
@@ -295,7 +298,10 @@ export default function AttendanceList() {
             continue;
           }
 
-          if (emp.status === 'deleted') continue;
+          if (emp.status === 'deleted') {
+            const deletedDate = emp.updated_at ? emp.updated_at.split('T')[0] : null;
+            if (!deletedDate || d > deletedDate) continue;
+          }
 
           const dateObj = new Date(d);
           const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
