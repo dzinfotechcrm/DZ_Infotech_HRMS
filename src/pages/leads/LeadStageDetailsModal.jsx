@@ -120,27 +120,25 @@ export default function LeadStageDetailsModal({ open, lead, onClose, onEditLead,
               <Button variant="secondary" onClick={onEditLead} className="text-xs py-1.5 px-3">
                 Edit Basic Info
               </Button>
-              {hasUniqueData && (
-                isEditing ? (
-                  <>
-                    <Button variant="secondary" onClick={() => setIsEditing(false)} className="text-xs py-1.5 px-3 border-slate-300 text-slate-600 hover:bg-slate-100">
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSave} className="text-xs py-1.5 px-3">
-                      Save Stage Info
-                    </Button>
-                  </>
-                ) : (
-                  <Button variant="secondary" onClick={() => setIsEditing(true)} className="text-xs py-1.5 px-3 border-primary-200 text-primary-700 hover:bg-primary-50">
-                    Edit Stage Info
+              {isEditing ? (
+                <>
+                  <Button variant="secondary" onClick={() => setIsEditing(false)} className="text-xs py-1.5 px-3 border-slate-300 text-slate-600 hover:bg-slate-100">
+                    Cancel
                   </Button>
-                )
+                  <Button onClick={handleSave} className="text-xs py-1.5 px-3">
+                    Save Stage Info
+                  </Button>
+                </>
+              ) : (
+                <Button variant="secondary" onClick={() => setIsEditing(true)} className="text-xs py-1.5 px-3 border-primary-200 text-primary-700 hover:bg-primary-50">
+                  Edit Stage Info
+                </Button>
               )}
             </div>
           </div>
           
           {(() => {
-            if (!hasUniqueData) {
+            if (!hasUniqueData && !isEditing) {
               return <p className="text-sm text-slate-500 italic mt-8 text-center">No details recorded for {TABS[currentTab]} yet.</p>;
             }
 

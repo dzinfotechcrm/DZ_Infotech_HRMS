@@ -26,6 +26,7 @@ const titleMap = [
   ['/activities', 'Activity Log'],
   ['/profile', 'Profile Management'],
   ['/company/documents', 'Company Documents'],
+  ['/company/invoices', 'Invoice Generator'],
 
 ];
 

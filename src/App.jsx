@@ -39,6 +39,7 @@ const Expense = lazy(() => import('./pages/revenue/Expense'));
 
 const CompanyDocuments = lazy(() => import('./pages/company/documents/CompanyDocuments'));
 const CompanyQuotations = lazy(() => import('./pages/company/quotations/CompanyQuotations'));
+const InvoiceGenerator = lazy(() => import('./pages/company/InvoiceGenerator'));
 
 // SFMS Routes
 const SfmsDashboard = lazy(() => import('./pages/sfms/Dashboard'));
@@ -116,6 +117,7 @@ export default function App() {
 
           <Route path="company/documents" element={<ProtectedRoute allowedRoles={PERMISSIONS.documents}><CompanyDocuments /></ProtectedRoute>} />
           <Route path="company/quotations" element={<ProtectedRoute allowedRoles={PERMISSIONS.quotations}><CompanyQuotations /></ProtectedRoute>} />
+          <Route path="company/invoices" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><InvoiceGenerator /></ProtectedRoute>} />
 
           <Route path="announcements" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr]}><AnnouncementsAdmin /></ProtectedRoute>} />
 

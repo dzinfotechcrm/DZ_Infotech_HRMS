@@ -30,6 +30,7 @@ import {
   ComputerDesktopIcon,
   MegaphoneIcon,
   DocumentTextIcon,
+  ReceiptPercentIcon,
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
@@ -66,6 +67,7 @@ const revenueNavigation = [
 const companyNavigation = [
   { to: '/company/documents', label: 'Documents', icon: DocumentMagnifyingGlassIcon },
   { to: '/company/quotations', label: 'Quotations', icon: DocumentTextIcon },
+  { to: '/company/invoices', label: 'Invoices', icon: ReceiptPercentIcon },
 ];
 
 const fieldSalesNavigation = [
@@ -109,7 +111,7 @@ export default function Sidebar({ open, onClose, user, isAdminLikeRole, isCollap
     <>
       {open && <div className="fixed inset-0 z-30 bg-neutral-950/50 lg:hidden" onClick={onClose} />}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 transform border-r border-primary-800/70 bg-primary-900 text-white transition-all duration-300 flex flex-col lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static ${isCollapsed ? 'w-[80px]' : 'w-[260px]'}`}
+        className={`fixed inset-y-0 left-0 z-40 transform border-r border-primary-800/70 bg-primary-900 text-white transition-all duration-300 flex flex-col lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} lg:static ${isCollapsed ? 'w-[100px]' : 'w-[260px]'}`}
       >
         <div className={`flex h-[76px] items-center border-b border-white/10 ${isCollapsed ? 'justify-center' : 'justify-between px-4'}`}>
           <div className="flex items-center gap-3">
