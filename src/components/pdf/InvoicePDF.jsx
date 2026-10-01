@@ -1,6 +1,14 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { numberToWords } from '../../utils/numberToWords';
+
+Font.register({
+  family: 'Roboto',
+  fonts: [
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf' },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf', fontWeight: 'bold' }
+  ]
+});
 
 const colors = {
   primary: '#172A6C', // DZ Dark Blue
@@ -14,7 +22,7 @@ const colors = {
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Roboto',
     fontSize: 10,
     color: colors.text,
     backgroundColor: '#FFFFFF',
@@ -252,15 +260,15 @@ export const InvoicePDF = ({ data, items }) => {
           <View style={[styles.summaryBox, { width: '45%', marginTop: 0 }]}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal</Text>
-              <Text style={styles.summaryValue}>Rs. {subtotal.toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>₹ {subtotal.toLocaleString('en-IN')}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Discount</Text>
-              <Text style={styles.summaryValue}>- Rs. {Number(data.discount).toLocaleString('en-IN')}</Text>
+              <Text style={styles.summaryValue}>- ₹ {Number(data.discount).toLocaleString('en-IN')}</Text>
             </View>
             <View style={styles.summaryTotalRow}>
               <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalValue}>Rs. {formattedTotal}</Text>
+              <Text style={styles.totalValue}>₹ {formattedTotal}</Text>
             </View>
             
             <View style={{ marginTop: 15, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border }}>
