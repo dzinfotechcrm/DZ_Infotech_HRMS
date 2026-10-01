@@ -1,5 +1,6 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
+import { numberToWords } from '../../utils/numberToWords';
 
 const colors = {
   primary: '#172A6C', // DZ Dark Blue
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 40,
+    marginBottom: 25,
   },
   logo: {
     width: 140,
@@ -45,7 +46,7 @@ const styles = StyleSheet.create({
   topSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 40,
+    marginBottom: 25,
   },
   billToBox: {
     backgroundColor: colors.bg,
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
   },
   table: {
     width: '100%',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -149,8 +150,8 @@ const styles = StyleSheet.create({
     right: 40,
   },
   notesBox: {
-    marginTop: 40,
-    paddingTop: 20,
+    marginTop: 20,
+    paddingTop: 15,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -163,8 +164,10 @@ const styles = StyleSheet.create({
 
 export const InvoicePDF = ({ data, items }) => {
   const subtotal = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.rate)), 0);
-  const taxAmount = (subtotal * Number(data.taxPercentage)) / 100;
-  const total = subtotal + taxAmount - Number(data.discount);
+  const total = subtotal - Number(data.discount);
+  
+  const formattedTotal = total.toLocaleString('en-IN');
+  const amountInWords = numberToWords(total);
 
   return (
     <Document>
@@ -211,10 +214,10 @@ export const InvoicePDF = ({ data, items }) => {
 
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={styles.thDesc}>Description</Text>
+            <Text style={styles.thDesc}>Service Description</Text>
             <Text style={styles.thQty}>Qty</Text>
-            <Text style={styles.thRate}>Rate (Rs.)</Text>
-            <Text style={styles.thAmount}>Amount (Rs.)</Text>
+            <Text style={styles.thRate}>Unit Price</Text>
+            <Text style={styles.thAmount}>Amount</Text>
           </View>
 
           {items.map((item, i) => (
@@ -227,28 +230,42 @@ export const InvoicePDF = ({ data, items }) => {
           ))}
         </View>
 
-        <View style={styles.summaryBox}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>Rs. {subtotal.toLocaleString('en-IN')}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Tax ({data.taxPercentage}%)</Text>
-            <Text style={styles.summaryValue}>Rs. {taxAmount.toLocaleString('en-IN')}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Discount</Text>
-            <Text style={styles.summaryValue}>- Rs. {Number(data.discount).toLocaleString('en-IN')}</Text>
-          </View>
-          <View style={styles.summaryTotalRow}>
-            <Text style={styles.totalLabel}>Total Due</Text>
-            <Text style={styles.totalValue}>Rs. {total.toLocaleString('en-IN')}</Text>
-          </View>
-        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View style={{ width: '55%' }}>
+            <View style={{ marginBottom: 20 }}>
+              <Text style={styles.sectionTitle}>Amount in Words</Text>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: colors.text }}>{amountInWords}</Text>
+            </View>
 
-        <View style={styles.notesBox}>
-          <Text style={[styles.sectionTitle, { color: colors.secondary }]}>Notes / Payment Terms</Text>
-          <Text style={styles.notesText}>{data.notes || 'Please pay the invoice by the due date. Thank you for your business!'}</Text>
+            <View style={{ backgroundColor: colors.bg, padding: 15, borderRadius: 8, borderLeftWidth: 4, borderLeftColor: colors.secondary }}>
+              <Text style={styles.sectionTitle}>Payment Details</Text>
+              {data.bankName && <Text style={styles.clientInfo}>Bank Name: <Text style={{ color: colors.text }}>{data.bankName}</Text></Text>}
+              {data.accountName && <Text style={styles.clientInfo}>Account Name: <Text style={{ color: colors.text }}>{data.accountName}</Text></Text>}
+              {data.accountNo && <Text style={styles.clientInfo}>Account No: <Text style={{ color: colors.text }}>{data.accountNo}</Text></Text>}
+              {data.ifsc && <Text style={styles.clientInfo}>IFSC: <Text style={{ color: colors.text }}>{data.ifsc}</Text></Text>}
+              {data.upiId && <Text style={styles.clientInfo}>UPI ID: <Text style={{ color: colors.text }}>{data.upiId}</Text></Text>}
+            </View>
+
+            <View style={styles.notesBox}>
+              <Text style={[styles.sectionTitle, { color: colors.secondary }]}>Payment Terms / Notes</Text>
+              <Text style={styles.notesText}>{data.notes || 'Please pay the invoice by the due date. Thank you for your business!'}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.summaryBox, { width: '40%', marginTop: 0 }]}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Subtotal</Text>
+              <Text style={styles.summaryValue}>₹ {subtotal.toLocaleString('en-IN')}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Discount</Text>
+              <Text style={styles.summaryValue}>- ₹ {Number(data.discount).toLocaleString('en-IN')}</Text>
+            </View>
+            <View style={styles.summaryTotalRow}>
+              <Text style={styles.totalLabel}>Total Due</Text>
+              <Text style={styles.totalValue}>₹ {formattedTotal}</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.footer}>

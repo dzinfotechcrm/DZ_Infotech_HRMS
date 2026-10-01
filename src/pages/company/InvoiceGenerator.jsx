@@ -43,9 +43,13 @@ export default function InvoiceGenerator() {
     clientAddress: '',
     clientEmail: '',
     clientPhone: '',
-    taxPercentage: 18,
     discount: 0,
     notes: 'Thank you for your business!',
+    bankName: '',
+    accountName: '',
+    accountNo: '',
+    ifsc: '',
+    upiId: '',
   });
 
   const [items, setItems] = useState([
@@ -83,8 +87,7 @@ export default function InvoiceGenerator() {
   };
 
   const subtotal = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.rate)), 0);
-  const taxAmount = (subtotal * Number(invoiceData.taxPercentage)) / 100;
-  const total = subtotal + taxAmount - Number(invoiceData.discount);
+  const total = subtotal - Number(invoiceData.discount);
 
   const downloadPDF = async (dataToUse, itemsToUse) => {
     try {
@@ -126,12 +129,15 @@ export default function InvoiceGenerator() {
         clientAddress: invoiceData.clientAddress,
         clientEmail: invoiceData.clientEmail,
         clientPhone: invoiceData.clientPhone,
-        taxPercentage: Number(invoiceData.taxPercentage) || 0,
         discount: Number(invoiceData.discount) || 0,
         notes: invoiceData.notes,
+        bankName: invoiceData.bankName,
+        accountName: invoiceData.accountName,
+        accountNo: invoiceData.accountNo,
+        ifsc: invoiceData.ifsc,
+        upiId: invoiceData.upiId,
         items: items,
         subtotal,
-        taxAmount,
         total
       };
 
@@ -152,9 +158,13 @@ export default function InvoiceGenerator() {
         clientAddress: '',
         clientEmail: '',
         clientPhone: '',
-        taxPercentage: 18,
         discount: 0,
         notes: 'Thank you for your business!',
+        bankName: '',
+        accountName: '',
+        accountNo: '',
+        ifsc: '',
+        upiId: '',
       });
       setItems([{ id: Date.now(), description: '', quantity: 1, rate: 0 }]);
       setActiveTab('saved');
@@ -243,13 +253,13 @@ export default function InvoiceGenerator() {
                 {items.map((item, index) => (
                   <div key={item.id} className="flex gap-4 items-end bg-slate-50 p-3 rounded-lg border border-slate-100">
                     <div className="flex-1">
-                      <Input label="Description" value={item.description} onChange={(e) => handleItemChange(item.id, 'description', e.target.value)} placeholder="Item description..." />
+                      <Input label="Service Description" value={item.description} onChange={(e) => handleItemChange(item.id, 'description', e.target.value)} placeholder="Service description..." />
                     </div>
                     <div className="w-24">
                       <Input type="number" label="Qty" value={item.quantity} onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)} />
                     </div>
                     <div className="w-32">
-                      <Input type="number" label="Rate" value={item.rate} onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)} />
+                      <Input type="number" label="Unit Price" value={item.rate} onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)} />
                     </div>
                     <div className="w-32">
                       <Input label="Amount" value={(Number(item.quantity) * Number(item.rate)).toFixed(2)} disabled />
@@ -276,11 +286,8 @@ export default function InvoiceGenerator() {
             </Card>
 
             <Card className="p-5 space-y-4">
-              <h3 className="font-semibold text-lg border-b pb-2 mb-4">Totals & Notes</h3>
+              <h3 className="font-semibold text-lg border-b pb-2 mb-4">Totals</h3>
               <div className="flex gap-4">
-                <div className="flex-1">
-                  <Input type="number" label="Tax (%)" value={invoiceData.taxPercentage} onChange={(e) => handleDataChange('taxPercentage', e.target.value)} />
-                </div>
                 <div className="flex-1">
                   <Input type="number" label="Discount" value={invoiceData.discount} onChange={(e) => handleDataChange('discount', e.target.value)} />
                 </div>
@@ -289,24 +296,33 @@ export default function InvoiceGenerator() {
               <div className="pt-4 border-t space-y-2 text-sm">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Tax</span>
-                  <span>+ ₹{taxAmount.toFixed(2)}</span>
+                  <span>₹{subtotal.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>Discount</span>
-                  <span>- ₹{Number(invoiceData.discount).toFixed(2)}</span>
+                  <span>- ₹{Number(invoiceData.discount).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg text-primary-700 pt-2 border-t">
                   <span>Total</span>
-                  <span>₹{total.toFixed(2)}</span>
+                  <span>₹{total.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
-              <div className="pt-4">
-                <label className="block text-sm font-semibold text-neutral-900 mb-1.5">Notes / Payment Terms</label>
+              <div className="pt-4 border-t mt-4">
+                <h3 className="font-semibold text-lg pb-2 mb-2">Payment Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label="Bank Name" value={invoiceData.bankName} onChange={(e) => handleDataChange('bankName', e.target.value)} />
+                  <Input label="Account Name" value={invoiceData.accountName} onChange={(e) => handleDataChange('accountName', e.target.value)} />
+                  <Input label="Account No" value={invoiceData.accountNo} onChange={(e) => handleDataChange('accountNo', e.target.value)} />
+                  <Input label="IFSC Code" value={invoiceData.ifsc} onChange={(e) => handleDataChange('ifsc', e.target.value)} />
+                  <div className="col-span-2">
+                    <Input label="UPI ID" value={invoiceData.upiId} onChange={(e) => handleDataChange('upiId', e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t mt-4">
+                <label className="block text-sm font-semibold text-neutral-900 mb-1.5">Payment Terms / Notes</label>
                 <textarea
                   className="w-full text-sm text-slate-900 bg-white p-3 rounded-xl border border-slate-200 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none resize-y min-h-[80px]"
                   value={invoiceData.notes}
