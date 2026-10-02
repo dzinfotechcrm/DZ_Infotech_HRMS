@@ -77,7 +77,7 @@ export default function WeeklyTargetPrompt({ user }) {
               type="number"
               required
               min="1"
-              className="w-full rounded-lg border-neutral-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-lg py-2"
+              className="w-full rounded-lg border-neutral-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-lg py-2 px-3"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
               placeholder="e.g. 50"
