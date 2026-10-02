@@ -16,6 +16,7 @@ const initialDocs = [];
 export default function CompanyDocuments() {
   const [pptFile, setPptFile] = useState(null);
   const [catalogueFile, setCatalogueFile] = useState(null);
+  const [otherDocFile, setOtherDocFile] = useState(null);
   const companyDocsQuery = useMemo(() => (base) => query(base, where('employeeId', '==', 'company')), []);
   const { items: rawDocuments, refetch, loading } = useSupabaseCollection('documents', companyDocsQuery);
   
@@ -23,7 +24,7 @@ export default function CompanyDocuments() {
     return rawDocuments.map(doc => ({
       id: doc.id,
       name: doc.fileName || doc.name,
-      type: doc.docType === 'Company PPT' ? 'PPT' : 'Catalogue',
+      type: doc.docType === 'Company PPT' ? 'PPT' : doc.docType === 'Company Catalogue' ? 'Catalogue' : 'Other',
       uploadDate: (doc.createdAt || new Date().toISOString()).split('T')[0],
       size: doc.fileSize ? (doc.fileSize / (1024 * 1024)).toFixed(2) + ' MB' : doc.size || 'Unknown',
       url: doc.fileURL || doc.url
@@ -86,6 +87,34 @@ export default function CompanyDocuments() {
     } catch (error) {
       console.error(error);
       toast.error('Failed to upload Catalogue', { id: toastId });
+    }
+  };
+
+  const handleOtherDocUpload = async (e) => {
+    e.preventDefault();
+    if (!otherDocFile) {
+      toast.error('Please select a document to upload');
+      return;
+    }
+    const toastId = toast.loading('Uploading Document...');
+    try {
+      const fileUrl = await uploadFile(otherDocFile, 'company_documents');
+      const newDoc = {
+        employee_id: 'company',
+        data: {
+          docType: 'Other Document',
+          fileName: otherDocFile.name,
+          fileURL: fileUrl,
+          fileSize: otherDocFile.size,
+        }
+      };
+      await createDocument('documents', newDoc);
+      refetch();
+      toast.success('Document uploaded successfully', { id: toastId });
+      setOtherDocFile(null);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to upload Document', { id: toastId });
     }
   };
 
@@ -159,7 +188,7 @@ export default function CompanyDocuments() {
         </div>
       </td>
       <td className="px-4 py-3">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${doc.type === 'PPT' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${doc.type === 'PPT' ? 'bg-orange-100 text-orange-700' : doc.type === 'Catalogue' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
           }`}>
           {doc.type}
         </span>
@@ -186,7 +215,7 @@ export default function CompanyDocuments() {
     <div className="space-y-6">
       <PageHeader title="Company Documents" description="Manage company wide documents and templates" />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-neutral-900 mb-4">Upload PPT</h3>
           <form onSubmit={handlePptUpload} className="space-y-4">
@@ -249,6 +278,31 @@ export default function CompanyDocuments() {
             </div>
             <Button type="submit" variant="primary" className="w-full" disabled={!catalogueFile}>
               Upload Catalogue
+            </Button>
+          </form>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-neutral-900 mb-4">Upload Other Document</h3>
+          <form onSubmit={handleOtherDocUpload} className="space-y-4">
+            <div className="relative group flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-neutral-300 rounded-xl bg-neutral-50 hover:bg-primary-50 hover:border-primary-400 transition-colors cursor-pointer overflow-hidden">
+              <input
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    setOtherDocFile(file);
+                  }
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <CloudArrowUpIcon className="h-8 w-8 text-neutral-400 group-hover:text-primary-500 mb-2 transition-colors" />
+              <span className="text-sm font-medium text-neutral-600 group-hover:text-primary-600 px-4 text-center truncate w-full">
+                {otherDocFile ? otherDocFile.name : "Click or drag to select Document"}
+              </span>
+            </div>
+            <Button type="submit" variant="primary" className="w-full" disabled={!otherDocFile}>
+              Upload Document
             </Button>
           </form>
         </Card>
