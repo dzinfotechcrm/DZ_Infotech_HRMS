@@ -225,11 +225,10 @@ export default function LeaveForm({ mode = 'create' }) {
     );
   }
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const yyyy = tomorrow.getFullYear();
-  const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const dd = String(tomorrow.getDate()).padStart(2, '0');
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
   const minDateStr = `${yyyy}-${mm}-${dd}`;
 
   return (
@@ -280,7 +279,7 @@ export default function LeaveForm({ mode = 'create' }) {
             {...register('fromDate', {
               required: 'From date is required',
               validate: (value) => {
-                if (value < minDateStr) return 'Leave must be for a future date';
+                if (value < minDateStr) return 'Leave must be for today or a future date';
                 return true;
               }
             })}
@@ -294,7 +293,7 @@ export default function LeaveForm({ mode = 'create' }) {
               required: 'To date is required',
               validate: (value, formValues) => {
                 if (!formValues.fromDate) return true;
-                if (value < minDateStr) return 'Leave must be for a future date';
+                if (value < minDateStr) return 'Leave must be for today or a future date';
                 const from = new Date(formValues.fromDate);
                 const to = new Date(value);
                 // reset time for accurate day comparison
