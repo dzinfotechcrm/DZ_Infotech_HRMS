@@ -267,6 +267,7 @@ export default function LeaveForm({ mode = 'create' }) {
             </Select>
           ) : (
             <Select label="Leave Type" {...register('leaveTypeId', { required: 'Leave type is required' })} error={errors.leaveTypeId?.message}>
+              <option value="">Select leave type</option>
               <option value="intern-leave">Intern Leave</option>
               <option value="unpaid-leave">Unpaid Leave</option>
             </Select>
