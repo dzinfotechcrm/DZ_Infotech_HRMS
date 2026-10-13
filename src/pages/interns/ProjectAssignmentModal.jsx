@@ -37,7 +37,6 @@ export default function ProjectAssignmentModal({
   preselectedIntern = null,
   interns = [],
   employees = [],
-  projects = [],
 }) {
   const isEdit = Boolean(assignment?.id);
   const todayStr = formatDate(new Date(), 'yyyy-MM-dd');
@@ -46,7 +45,6 @@ export default function ProjectAssignmentModal({
     intern_id: '',
     intern_name: '',
     intern_role: '',
-    project_id: '',
     project_name: '',
     mentor_id: '',
     mentor_name: '',
@@ -56,7 +54,6 @@ export default function ProjectAssignmentModal({
     description: '',
   });
 
-  const [customProject, setCustomProject] = useState(false);
   const [customMentor, setCustomMentor] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -65,28 +62,20 @@ export default function ProjectAssignmentModal({
     if (!open) return;
 
     if (assignment) {
-      const hasKnownProject = projects.some(
-        (p) => String(p.id) === String(assignment.project_id || assignment.projectId)
-      );
       const hasKnownMentor = employees.some(
         (e) => String(e.id) === String(assignment.mentor_id || assignment.mentorId)
       );
 
       const iId = assignment.intern_id || assignment.internId || '';
-      const pId = assignment.project_id || assignment.projectId || '';
       const mId = assignment.mentor_id || assignment.mentorId || '';
-
-      const isCustomP = !hasKnownProject && Boolean(assignment.project_name || assignment.projectName);
       const isCustomM = !hasKnownMentor && Boolean(assignment.mentor_name || assignment.mentorName);
 
-      setCustomProject(isCustomP);
       setCustomMentor(isCustomM);
 
       setFormData({
         intern_id: iId,
         intern_name: assignment.intern_name || assignment.internName || '',
         intern_role: assignment.intern_role || assignment.internRole || '',
-        project_id: pId,
         project_name: assignment.project_name || assignment.projectName || '',
         mentor_id: mId,
         mentor_name: assignment.mentor_name || assignment.mentorName || '',
@@ -106,7 +95,6 @@ export default function ProjectAssignmentModal({
         intern_id: preselectedIntern.id || '',
         intern_name: pName,
         intern_role: pRole,
-        project_id: '',
         project_name: '',
         mentor_id: '',
         mentor_name: '',
@@ -115,14 +103,12 @@ export default function ProjectAssignmentModal({
         status: 'In Progress',
         description: '',
       });
-      setCustomProject(false);
       setCustomMentor(false);
     } else {
       setFormData({
         intern_id: '',
         intern_name: '',
         intern_role: '',
-        project_id: '',
         project_name: '',
         mentor_id: '',
         mentor_name: '',
@@ -131,10 +117,9 @@ export default function ProjectAssignmentModal({
         status: 'In Progress',
         description: '',
       });
-      setCustomProject(false);
       setCustomMentor(false);
     }
-  }, [open, assignment, preselectedIntern, projects, employees, todayStr]);
+  }, [open, assignment, preselectedIntern, employees, todayStr]);
 
   // Handle intern selection from SearchableSelect
   const handleInternChange = (e) => {
@@ -158,21 +143,6 @@ export default function ProjectAssignmentModal({
     }
   };
 
-  // Handle project selection
-  const handleProjectChange = (e) => {
-    const val = e.target.value;
-    const found = projects.find((p) => String(p.id) === String(val));
-    if (found) {
-      setFormData((prev) => ({
-        ...prev,
-        project_id: found.id,
-        project_name: found.name || found.projectName || '',
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, project_id: '', project_name: '' }));
-    }
-  };
-
   // Handle mentor selection
   const handleMentorChange = (e) => {
     const val = e.target.value;
@@ -192,7 +162,7 @@ export default function ProjectAssignmentModal({
     }
   };
 
-  // Searchable intern options (clean list with only existing interns, NO "+ Other / New Intern")
+  // Searchable intern options (no Other / New Intern)
   const internOptions = interns.map((i) => {
     const name =
       i.full_name || `${i.first_name || ''} ${i.last_name || ''}`.trim() || i.name;
@@ -202,11 +172,6 @@ export default function ProjectAssignmentModal({
       label: `${name} (${role})`,
     };
   });
-
-  const projectOptions = projects.map((p) => ({
-    value: p.id,
-    label: p.name || p.projectName,
-  }));
 
   const mentorOptions = employees.map((emp) => {
     const name =
@@ -230,7 +195,7 @@ export default function ProjectAssignmentModal({
       return;
     }
     if (!formData.project_name?.trim()) {
-      toast.error('Please select or enter Project Name');
+      toast.error('Please enter Project Name');
       return;
     }
     if (!formData.start_date) {
@@ -244,7 +209,6 @@ export default function ProjectAssignmentModal({
         intern_id: formData.intern_id || null,
         intern_name: formData.intern_name.trim(),
         intern_role: formData.intern_role.trim(),
-        project_id: customProject ? null : formData.project_id || null,
         project_name: formData.project_name.trim(),
         mentor_id: customMentor ? null : formData.mentor_id || null,
         mentor_name: formData.mentor_name.trim() || 'Admin',
@@ -343,42 +307,18 @@ export default function ProjectAssignmentModal({
           </h5>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Project Name (Manually typed) */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-neutral-700">Project *</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomProject(!customProject);
-                    if (!customProject) {
-                      setFormData((p) => ({ ...p, project_id: '', project_name: '' }));
-                    }
-                  }}
-                  className="text-xs text-primary-600 hover:underline font-semibold"
-                >
-                  {customProject ? '← Select Existing' : '+ Type Custom Project'}
-                </button>
-              </div>
-
-              {customProject ? (
-                <Input
-                  placeholder="e.g. DZ HRMS Portal"
-                  value={formData.project_name}
-                  onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
-                  required
-                />
-              ) : (
-                <SearchableSelect
-                  name="project_id"
-                  value={formData.project_id}
-                  onChange={handleProjectChange}
-                  options={projectOptions}
-                  placeholder="Search project..."
-                  required
-                />
-              )}
+              <Input
+                label="Project Name *"
+                placeholder="e.g. DZ HRMS Portal"
+                value={formData.project_name}
+                onChange={(e) => setFormData({ ...formData, project_name: e.target.value })}
+                required
+              />
             </div>
 
+            {/* Mentor Selection */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium text-neutral-700">Mentor / Lead</span>
