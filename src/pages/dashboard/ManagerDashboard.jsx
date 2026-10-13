@@ -55,6 +55,9 @@ export default function ManagerDashboard() {
   const teamMembers = useMemo(() => {
     if (!myEmpDocId) return [];
     return employees.filter(emp => {
+      const s = String(emp.status || '').toLowerCase().trim();
+      if (s === 'deleted' || s === 'inactive') return false;
+
       // Exclude self
       if (emp.id === myEmpDocId) return false;
       

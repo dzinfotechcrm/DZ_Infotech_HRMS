@@ -70,31 +70,85 @@ export default function AdminDashboard() {
     return emp ? `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() : id;
   };
 
-  const totalEmployees = employees.filter((employee) => employee.status !== 'inactive' && employee.role !== 'admin').length;
-  const totalInterns = interns.filter((intern) => intern.status !== 'inactive').length;
-  const presentToday = attendance.filter((entry) => entry.status === 'present' && formatDate(entry.date, 'yyyy-MM-dd') === formatDate(new Date(), 'yyyy-MM-dd')).length;
-  const leaveToday = leaveRequests.filter((leaveRequest) => leaveRequest.status === 'approved' && formatDate(leaveRequest.fromDate, 'yyyy-MM-dd') <= formatDate(new Date(), 'yyyy-MM-dd') && formatDate(leaveRequest.toDate, 'yyyy-MM-dd') >= formatDate(new Date(), 'yyyy-MM-dd')).length;
-  const pendingApprovals = leaveRequests.filter((leaveRequest) => leaveRequest.status === 'pending').length;
+  const activeEmployeeIds = useMemo(() => {
+    const ids = new Set();
+    employees.forEach((e) => {
+      const status = String(e.status || '').toLowerCase().trim();
+      if (status !== 'deleted' && status !== 'inactive') {
+        if (e.id) ids.add(String(e.id));
+        if (e.uid) ids.add(String(e.uid));
+      }
+    });
+    interns.forEach((i) => {
+      const status = String(i.status || '').toLowerCase().trim();
+      if (status !== 'deleted' && status !== 'inactive' && status !== 'terminated') {
+        if (i.id) ids.add(String(i.id));
+        if (i.uid) ids.add(String(i.uid));
+      }
+    });
+    return ids;
+  }, [employees, interns]);
+
+  const totalEmployees = employees.filter((employee) => {
+    const status = String(employee.status || '').toLowerCase().trim();
+    const role = String(employee.role || '').toLowerCase().trim();
+    const designation = String(employee.designation || '').toLowerCase().trim();
+    return status !== 'inactive' && status !== 'deleted' && role !== 'admin' && designation !== 'admin';
+  }).length;
+
+  const totalInterns = interns.filter((intern) => {
+    const status = String(intern.status || '').toLowerCase().trim();
+    return status !== 'inactive' && status !== 'deleted' && status !== 'terminated';
+  }).length;
+
+  const presentToday = attendance.filter((entry) => {
+    if (entry.status !== 'present') return false;
+    if (formatDate(entry.date, 'yyyy-MM-dd') !== formatDate(new Date(), 'yyyy-MM-dd')) return false;
+    return activeEmployeeIds.has(String(entry.employeeId));
+  }).length;
+
+  const leaveToday = leaveRequests.filter((leaveRequest) => {
+    if (leaveRequest.status !== 'approved') return false;
+    const today = formatDate(new Date(), 'yyyy-MM-dd');
+    const from = formatDate(leaveRequest.fromDate, 'yyyy-MM-dd');
+    const to = formatDate(leaveRequest.toDate, 'yyyy-MM-dd');
+    if (from > today || to < today) return false;
+    return activeEmployeeIds.has(String(leaveRequest.employeeId));
+  }).length;
+
+  const pendingApprovals = leaveRequests.filter((leaveRequest) => {
+    if (leaveRequest.status !== 'pending') return false;
+    return activeEmployeeIds.has(String(leaveRequest.employeeId));
+  }).length;
 
   const trendData = useMemo(() => {
     const days = [...Array(30)].map((_, index) => {
       const date = new Date();
       date.setDate(date.getDate() - (29 - index));
       const key = formatDate(date, 'yyyy-MM-dd');
-      const dayEntries = attendance.filter((item) => formatDate(item.date, 'yyyy-MM-dd') === key);
+      const dayEntries = attendance.filter((item) => formatDate(item.date, 'yyyy-MM-dd') === key && activeEmployeeIds.has(String(item.employeeId)));
       return {
         label: formatDate(date, 'dd MMM'),
         present: dayEntries.filter((item) => item.status === 'present').length,
-        leave: leaveRequests.filter((item) => item.status === 'approved' && formatDate(item.fromDate, 'yyyy-MM-dd') <= key && formatDate(item.toDate, 'yyyy-MM-dd') >= key).length,
+        leave: leaveRequests.filter((item) => item.status === 'approved' && formatDate(item.fromDate, 'yyyy-MM-dd') <= key && formatDate(item.toDate, 'yyyy-MM-dd') >= key && activeEmployeeIds.has(String(item.employeeId))).length,
       };
     });
     return days;
-  }, [attendance, leaveRequests]);
+  }, [attendance, leaveRequests, activeEmployeeIds]);
 
   const departmentData = useMemo(() => {
     const counts = {};
     employees.forEach((employee) => {
-      if (employee.departmentId && employee.status !== 'inactive' && employee.role !== 'admin') {
+      const status = String(employee.status || '').toLowerCase().trim();
+      const role = String(employee.role || '').toLowerCase().trim();
+      const designation = String(employee.designation || '').toLowerCase().trim();
+      if (
+        employee.departmentId && 
+        status !== 'inactive' && 
+        status !== 'deleted' && 
+        role !== 'admin' && 
+        designation !== 'admin'
+      ) {
         counts[employee.departmentId] = (counts[employee.departmentId] || 0) + 1;
       }
     });
@@ -112,21 +166,27 @@ export default function AdminDashboard() {
 
   const recentLeaves = leaveRequests.slice(0, 5);
   const recentActivity = [
-    ...employees.map((emp) => ({
-      label: `New employee ${emp.firstName} onboarded`,
-      time: formatDate(emp.createdAt, 'dd MMM, hh:mm a'),
-      ts: getTimestamp(emp.createdAt)
-    })),
-    ...attendance.filter((a) => a.status === 'present').map((a) => ({
-      label: `${getEmpName(a.employeeId)} checked in`,
-      time: formatDate(a.createdAt, 'dd MMM, hh:mm a'),
-      ts: getTimestamp(a.createdAt)
-    })),
-    ...leaveRequests.map((leaveRequest) => ({
-      label: `${getEmpName(leaveRequest.employeeId)} applied for ${leaveRequest.leaveTypeName || 'leave'}`,
-      time: formatDate(leaveRequest.createdAt, 'dd MMM, hh:mm a'),
-      ts: getTimestamp(leaveRequest.createdAt)
-    })),
+    ...employees
+      .filter((emp) => String(emp.status || '').toLowerCase().trim() !== 'deleted')
+      .map((emp) => ({
+        label: `New employee ${emp.firstName} onboarded`,
+        time: formatDate(emp.createdAt, 'dd MMM, hh:mm a'),
+        ts: getTimestamp(emp.createdAt)
+      })),
+    ...attendance
+      .filter((a) => a.status === 'present' && activeEmployeeIds.has(String(a.employeeId)))
+      .map((a) => ({
+        label: `${getEmpName(a.employeeId)} checked in`,
+        time: formatDate(a.createdAt, 'dd MMM, hh:mm a'),
+        ts: getTimestamp(a.createdAt)
+      })),
+    ...leaveRequests
+      .filter((leaveRequest) => activeEmployeeIds.has(String(leaveRequest.employeeId)))
+      .map((leaveRequest) => ({
+        label: `${getEmpName(leaveRequest.employeeId)} applied for ${leaveRequest.leaveTypeName || 'leave'}`,
+        time: formatDate(leaveRequest.createdAt, 'dd MMM, hh:mm a'),
+        ts: getTimestamp(leaveRequest.createdAt)
+      })),
   ].sort((a, b) => b.ts - a.ts).slice(0, 5);
 
   const formatCurrency = (amount) => {

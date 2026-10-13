@@ -12,12 +12,18 @@ export default function UpcomingBirthdays({ employees = [], interns = [] }) {
     const currentMonth = today.getMonth();
 
     const allMembers = [
-      ...employees.filter(e => e.status !== 'inactive').map(e => ({ 
+      ...employees.filter(e => {
+        const s = String(e.status || '').toLowerCase().trim();
+        return s !== 'inactive' && s !== 'deleted';
+      }).map(e => ({ 
         ...e, 
         type: e.role === 'admin' ? 'admin' : e.role || 'employee',
         nameDisplay: `${e.firstName || ''} ${e.lastName || ''}`.trim()
       })),
-      ...interns.filter(i => i.status !== 'Terminated' && i.status !== 'Completed').map(i => ({ 
+      ...interns.filter(i => {
+        const s = String(i.status || '').toLowerCase().trim();
+        return s !== 'terminated' && s !== 'completed' && s !== 'deleted' && s !== 'inactive';
+      }).map(i => ({ 
         ...i, 
         type: 'intern', 
         nameDisplay: i.full_name || `${i.first_name || ''} ${i.last_name || ''}`.trim(),
