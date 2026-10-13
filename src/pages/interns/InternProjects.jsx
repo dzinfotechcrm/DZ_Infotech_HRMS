@@ -6,6 +6,8 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 import ConfirmModal from '../../components/ui/ConfirmModal';
 import ProjectAssignmentModal from './ProjectAssignmentModal';
 import { formatDate } from '../../utils/dateHelpers';
@@ -18,15 +20,11 @@ import {
   CalendarDaysIcon,
   PencilSquareIcon,
   TrashIcon,
-  ChatBubbleLeftRightIcon,
-  ClipboardDocumentCheckIcon,
-  ClipboardDocumentIcon,
   CheckCircleIcon,
   ClockIcon,
-  ArrowTopRightOnSquareIcon,
   Squares2X2Icon,
   ListBulletIcon,
-  FunnelIcon,
+  BriefcaseIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -36,6 +34,14 @@ const STATUS_TONES = {
   'Completed': 'success',
   'On Hold': 'warning',
 };
+
+const STATUS_OPTIONS = [
+  { value: 'all', label: 'All Status' },
+  { value: 'In Progress', label: 'In Progress' },
+  { value: 'Assigned', label: 'Assigned' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'On Hold', label: 'On Hold' },
+];
 
 export default function InternProjects() {
   // Collections
@@ -93,7 +99,7 @@ export default function InternProjects() {
           name,
           position: a.intern_role || a.internRole || 'Intern',
           email: '',
-          phone: a.whatsapp_number || a.whatsappNumber || '',
+          phone: '',
           photo_url: '',
           status: 'Active',
         });
@@ -103,9 +109,9 @@ export default function InternProjects() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [rawInterns, rawEmployees, rawAssignments]);
 
-  // Selected intern filter ('all' or intern identifier)
+  // Filters state
   const [selectedInternId, setSelectedInternId] = useState('all');
-  const [internSearch, setInternSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
 
@@ -113,18 +119,6 @@ export default function InternProjects() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [copiedId, setCopiedId] = useState(null);
-
-  // Filtered interns in sidebar
-  const filteredInternList = useMemo(() => {
-    if (!internSearch.trim()) return allInterns;
-    const q = internSearch.toLowerCase();
-    return allInterns.filter(
-      (i) =>
-        i.name.toLowerCase().includes(q) ||
-        (i.position && i.position.toLowerCase().includes(q))
-    );
-  }, [allInterns, internSearch]);
 
   // Selected intern object
   const currentIntern = useMemo(() => {
@@ -142,7 +136,6 @@ export default function InternProjects() {
       if (internKey) {
         counts[internKey] = (counts[internKey] || 0) + 1;
       }
-      // Also index by name
       const name = a.intern_name || a.internName;
       if (name && name !== internKey) {
         counts[name] = (counts[name] || 0) + 1;
@@ -151,13 +144,26 @@ export default function InternProjects() {
     return counts;
   }, [rawAssignments]);
 
+  // Intern filter dropdown options for Select component
+  const internFilterOptions = useMemo(() => {
+    return [
+      { value: 'all', label: `All Interns (${allInterns.length})` },
+      ...allInterns.map((i) => {
+        const count = projectCountByIntern[i.id] || projectCountByIntern[i.name] || 0;
+        return {
+          value: i.id || i.name,
+          label: `${i.name} • ${count} ${count === 1 ? 'project' : 'projects'}`,
+        };
+      }),
+    ];
+  }, [allInterns, projectCountByIntern]);
+
   // Filtered project assignments
-  const displayedAssignments = useMemo(() => {
+  const filteredAssignments = useMemo(() => {
     return rawAssignments.filter((a) => {
       // Intern filter
       if (selectedInternId !== 'all') {
-        const matchesId =
-          String(a.intern_id || a.internId) === String(selectedInternId);
+        const matchesId = String(a.intern_id || a.internId) === String(selectedInternId);
         const matchesName =
           (a.intern_name || a.internName) === selectedInternId ||
           (currentIntern && (a.intern_name || a.internName) === currentIntern.name);
@@ -169,11 +175,31 @@ export default function InternProjects() {
         return false;
       }
 
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const pName = (a.project_name || a.projectName || '').toLowerCase();
+        const iName = (a.intern_name || a.internName || '').toLowerCase();
+        const iRole = (a.intern_role || a.internRole || '').toLowerCase();
+        const mName = (a.mentor_name || a.mentorName || '').toLowerCase();
+        const desc = (a.description || '').toLowerCase();
+
+        if (
+          !pName.includes(q) &&
+          !iName.includes(q) &&
+          !iRole.includes(q) &&
+          !mName.includes(q) &&
+          !desc.includes(q)
+        ) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [rawAssignments, selectedInternId, currentIntern, statusFilter]);
+  }, [rawAssignments, selectedInternId, currentIntern, statusFilter, searchQuery]);
 
-  // Quick statistics
+  // Overall Statistics
   const stats = useMemo(() => {
     const totalAssignments = rawAssignments.length;
     const uniqueInterns = new Set(
@@ -186,7 +212,22 @@ export default function InternProjects() {
     return { totalAssignments, uniqueInterns, active, completed };
   }, [rawAssignments]);
 
-  // Handle Save (Create or Update)
+  // Current intern stats
+  const currentInternStats = useMemo(() => {
+    if (!currentIntern) return null;
+    const internProjects = rawAssignments.filter(
+      (a) =>
+        String(a.intern_id || a.internId) === String(currentIntern.id) ||
+        (a.intern_name || a.internName) === currentIntern.name
+    );
+    const active = internProjects.filter(
+      (a) => a.status === 'In Progress' || a.status === 'Assigned'
+    ).length;
+    const completed = internProjects.filter((a) => a.status === 'Completed').length;
+    return { total: internProjects.length, active, completed };
+  }, [currentIntern, rawAssignments]);
+
+  // Save Assignment
   const handleSaveAssignment = async (payload) => {
     if (editingAssignment?.id) {
       await updateDocument('intern_projects', editingAssignment.id, payload);
@@ -196,7 +237,7 @@ export default function InternProjects() {
     setEditingAssignment(null);
   };
 
-  // Handle Delete
+  // Delete Assignment
   const handleDeleteConfirm = async () => {
     if (!deleteConfirmId) return;
     try {
@@ -208,7 +249,7 @@ export default function InternProjects() {
     }
   };
 
-  // Quick Status Change
+  // Quick Status Change directly on card/table
   const handleQuickStatusChange = async (assignmentId, newStatus) => {
     try {
       await updateDocument('intern_projects', assignmentId, { status: newStatus });
@@ -218,46 +259,13 @@ export default function InternProjects() {
     }
   };
 
-  // WhatsApp Message Generator for an assignment
-  const buildWhatsAppMessage = (a) => {
-    const name = a.intern_name || a.internName || 'Intern';
-    const role = a.intern_role || a.internRole || 'Intern';
-    const project = a.project_name || a.projectName || 'Project';
-    const mentor = a.mentor_name || a.mentorName || 'Team Lead';
-    const start = a.start_date || a.startDate || '';
-    const desc = a.description ? `\n\n📌 *Scope / Tasks:*\n${a.description}` : '';
-    const notes = a.whatsapp_notes || a.whatsappNotes ? `\n\n💡 *Notes:*\n${a.whatsapp_notes || a.whatsappNotes}` : '';
-
-    return `🚀 *Project Assignment - DZ Infotech*\n━━━━━━━━━━━━━━━━━━━━━━━━\n👤 *Intern:* ${name}\n💼 *Role:* ${role}\n📁 *Project:* ${project}\n👨‍🏫 *Mentor:* ${mentor}\n📅 *Start Date:* ${start}${desc}${notes}\n━━━━━━━━━━━━━━━━━━━━━━━━\nBest of luck! Let's build something awesome.`;
-  };
-
-  const handleCopyWhatsApp = (assignment) => {
-    const msg = buildWhatsAppMessage(assignment);
-    navigator.clipboard.writeText(msg);
-    setCopiedId(assignment.id);
-    toast.success('WhatsApp text copied to clipboard!');
-    setTimeout(() => setCopiedId(null), 2500);
-  };
-
-  const handleOpenWhatsApp = (assignment) => {
-    const msg = buildWhatsAppMessage(assignment);
-    const encoded = encodeURIComponent(msg);
-    const phone = (assignment.whatsapp_number || assignment.whatsappNumber || '').replace(/[^0-9]/g, '');
-    let url = `https://wa.me/?text=${encoded}`;
-    if (phone) {
-      const phoneWithCountry = phone.length === 10 ? `91${phone}` : phone;
-      url = `https://wa.me/${phoneWithCountry}?text=${encoded}`;
-    }
-    window.open(url, '_blank');
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <PageHeader
         eyebrow="HRMS"
         title="Intern Projects Tracking"
-        description="Track which intern is assigned to which project, monitor progress, and dispatch assignments via WhatsApp."
+        description="Track and monitor intern project allocations, deliverables, and progress."
         actions={
           <Button
             onClick={() => {
@@ -272,7 +280,7 @@ export default function InternProjects() {
         }
       />
 
-      {/* Overview Stat Cards */}
+      {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 bg-white border border-neutral-200">
           <div className="flex items-center gap-3">
@@ -339,295 +347,354 @@ export default function InternProjects() {
         </Card>
       </div>
 
-      {/* Main Layout: 2 Columns (Intern Selector Panel + Projects Display) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Side: Intern Selector Panel */}
-        <div className="lg:col-span-4 xl:col-span-3 space-y-4">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-neutral-900 text-sm flex items-center gap-2">
-                <UserIcon className="h-4 w-4 text-primary-600" />
-                Select Intern
-              </h3>
-              <span className="text-xs font-semibold text-neutral-500 bg-neutral-100 rounded-full px-2 py-0.5">
-                {allInterns.length}
-              </span>
-            </div>
+      {/* Filter and Control Toolbar */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+          {/* Intern Select Dropdown (Searchable) */}
+          <div className="lg:col-span-4">
+            <SearchableSelect
+              label="Filter by Intern"
+              name="internFilter"
+              value={selectedInternId}
+              onChange={(e) => setSelectedInternId(e.target.value || 'all')}
+              options={internFilterOptions}
+              placeholder="Search & filter intern..."
+            />
+          </div>
 
-            {/* Intern Search */}
-            <div className="relative mb-3">
+          {/* Status Dropdown */}
+          <div className="lg:col-span-3">
+            <Select
+              label="Filter by Status"
+              name="statusFilter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={STATUS_OPTIONS}
+            />
+          </div>
+
+          {/* Search Box */}
+          <div className="lg:col-span-4">
+            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+              Search Projects
+            </label>
+            <div className="relative">
               <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
               <input
                 type="text"
-                placeholder="Search intern..."
-                value={internSearch}
-                onChange={(e) => setInternSearch(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 pl-9 pr-3 py-1.5 text-xs text-neutral-900 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                placeholder="Search project, role, mentor..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-neutral-200 pl-9 pr-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition"
               />
             </div>
+          </div>
 
-            {/* Intern Options List */}
-            <div className="space-y-1.5 max-h-[520px] overflow-y-auto pr-1">
-              {/* All Interns Button */}
+          {/* View Mode Toggle */}
+          <div className="lg:col-span-1 flex flex-col justify-end">
+            <span className="text-xs font-medium text-neutral-500 mb-1.5 hidden lg:block text-center">
+              View
+            </span>
+            <div className="flex items-center justify-center gap-1 border border-neutral-200 rounded-xl p-1 bg-neutral-50">
               <button
                 type="button"
-                onClick={() => setSelectedInternId('all')}
-                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left text-xs font-semibold transition ${
-                  selectedInternId === 'all'
-                    ? 'bg-primary-900 text-white shadow-sm'
-                    : 'bg-neutral-50 text-neutral-700 hover:bg-neutral-100'
+                onClick={() => setViewMode('cards')}
+                title="Cards View"
+                className={`p-1.5 rounded-lg text-neutral-600 transition ${
+                  viewMode === 'cards'
+                    ? 'bg-white text-primary-700 shadow-sm font-bold'
+                    : 'hover:text-neutral-900'
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`flex h-7 w-7 items-center justify-center rounded-lg font-bold text-xs ${
-                      selectedInternId === 'all'
-                        ? 'bg-primary-700 text-white'
-                        : 'bg-neutral-200 text-neutral-700'
-                    }`}
-                  >
-                    All
-                  </div>
-                  <span>All Interns View</span>
-                </div>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                    selectedInternId === 'all'
-                      ? 'bg-primary-800 text-white'
-                      : 'bg-neutral-200/80 text-neutral-700'
-                  }`}
-                >
-                  {rawAssignments.length}
-                </span>
+                <Squares2X2Icon className="h-4 w-4" />
               </button>
-
-              {/* Individual Interns */}
-              {filteredInternList.map((intern) => {
-                const isSelected =
-                  selectedInternId === String(intern.id) ||
-                  selectedInternId === intern.name;
-                const count =
-                  projectCountByIntern[intern.id] ||
-                  projectCountByIntern[intern.name] ||
-                  0;
-
-                return (
-                  <button
-                    key={intern.id || intern.name}
-                    type="button"
-                    onClick={() => setSelectedInternId(intern.id || intern.name)}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition ${
-                      isSelected
-                        ? 'bg-primary-900 text-white shadow-sm'
-                        : 'bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                          isSelected
-                            ? 'bg-primary-700 text-white'
-                            : 'bg-primary-50 text-primary-700'
-                        }`}
-                      >
-                        {intern.name
-                          .split(' ')
-                          .map((n) => n[0])
-                          .slice(0, 2)
-                          .join('')
-                          .toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-bold leading-tight">
-                          {intern.name}
-                        </p>
-                        <p
-                          className={`truncate text-[11px] leading-tight mt-0.5 ${
-                            isSelected ? 'text-primary-200' : 'text-neutral-500'
-                          }`}
-                        >
-                          {intern.position}
-                        </p>
-                      </div>
-                    </div>
-
-                    <span
-                      className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        isSelected
-                          ? 'bg-primary-800 text-white'
-                          : count > 0
-                          ? 'bg-accent-100 text-accent-700'
-                          : 'bg-neutral-100 text-neutral-400'
-                      }`}
-                    >
-                      {count} {count === 1 ? 'proj' : 'projs'}
-                    </span>
-                  </button>
-                );
-              })}
-
-              {filteredInternList.length === 0 && (
-                <div className="p-4 text-center text-xs text-neutral-500">
-                  No interns found matching &quot;{internSearch}&quot;
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                title="Table View"
+                className={`p-1.5 rounded-lg text-neutral-600 transition ${
+                  viewMode === 'table'
+                    ? 'bg-white text-primary-700 shadow-sm font-bold'
+                    : 'hover:text-neutral-900'
+                }`}
+              >
+                <ListBulletIcon className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Side: Projects Display Area */}
-        <div className="lg:col-span-8 xl:col-span-9 space-y-4">
-          {/* Active Intern Banner (if a specific intern is selected) */}
-          {currentIntern && (
-            <div className="rounded-2xl border border-primary-200 bg-gradient-to-r from-primary-900 to-primary-800 p-5 text-white shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white font-bold text-lg ring-2 ring-white/20">
-                    {currentIntern.name
-                      .split(' ')
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join('')
-                      .toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-bold">{currentIntern.name}</h2>
-                      <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-semibold text-white/90">
-                        {currentIntern.position}
-                      </span>
-                    </div>
-                    <p className="text-xs text-white/70 mt-0.5">
-                      {currentIntern.email || 'No email registered'}
-                      {currentIntern.phone && ` • 📞 ${currentIntern.phone}`}
-                    </p>
-                  </div>
-                </div>
-
+      {/* Selected Intern Profile Card (when a specific intern is filtered) */}
+      {currentIntern && (
+        <div className="rounded-2xl border border-primary-200 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900 p-5 text-white shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white font-bold text-lg ring-2 ring-white/20">
+                {currentIntern.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </div>
+              <div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setEditingAssignment(null);
-                      setModalOpen(true);
-                    }}
-                    className="bg-accent-500 text-white hover:bg-accent-600 gap-1 text-xs"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    Assign Project to {currentIntern.name.split(' ')[0]}
-                  </Button>
+                  <h2 className="text-lg font-bold">{currentIntern.name}</h2>
+                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/90">
+                    {currentIntern.position}
+                  </span>
+                </div>
+                <p className="text-xs text-white/70 mt-0.5">
+                  {currentIntern.email || 'No email registered'}
+                  {currentIntern.phone && ` • 📞 ${currentIntern.phone}`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 bg-white/10 rounded-xl px-3 py-1.5 text-xs">
+                <div>
+                  <span className="text-white/60">Active: </span>
+                  <strong className="text-white font-bold">
+                    {currentInternStats?.active || 0}
+                  </strong>
+                </div>
+                <div className="border-l border-white/20 pl-3">
+                  <span className="text-white/60">Completed: </span>
+                  <strong className="text-white font-bold">
+                    {currentInternStats?.completed || 0}
+                  </strong>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Filter Bar & View Toggle */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-neutral-200 rounded-xl p-3 shadow-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1">
-                <FunnelIcon className="h-3.5 w-3.5" />
-                Status:
-              </span>
-              {['all', 'In Progress', 'Assigned', 'Completed', 'On Hold'].map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setStatusFilter(st)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
-                    statusFilter === st
-                      ? 'bg-primary-900 text-white shadow-xs'
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                  }`}
-                >
-                  {st === 'all' ? 'All' : st}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-neutral-500">
-                Showing {displayedAssignments.length} project(s)
-              </span>
-              <div className="border-l border-neutral-200 pl-2 flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('cards')}
-                  title="Card View"
-                  className={`p-1.5 rounded-lg text-neutral-600 transition ${
-                    viewMode === 'cards'
-                      ? 'bg-neutral-200 text-neutral-900 font-bold'
-                      : 'hover:bg-neutral-100'
-                  }`}
-                >
-                  <Squares2X2Icon className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  title="Table View"
-                  className={`p-1.5 rounded-lg text-neutral-600 transition ${
-                    viewMode === 'table'
-                      ? 'bg-neutral-200 text-neutral-900 font-bold'
-                      : 'hover:bg-neutral-100'
-                  }`}
-                >
-                  <ListBulletIcon className="h-4 w-4" />
-                </button>
-              </div>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingAssignment(null);
+                  setModalOpen(true);
+                }}
+                className="bg-accent-500 text-white hover:bg-accent-600 gap-1.5 text-xs font-bold"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Assign Project
+              </Button>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Projects Display: Card View or Table View */}
-          {displayedAssignments.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-12 text-center">
-              <FolderIcon className="mx-auto h-12 w-12 text-neutral-400 mb-3" />
-              <h3 className="text-base font-bold text-neutral-800">
-                {currentIntern
-                  ? `No projects assigned to ${currentIntern.name} yet`
-                  : 'No project assignments found'}
-              </h3>
-              <p className="mt-1 text-xs text-neutral-500 max-w-sm mx-auto">
-                {currentIntern
-                  ? 'Assign a project to start tracking their progress and generate WhatsApp allocation notices.'
-                  : 'Use the button below to assign projects to interns and keep your team aligned.'}
-              </p>
-              <div className="mt-5">
-                <Button
-                  onClick={() => {
-                    setEditingAssignment(null);
-                    setModalOpen(true);
-                  }}
-                  className="gap-2"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  Assign Project Now
-                </Button>
-              </div>
-            </div>
-          ) : viewMode === 'cards' ? (
-            /* Cards View */
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {displayedAssignments.map((assignment) => {
-                const internName = assignment.intern_name || assignment.internName;
-                const internRole = assignment.intern_role || assignment.internRole;
-                const projectName = assignment.project_name || assignment.projectName;
-                const mentorName = assignment.mentor_name || assignment.mentorName || 'Admin';
-                const startDate = assignment.start_date || assignment.startDate;
-                const endDate = assignment.end_date || assignment.endDate;
-                const status = assignment.status || 'In Progress';
-                const tone = STATUS_TONES[status] || 'neutral';
-                const isCopied = copiedId === assignment.id;
+      {/* Projects Display: Card View or Table View */}
+      {filteredAssignments.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-12 text-center">
+          <FolderIcon className="mx-auto h-12 w-12 text-neutral-400 mb-3" />
+          <h3 className="text-base font-bold text-neutral-800">
+            {currentIntern
+              ? `No projects found for ${currentIntern.name}`
+              : 'No project assignments found'}
+          </h3>
+          <p className="mt-1 text-xs text-neutral-500 max-w-sm mx-auto">
+            {currentIntern
+              ? 'Click below to assign a project to this intern and begin tracking their deliverables.'
+              : 'Use the button below to assign a project to an intern.'}
+          </p>
+          <div className="mt-5">
+            <Button
+              onClick={() => {
+                setEditingAssignment(null);
+                setModalOpen(true);
+              }}
+              className="gap-2"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Assign Project Now
+            </Button>
+          </div>
+        </div>
+      ) : viewMode === 'cards' ? (
+        /* Cards Grid View */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAssignments.map((assignment) => {
+            const internName = assignment.intern_name || assignment.internName;
+            const internRole = assignment.intern_role || assignment.internRole;
+            const projectName = assignment.project_name || assignment.projectName;
+            const mentorName = assignment.mentor_name || assignment.mentorName || 'Admin';
+            const startDate = assignment.start_date || assignment.startDate;
+            const endDate = assignment.end_date || assignment.endDate;
+            const status = assignment.status || 'In Progress';
+            const tone = STATUS_TONES[status] || 'neutral';
 
-                return (
-                  <div
-                    key={assignment.id}
-                    className="flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+            return (
+              <div
+                key={assignment.id}
+                className="flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div>
+                  {/* Card Header: Status & Actions */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <Badge tone={tone}>{status}</Badge>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingAssignment(assignment);
+                          setModalOpen(true);
+                        }}
+                        title="Edit Assignment"
+                        className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition"
+                      >
+                        <PencilSquareIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmId(assignment.id)}
+                        title="Delete Assignment"
+                        className="rounded-lg p-1.5 text-neutral-500 hover:bg-danger-50 hover:text-danger-600 transition"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Project Title */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <BriefcaseIcon className="h-4 w-4 text-primary-600 shrink-0" />
+                    <h3 className="text-base font-bold text-neutral-900 leading-snug truncate">
+                      {projectName}
+                    </h3>
+                  </div>
+
+                  {/* Intern Information Tag */}
+                  <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-neutral-50 p-2.5 border border-neutral-100">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-[11px] font-bold text-primary-700">
+                      {internName
+                        ?.split(' ')
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-neutral-900 truncate">
+                        {internName}
+                      </p>
+                      <p className="text-[11px] text-neutral-500 truncate">
+                        {internRole}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Mentor & Dates */}
+                  <div className="mt-3 space-y-1.5 text-xs text-neutral-600">
+                    <div className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4 text-neutral-400 shrink-0" />
+                      <span>
+                        Mentor: <strong className="text-neutral-800">{mentorName}</strong>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CalendarDaysIcon className="h-4 w-4 text-neutral-400 shrink-0" />
+                      <span>
+                        Started:{' '}
+                        <strong className="text-neutral-800">
+                          {startDate ? formatDate(startDate, 'dd MMM yyyy') : 'N/A'}
+                        </strong>
+                        {endDate && (
+                          <>
+                            {' '}
+                            • Due:{' '}
+                            <strong className="text-neutral-800">
+                              {formatDate(endDate, 'dd MMM yyyy')}
+                            </strong>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Description snippet */}
+                  {assignment.description && (
+                    <div className="mt-3 rounded-lg bg-neutral-50/80 p-2.5 text-xs text-neutral-600 line-clamp-2 border border-neutral-100">
+                      {assignment.description}
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Footer: Quick Status Changer */}
+                <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-neutral-500">Status:</span>
+                  <select
+                    value={status}
+                    onChange={(e) => handleQuickStatusChange(assignment.id, e.target.value)}
+                    className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-700 font-medium outline-none hover:border-neutral-300 focus:border-primary-500"
                   >
-                    <div>
-                      {/* Card Top: Status & Actions */}
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <Badge tone={tone}>{status}</Badge>
-                        <div className="flex items-center gap-1">
+                    <option value="In Progress">In Progress</option>
+                    <option value="Assigned">Assigned</option>
+                    <option value="Completed">Completed</option>
+                    <option value="On Hold">On Hold</option>
+                  </select>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Table View */
+        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-neutral-700">
+              <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-200">
+                <tr>
+                  <th className="py-3 px-4">Intern</th>
+                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Project</th>
+                  <th className="py-3 px-4">Mentor</th>
+                  <th className="py-3 px-4">Start Date</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {filteredAssignments.map((assignment) => {
+                  const internName = assignment.intern_name || assignment.internName;
+                  const internRole = assignment.intern_role || assignment.internRole;
+                  const projectName = assignment.project_name || assignment.projectName;
+                  const mentorName = assignment.mentor_name || assignment.mentorName || 'Admin';
+                  const startDate = assignment.start_date || assignment.startDate;
+                  const status = assignment.status || 'In Progress';
+                  const tone = STATUS_TONES[status] || 'neutral';
+
+                  return (
+                    <tr key={assignment.id} className="hover:bg-neutral-50/70 transition">
+                      <td className="py-3 px-4 font-bold text-neutral-900">
+                        {internName}
+                      </td>
+                      <td className="py-3 px-4 text-neutral-600">
+                        {internRole}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-neutral-800">
+                        {projectName}
+                      </td>
+                      <td className="py-3 px-4 text-neutral-600">
+                        {mentorName}
+                      </td>
+                      <td className="py-3 px-4 text-neutral-600">
+                        {startDate ? formatDate(startDate, 'dd MMM yyyy') : 'N/A'}
+                      </td>
+                      <td className="py-3 px-4">
+                        <select
+                          value={status}
+                          onChange={(e) => handleQuickStatusChange(assignment.id, e.target.value)}
+                          className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-700 font-medium outline-none hover:border-neutral-300 focus:border-primary-500"
+                        >
+                          <option value="In Progress">In Progress</option>
+                          <option value="Assigned">Assigned</option>
+                          <option value="Completed">Completed</option>
+                          <option value="On Hold">On Hold</option>
+                        </select>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => {
@@ -635,218 +702,28 @@ export default function InternProjects() {
                               setModalOpen(true);
                             }}
                             title="Edit Assignment"
-                            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition"
+                            className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 transition"
                           >
                             <PencilSquareIcon className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
                             onClick={() => setDeleteConfirmId(assignment.id)}
-                            title="Delete Assignment"
+                            title="Delete"
                             className="rounded-lg p-1.5 text-neutral-500 hover:bg-danger-50 hover:text-danger-600 transition"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
-                      </div>
-
-                      {/* Project Title */}
-                      <h3 className="text-base font-bold text-neutral-900 leading-snug">
-                        {projectName}
-                      </h3>
-
-                      {/* Intern Info (if viewing All Interns) */}
-                      <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-neutral-50 p-2.5 border border-neutral-100">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-100 text-[11px] font-bold text-primary-700">
-                          {internName
-                            ?.split(' ')
-                            .map((n) => n[0])
-                            .slice(0, 2)
-                            .join('')
-                            .toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-neutral-900 truncate">
-                            {internName}
-                          </p>
-                          <p className="text-[11px] text-neutral-500 truncate">
-                            {internRole}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Mentor & Timeline Details */}
-                      <div className="mt-3 space-y-1.5 text-xs text-neutral-600">
-                        <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4 text-neutral-400 shrink-0" />
-                          <span>
-                            Mentor: <strong className="text-neutral-800">{mentorName}</strong>
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CalendarDaysIcon className="h-4 w-4 text-neutral-400 shrink-0" />
-                          <span>
-                            Started:{' '}
-                            <strong className="text-neutral-800">
-                              {startDate ? formatDate(startDate, 'dd MMM yyyy') : 'N/A'}
-                            </strong>
-                            {endDate && (
-                              <>
-                                {' '}
-                                • Due:{' '}
-                                <strong className="text-neutral-800">
-                                  {formatDate(endDate, 'dd MMM yyyy')}
-                                </strong>
-                              </>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Description snippet if any */}
-                      {assignment.description && (
-                        <div className="mt-3 rounded-lg bg-neutral-50/70 p-2 text-xs text-neutral-600 line-clamp-2 border border-neutral-100/80">
-                          {assignment.description}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Card Footer: WhatsApp Actions & Quick Status */}
-                    <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
-                      {/* Quick Status Select */}
-                      <select
-                        value={status}
-                        onChange={(e) => handleQuickStatusChange(assignment.id, e.target.value)}
-                        className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-700 font-medium outline-none hover:border-neutral-300 focus:border-primary-500"
-                      >
-                        <option value="In Progress">In Progress</option>
-                        <option value="Assigned">Assigned</option>
-                        <option value="Completed">Completed</option>
-                        <option value="On Hold">On Hold</option>
-                      </select>
-
-                      {/* WhatsApp Buttons */}
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleCopyWhatsApp(assignment)}
-                          title="Copy WhatsApp Message"
-                          className="flex items-center gap-1 rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition"
-                        >
-                          {isCopied ? (
-                            <>
-                              <ClipboardDocumentCheckIcon className="h-3.5 w-3.5 text-emerald-600" />
-                              <span className="text-emerald-700">Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <ClipboardDocumentIcon className="h-3.5 w-3.5 text-neutral-500" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenWhatsApp(assignment)}
-                          title="Send to WhatsApp"
-                          className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition"
-                        >
-                          <ChatBubbleLeftRightIcon className="h-3.5 w-3.5" />
-                          <span>WhatsApp</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* Table View */
-            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-neutral-700">
-                  <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-200">
-                    <tr>
-                      <th className="py-3 px-4">Intern</th>
-                      <th className="py-3 px-4">Role</th>
-                      <th className="py-3 px-4">Project</th>
-                      <th className="py-3 px-4">Mentor</th>
-                      <th className="py-3 px-4">Start Date</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
-                    {displayedAssignments.map((assignment) => {
-                      const internName = assignment.intern_name || assignment.internName;
-                      const internRole = assignment.intern_role || assignment.internRole;
-                      const projectName = assignment.project_name || assignment.projectName;
-                      const mentorName = assignment.mentor_name || assignment.mentorName || 'Admin';
-                      const startDate = assignment.start_date || assignment.startDate;
-                      const status = assignment.status || 'In Progress';
-                      const tone = STATUS_TONES[status] || 'neutral';
-
-                      return (
-                        <tr key={assignment.id} className="hover:bg-neutral-50/70 transition">
-                          <td className="py-3 px-4 font-bold text-neutral-900">
-                            {internName}
-                          </td>
-                          <td className="py-3 px-4 text-neutral-600">
-                            {internRole}
-                          </td>
-                          <td className="py-3 px-4 font-semibold text-neutral-800">
-                            {projectName}
-                          </td>
-                          <td className="py-3 px-4 text-neutral-600">
-                            {mentorName}
-                          </td>
-                          <td className="py-3 px-4 text-neutral-600">
-                            {startDate ? formatDate(startDate, 'dd MMM yyyy') : 'N/A'}
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge tone={tone}>{status}</Badge>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleOpenWhatsApp(assignment)}
-                                title="Open WhatsApp"
-                                className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50 transition"
-                              >
-                                <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingAssignment(assignment);
-                                  setModalOpen(true);
-                                }}
-                                title="Edit Assignment"
-                                className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 transition"
-                              >
-                                <PencilSquareIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteConfirmId(assignment.id)}
-                                title="Delete"
-                                className="rounded-lg p-1.5 text-neutral-500 hover:bg-danger-50 hover:text-danger-600 transition"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Assignment Modal */}
       <ProjectAssignmentModal
