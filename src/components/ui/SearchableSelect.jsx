@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
-import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 const SearchableSelect = forwardRef(({ 
   label, 
@@ -28,8 +28,18 @@ const SearchableSelect = forwardRef(({
         setSearchQuery('');
       }
     };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        setSearchQuery('');
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const handleSelect = (val) => {
@@ -113,19 +123,34 @@ const SearchableSelect = forwardRef(({
         </div>
 
         {isOpen && !disabled && (
-          <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-lg focus:outline-none">
+          <ul className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-xl border border-neutral-200/90 bg-white p-1.5 shadow-xl shadow-neutral-900/10 focus:outline-none backdrop-blur-md">
             {filteredOptions.length > 0 ? (
-              filteredOptions.map((option, idx) => (
-                <li
-                  key={idx}
-                  onClick={(e) => { e.stopPropagation(); handleSelect(option.value); }}
-                  className={`cursor-pointer select-none px-4 py-2.5 text-sm transition-colors hover:bg-primary-50 hover:text-primary-700 ${String(value) === String(option.value) ? 'bg-primary-50 font-semibold text-primary-700' : 'text-neutral-900'}`}
-                >
-                  {option.label}
-                </li>
-              ))
+              filteredOptions.map((option, idx) => {
+                const isSelected = String(value) === String(option.value);
+                return (
+                  <li
+                    key={idx}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelect(option.value);
+                    }}
+                    className={`flex items-center justify-between select-none px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-primary-50 font-semibold text-primary-700'
+                        : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
+                    }`}
+                  >
+                    <span className="truncate">{option.label}</span>
+                    {isSelected && (
+                      <CheckIcon className="h-4 w-4 text-primary-600 shrink-0 stroke-[2.5]" />
+                    )}
+                  </li>
+                );
+              })
             ) : (
-              <li className="px-4 py-2.5 text-sm text-neutral-500">No results found</li>
+              <li className="px-3 py-3 text-center text-xs font-medium text-neutral-400">
+                No matching results found
+              </li>
             )}
           </ul>
         )}

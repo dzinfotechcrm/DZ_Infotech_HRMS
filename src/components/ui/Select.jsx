@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef } from 'react';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 const Select = forwardRef(({ label, error, children, className = '', onChange, value, name, helpText, required, ...props }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,8 +37,15 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
         setIsOpen(false);
       }
     };
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const handleSelect = (val) => {
@@ -60,25 +67,37 @@ const Select = forwardRef(({ label, error, children, className = '', onChange, v
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex w-full items-center justify-between rounded-xl border bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition ${isOpen ? 'border-primary-500 ring-2 ring-primary-100' : 'border-neutral-200'} ${error ? 'border-danger-600 focus:border-danger-600 ring-danger-100' : ''} ${className}`}
+          className={`flex w-full items-center justify-between rounded-xl border bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none transition ${isOpen ? 'border-primary-500 ring-2 ring-primary-100 shadow-sm' : 'border-neutral-200 hover:border-neutral-300'} ${error ? 'border-danger-600 focus:border-danger-600 ring-danger-100' : ''} ${className}`}
         >
           <span className="truncate">{selectedOption?.label || 'Select...'}</span>
-          <ChevronDownIcon className={`h-4 w-4 text-neutral-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDownIcon className={`h-4 w-4 text-neutral-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isOpen && (
-          <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-lg focus:outline-none">
-            {options.map((option, idx) => (
-              <li
-                key={idx}
-                onClick={() => {
-                  if (!option.disabled) handleSelect(option.value);
-                }}
-                className={`select-none px-4 py-2.5 text-sm transition-colors ${option.disabled ? 'cursor-not-allowed text-neutral-400 bg-neutral-50' : 'cursor-pointer hover:bg-primary-50 hover:text-primary-700'} ${!option.disabled && String(internalValue) === String(option.value) ? 'bg-primary-50 font-semibold text-primary-700' : (!option.disabled ? 'text-neutral-900' : '')}`}
-              >
-                {option.label}
-              </li>
-            ))}
+          <ul className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-xl border border-neutral-200/90 bg-white p-1.5 shadow-xl shadow-neutral-900/10 focus:outline-none backdrop-blur-md">
+            {options.map((option, idx) => {
+              const isSelected = !option.disabled && String(internalValue) === String(option.value);
+              return (
+                <li
+                  key={idx}
+                  onClick={() => {
+                    if (!option.disabled) handleSelect(option.value);
+                  }}
+                  className={`flex items-center justify-between select-none px-3 py-2 rounded-lg text-sm transition-colors ${
+                    option.disabled
+                      ? 'cursor-not-allowed text-neutral-400 bg-neutral-50'
+                      : isSelected
+                      ? 'cursor-pointer bg-primary-50 font-semibold text-primary-700'
+                      : 'cursor-pointer text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
+                  }`}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {isSelected && (
+                    <CheckIcon className="h-4 w-4 text-primary-600 shrink-0 stroke-[2.5]" />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

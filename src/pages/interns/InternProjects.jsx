@@ -9,6 +9,7 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import SearchableSelect from '../../components/ui/SearchableSelect';
 import ConfirmModal from '../../components/ui/ConfirmModal';
+import StatusDropdown from '../../components/ui/StatusDropdown';
 import ProjectAssignmentModal from './ProjectAssignmentModal';
 import { formatDate } from '../../utils/dateHelpers';
 import {
@@ -633,16 +634,10 @@ export default function InternProjects() {
                 {/* Card Footer: Quick Status Changer */}
                 <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between">
                   <span className="text-[11px] font-medium text-neutral-500">Status:</span>
-                  <select
+                  <StatusDropdown
                     value={status}
-                    onChange={(e) => handleQuickStatusChange(assignment.id, e.target.value)}
-                    className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-700 font-medium outline-none hover:border-neutral-300 focus:border-primary-500"
-                  >
-                    <option value="In Progress">In Progress</option>
-                    <option value="Assigned">Assigned</option>
-                    <option value="Completed">Completed</option>
-                    <option value="On Hold">On Hold</option>
-                  </select>
+                    onChange={(newStatus) => handleQuickStatusChange(assignment.id, newStatus)}
+                  />
                 </div>
               </div>
             );
@@ -701,16 +696,10 @@ export default function InternProjects() {
                         {startDate ? formatDate(startDate, 'dd MMM yyyy') : 'N/A'}
                       </td>
                       <td className="py-3 px-4">
-                        <select
+                        <StatusDropdown
                           value={status}
-                          onChange={(e) => handleQuickStatusChange(assignment.id, e.target.value)}
-                          className="rounded-lg border border-neutral-200 bg-white px-2 py-1 text-xs text-neutral-700 font-medium outline-none hover:border-neutral-300 focus:border-primary-500"
-                        >
-                          <option value="In Progress">In Progress</option>
-                          <option value="Assigned">Assigned</option>
-                          <option value="Completed">Completed</option>
-                          <option value="On Hold">On Hold</option>
-                        </select>
+                          onChange={(newStatus) => handleQuickStatusChange(assignment.id, newStatus)}
+                        />
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
