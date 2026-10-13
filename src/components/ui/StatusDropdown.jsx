@@ -91,28 +91,24 @@ export default function StatusDropdown({
         type="button"
         onClick={handleToggle}
         disabled={disabled}
-        className={`group inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold shadow-xs transition-all outline-none focus:ring-2 focus:ring-offset-1 ${currentCfg.badge} ${currentCfg.ring} ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm active:scale-[0.98]'
-        }`}
+        className={`group inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold shadow-xs transition-all outline-none focus:ring-2 focus:ring-offset-1 ${currentCfg.badge} ${currentCfg.ring} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-sm active:scale-[0.98]'
+          }`}
       >
         <span
-          className={`h-1.5 w-1.5 rounded-full ${currentCfg.dot} ${
-            value === 'In Progress' ? 'animate-pulse' : ''
-          }`}
+          className={`h-1.5 w-1.5 rounded-full ${currentCfg.dot} ${value === 'In Progress' ? 'animate-pulse' : ''
+            }`}
         />
         <span>{value}</span>
         <ChevronDownIcon
-          className={`h-3 w-3 text-neutral-500 transition-transform duration-200 group-hover:text-neutral-700 ${
-            isOpen ? (dropUp ? '-rotate-180' : 'rotate-180') : ''
-          }`}
+          className={`h-3 w-3 text-neutral-500 transition-transform duration-200 group-hover:text-neutral-700 ${isOpen ? (dropUp ? '-rotate-180' : 'rotate-180') : ''
+            }`}
         />
       </button>
 
       {isOpen && (
         <div
-          className={`absolute right-0 z-50 w-44 rounded-xl border border-neutral-200/90 bg-white p-1.5 shadow-xl shadow-neutral-900/10 backdrop-blur-md transition-all animate-in fade-in-0 zoom-in-95 duration-100 ${
-            dropUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-          }`}
+          className={`absolute right-0 z-50 w-44 rounded-xl border border-neutral-200/90 bg-white p-1.5 shadow-xl shadow-neutral-900/10 backdrop-blur-md transition-all animate-in fade-in-0 zoom-in-95 duration-100 ${dropUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+            }`}
         >
           <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
             Select Status
@@ -129,11 +125,10 @@ export default function StatusDropdown({
                   key={optVal}
                   type="button"
                   onClick={() => handleSelect(optVal)}
-                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    isSelected
+                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${isSelected
                       ? 'bg-neutral-100/90 font-semibold text-neutral-900'
                       : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />

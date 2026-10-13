@@ -401,11 +401,10 @@ export default function InternProjects() {
                 type="button"
                 onClick={() => setViewMode('cards')}
                 title="Cards View"
-                className={`p-1.5 rounded-lg text-neutral-600 transition ${
-                  viewMode === 'cards'
+                className={`p-1.5 rounded-lg text-neutral-600 transition ${viewMode === 'cards'
                     ? 'bg-white text-primary-700 shadow-sm font-bold'
                     : 'hover:text-neutral-900'
-                }`}
+                  }`}
               >
                 <Squares2X2Icon className="h-4 w-4" />
               </button>
@@ -413,11 +412,10 @@ export default function InternProjects() {
                 type="button"
                 onClick={() => setViewMode('table')}
                 title="Table View"
-                className={`p-1.5 rounded-lg text-neutral-600 transition ${
-                  viewMode === 'table'
+                className={`p-1.5 rounded-lg text-neutral-600 transition ${viewMode === 'table'
                     ? 'bg-white text-primary-700 shadow-sm font-bold'
                     : 'hover:text-neutral-900'
-                }`}
+                  }`}
               >
                 <ListBulletIcon className="h-4 w-4" />
               </button>
