@@ -260,7 +260,23 @@ export default function ProjectAssignmentModal({
         description: formData.description?.trim() || '',
       };
 
-      await onSave(payload);
+      try {
+        await onSave(payload);
+      } catch (saveErr) {
+        // If the 'mentor_ids' column doesn't exist yet in the database schema, fallback without it
+        if (
+          saveErr?.message?.includes('mentor_ids') ||
+          saveErr?.details?.includes('mentor_ids') ||
+          saveErr?.code === 'PGRST204'
+        ) {
+          const fallbackPayload = { ...payload };
+          delete fallbackPayload.mentor_ids;
+          await onSave(fallbackPayload);
+        } else {
+          throw saveErr;
+        }
+      }
+
       toast.success(isEdit ? 'Project assignment updated!' : 'Project assigned successfully!');
       onClose();
     } catch (err) {

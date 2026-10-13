@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS intern_projects (
   project_name TEXT NOT NULL,         -- Project name
   mentor_id TEXT,                     -- Reference to employees(id) (optional)
   mentor_name TEXT,                   -- Mentor's name
+  mentor_ids TEXT[],                  -- Array of mentor IDs (optional)
   start_date DATE NOT NULL,           -- Assignment start date
   end_date DATE,                      -- Target or completion date
   status TEXT DEFAULT 'In Progress',  -- 'Assigned', 'In Progress', 'Completed', 'On Hold'
