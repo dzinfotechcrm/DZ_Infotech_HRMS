@@ -38,6 +38,7 @@ export const PERMISSIONS = {
   profile: [ROLES.admin, ROLES.hr, ROLES.manager, ROLES.employee, ROLES.agent, ROLES.intern],
   settings: [ROLES.admin],
   sfmsAgent: [ROLES.admin, ROLES.agent],
+  internProjects: [ROLES.admin, ROLES.hr],
 };
 
 export function canAccess(role, allowedRoles = []) {

@@ -128,6 +128,11 @@ function mapField(field) {
   if (field === 'departmentId') return 'department_id';
   if (field === 'firstName') return 'first_name';
   if (field === 'lastName') return 'last_name';
+  if (field === 'startDate') return 'start_date';
+  if (field === 'endDate') return 'end_date';
+  if (field === 'internName') return 'intern_name';
+  if (field === 'internId') return 'intern_id';
+  if (field === 'projectName') return 'project_name';
   return field;
 }
 

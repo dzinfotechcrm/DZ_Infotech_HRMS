@@ -27,6 +27,17 @@ export function useSupabaseCollection(tableName, buildQuery) {
       base.isRead = row.is_read !== undefined ? row.is_read : base.isRead;
       base.firstName = row.first_name || base.firstName;
       base.lastName = row.last_name || base.lastName;
+      base.internId = row.intern_id || base.internId;
+      base.internName = row.intern_name || base.internName;
+      base.internRole = row.intern_role || base.internRole;
+      base.projectId = row.project_id || base.projectId;
+      base.projectName = row.project_name || base.projectName;
+      base.mentorId = row.mentor_id || base.mentorId;
+      base.mentorName = row.mentor_name || base.mentorName;
+      base.startDate = row.start_date || base.startDate;
+      base.endDate = row.end_date || base.endDate;
+      base.whatsappNumber = row.whatsapp_number || base.whatsappNumber;
+      base.whatsappNotes = row.whatsapp_notes || base.whatsappNotes;
       return base;
     };
 
@@ -45,6 +56,10 @@ export function useSupabaseCollection(tableName, buildQuery) {
             if (column === 'firstName') column = 'first_name';
             if (column === 'lastName') column = 'last_name';
             if (column === 'departmentId') column = 'department_id';
+            if (column === 'startDate') column = 'start_date';
+            if (column === 'endDate') column = 'end_date';
+            if (column === 'internName') column = 'intern_name';
+            if (column === 'projectName') column = 'project_name';
             return originalOrder(column, options);
           };
           
@@ -135,6 +150,17 @@ export function useSupabaseDocument(tableName, id) {
       base.isRead = row.is_read !== undefined ? row.is_read : base.isRead;
       base.firstName = row.first_name || base.firstName;
       base.lastName = row.last_name || base.lastName;
+      base.internId = row.intern_id || base.internId;
+      base.internName = row.intern_name || base.internName;
+      base.internRole = row.intern_role || base.internRole;
+      base.projectId = row.project_id || base.projectId;
+      base.projectName = row.project_name || base.projectName;
+      base.mentorId = row.mentor_id || base.mentorId;
+      base.mentorName = row.mentor_name || base.mentorName;
+      base.startDate = row.start_date || base.startDate;
+      base.endDate = row.end_date || base.endDate;
+      base.whatsappNumber = row.whatsapp_number || base.whatsappNumber;
+      base.whatsappNotes = row.whatsapp_notes || base.whatsappNotes;
       return base;
     };
 
