@@ -584,13 +584,23 @@ export default function InternProjects() {
                     </div>
                   </div>
 
-                  {/* Mentor & Dates */}
+                  {/* Mentor(s) & Dates */}
                   <div className="mt-3 space-y-1.5 text-xs text-neutral-600">
-                    <div className="flex items-center gap-2">
-                      <UserIcon className="h-4 w-4 text-neutral-400 shrink-0" />
-                      <span>
-                        Mentor: <strong className="text-neutral-800">{mentorName}</strong>
-                      </span>
+                    <div className="flex items-start gap-2">
+                      <UserIcon className="h-4 w-4 text-neutral-400 shrink-0 mt-0.5" />
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <span className="text-neutral-500">
+                          {mentorName.includes(',') ? 'Mentors:' : 'Mentor:'}
+                        </span>
+                        {mentorName.split(',').map((m, idx) => (
+                          <span
+                            key={idx}
+                            className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-xs font-semibold text-neutral-800"
+                          >
+                            {m.trim()}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <CalendarDaysIcon className="h-4 w-4 text-neutral-400 shrink-0" />
@@ -676,7 +686,16 @@ export default function InternProjects() {
                         {projectName}
                       </td>
                       <td className="py-3 px-4 text-neutral-600">
-                        {mentorName}
+                        <div className="flex flex-wrap gap-1">
+                          {mentorName.split(',').map((m, idx) => (
+                            <span
+                              key={idx}
+                              className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold text-neutral-800"
+                            >
+                              {m.trim()}
+                            </span>
+                          ))}
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-neutral-600">
                         {startDate ? formatDate(startDate, 'dd MMM yyyy') : 'N/A'}

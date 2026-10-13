@@ -9,6 +9,8 @@ import {
   AcademicCapIcon,
   BriefcaseIcon,
   UserIcon,
+  PlusIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -46,15 +48,16 @@ export default function ProjectAssignmentModal({
     intern_name: '',
     intern_role: '',
     project_name: '',
-    mentor_id: '',
-    mentor_name: '',
     start_date: todayStr,
     end_date: '',
     status: 'In Progress',
     description: '',
   });
 
-  const [customMentor, setCustomMentor] = useState(false);
+  // Multiple mentors state: array of { id, name }
+  const [selectedMentors, setSelectedMentors] = useState([]);
+  const [customMentorInput, setCustomMentorInput] = useState('');
+  const [showCustomMentorInput, setShowCustomMentorInput] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Initialize form
@@ -62,23 +65,32 @@ export default function ProjectAssignmentModal({
     if (!open) return;
 
     if (assignment) {
-      const hasKnownMentor = employees.some(
-        (e) => String(e.id) === String(assignment.mentor_id || assignment.mentorId)
-      );
-
       const iId = assignment.intern_id || assignment.internId || '';
-      const mId = assignment.mentor_id || assignment.mentorId || '';
-      const isCustomM = !hasKnownMentor && Boolean(assignment.mentor_name || assignment.mentorName);
+      const rawMentorName = assignment.mentor_name || assignment.mentorName || '';
+      const rawMentorIds = assignment.mentor_ids || assignment.mentorIds || (assignment.mentor_id ? [assignment.mentor_id] : []);
 
-      setCustomMentor(isCustomM);
+      // Parse mentors from comma-separated string if exists
+      const names = rawMentorName.split(',').map((s) => s.trim()).filter(Boolean);
+      const parsedMentors = names.map((name, idx) => {
+        const matchingEmp = employees.find((e) => {
+          const empName = `${e.firstName || e.first_name || ''} ${e.lastName || e.last_name || ''}`.trim() || e.name;
+          return empName.toLowerCase() === name.toLowerCase();
+        });
+        return {
+          id: matchingEmp?.id || rawMentorIds[idx] || null,
+          name: matchingEmp ? (`${matchingEmp.firstName || matchingEmp.first_name || ''} ${matchingEmp.lastName || matchingEmp.last_name || ''}`.trim() || matchingEmp.name) : name,
+        };
+      });
+
+      setSelectedMentors(parsedMentors);
+      setShowCustomMentorInput(false);
+      setCustomMentorInput('');
 
       setFormData({
         intern_id: iId,
         intern_name: assignment.intern_name || assignment.internName || '',
         intern_role: assignment.intern_role || assignment.internRole || '',
         project_name: assignment.project_name || assignment.projectName || '',
-        mentor_id: mId,
-        mentor_name: assignment.mentor_name || assignment.mentorName || '',
         start_date: assignment.start_date || assignment.startDate || todayStr,
         end_date: assignment.end_date || assignment.endDate || '',
         status: assignment.status || 'In Progress',
@@ -91,33 +103,35 @@ export default function ProjectAssignmentModal({
         preselectedIntern.name;
       const pRole = preselectedIntern.position || preselectedIntern.designation || 'Intern';
 
+      setSelectedMentors([]);
+      setShowCustomMentorInput(false);
+      setCustomMentorInput('');
+
       setFormData({
         intern_id: preselectedIntern.id || '',
         intern_name: pName,
         intern_role: pRole,
         project_name: '',
-        mentor_id: '',
-        mentor_name: '',
         start_date: todayStr,
         end_date: '',
         status: 'In Progress',
         description: '',
       });
-      setCustomMentor(false);
     } else {
+      setSelectedMentors([]);
+      setShowCustomMentorInput(false);
+      setCustomMentorInput('');
+
       setFormData({
         intern_id: '',
         intern_name: '',
         intern_role: '',
         project_name: '',
-        mentor_id: '',
-        mentor_name: '',
         start_date: todayStr,
         end_date: '',
         status: 'In Progress',
         description: '',
       });
-      setCustomMentor(false);
     }
   }, [open, assignment, preselectedIntern, employees, todayStr]);
 
@@ -143,23 +157,35 @@ export default function ProjectAssignmentModal({
     }
   };
 
-  // Handle mentor selection
-  const handleMentorChange = (e) => {
-    const val = e.target.value;
-    const found = employees.find((emp) => String(emp.id) === String(val));
-    if (found) {
+  // Add mentor from employee dropdown
+  const handleAddMentorFromSelect = (e) => {
+    const empId = e.target.value;
+    if (!empId) return;
+    const emp = employees.find((e) => String(e.id) === String(empId));
+    if (emp) {
       const name =
-        `${found.firstName || found.first_name || ''} ${found.lastName || found.last_name || ''}`.trim() ||
-        found.name ||
-        '';
-      setFormData((prev) => ({
-        ...prev,
-        mentor_id: found.id,
-        mentor_name: name,
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, mentor_id: '', mentor_name: '' }));
+        `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() ||
+        emp.name;
+      if (!selectedMentors.some((m) => m.name.toLowerCase() === name.toLowerCase())) {
+        setSelectedMentors((prev) => [...prev, { id: emp.id, name }]);
+      }
     }
+  };
+
+  // Add custom typed mentor
+  const handleAddCustomMentor = () => {
+    if (!customMentorInput.trim()) return;
+    const name = customMentorInput.trim();
+    if (!selectedMentors.some((m) => m.name.toLowerCase() === name.toLowerCase())) {
+      setSelectedMentors((prev) => [...prev, { id: null, name }]);
+    }
+    setCustomMentorInput('');
+    setShowCustomMentorInput(false);
+  };
+
+  // Remove mentor
+  const handleRemoveMentor = (indexToRemove) => {
+    setSelectedMentors((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   // Searchable intern options (no Other / New Intern)
@@ -173,15 +199,26 @@ export default function ProjectAssignmentModal({
     };
   });
 
-  const mentorOptions = employees.map((emp) => {
-    const name =
-      `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() ||
-      emp.name;
-    return {
-      value: emp.id,
-      label: `${name} (${emp.designation || emp.role || 'Staff'})`,
-    };
-  });
+  // Available mentors in dropdown (excludes mentors already chosen)
+  const availableMentorOptions = employees
+    .filter((emp) => {
+      const name =
+        `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() ||
+        emp.name;
+      return (
+        emp.status !== 'deleted' &&
+        !selectedMentors.some((m) => m.name.toLowerCase() === name.toLowerCase())
+      );
+    })
+    .map((emp) => {
+      const name =
+        `${emp.firstName || emp.first_name || ''} ${emp.lastName || emp.last_name || ''}`.trim() ||
+        emp.name;
+      return {
+        value: emp.id,
+        label: `${name} (${emp.designation || emp.role || 'Staff'})`,
+      };
+    });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -205,13 +242,18 @@ export default function ProjectAssignmentModal({
 
     try {
       setSaving(true);
+      const mentorNames = selectedMentors.map((m) => m.name.trim()).filter(Boolean);
+      const mentorNameStr = mentorNames.join(', ');
+      const mentorIds = selectedMentors.map((m) => m.id).filter(Boolean);
+
       const payload = {
         intern_id: formData.intern_id || null,
         intern_name: formData.intern_name.trim(),
         intern_role: formData.intern_role.trim(),
         project_name: formData.project_name.trim(),
-        mentor_id: customMentor ? null : formData.mentor_id || null,
-        mentor_name: formData.mentor_name.trim() || 'Admin',
+        mentor_id: mentorIds[0] || null,
+        mentor_name: mentorNameStr || 'Admin',
+        mentor_ids: mentorIds,
         start_date: formData.start_date,
         end_date: formData.end_date || null,
         status: formData.status || 'In Progress',
@@ -248,7 +290,7 @@ export default function ProjectAssignmentModal({
                 {isEdit ? 'Update Project Assignment' : 'New Project Allocation'}
               </h4>
               <p className="text-xs text-primary-800">
-                Assign projects, set roles, specify mentors, and track completion timelines.
+                Assign projects, set roles, specify single or multiple mentors, and track deliverables.
               </p>
             </div>
           </div>
@@ -299,11 +341,11 @@ export default function ProjectAssignmentModal({
           </div>
         </div>
 
-        {/* Section 2: Project & Mentor */}
+        {/* Section 2: Project & Mentors */}
         <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-4">
           <h5 className="flex items-center gap-2 text-xs font-bold text-neutral-800 uppercase tracking-wider">
             <BriefcaseIcon className="h-4 w-4 text-primary-600" />
-            Project & Mentor
+            Project & Mentors
           </h5>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -318,37 +360,86 @@ export default function ProjectAssignmentModal({
               />
             </div>
 
-            {/* Mentor Selection */}
+            {/* Multiple Mentors Selection */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-neutral-700">Mentor / Lead</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-medium text-neutral-700">
+                  Mentor / Team Lead(s)
+                  {selectedMentors.length > 0 && (
+                    <span className="ml-1.5 text-xs text-primary-600 font-bold">
+                      ({selectedMentors.length})
+                    </span>
+                  )}
+                </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setCustomMentor(!customMentor);
-                    if (!customMentor) {
-                      setFormData((p) => ({ ...p, mentor_id: '', mentor_name: '' }));
-                    }
-                  }}
+                  onClick={() => setShowCustomMentorInput(!showCustomMentorInput)}
                   className="text-xs text-primary-600 hover:underline font-semibold"
                 >
-                  {customMentor ? '← Select Existing' : '+ Type Custom Mentor'}
+                  {showCustomMentorInput ? '← Choose from List' : '+ Custom Mentor'}
                 </button>
               </div>
 
-              {customMentor ? (
-                <Input
-                  placeholder="e.g. Rahul Sharma"
-                  value={formData.mentor_name}
-                  onChange={(e) => setFormData({ ...formData, mentor_name: e.target.value })}
-                />
+              {/* Selected Mentor Chips */}
+              {selectedMentors.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 p-2 mb-2 bg-white border border-neutral-200 rounded-xl">
+                  {selectedMentors.map((m, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary-50 border border-primary-200 px-2 py-1 text-xs font-semibold text-primary-900"
+                    >
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary-200 text-[10px] font-bold text-primary-800">
+                        {m.name?.[0]?.toUpperCase() || 'M'}
+                      </span>
+                      <span>{m.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMentor(idx)}
+                        className="text-neutral-400 hover:text-danger-600 font-bold ml-0.5 text-sm leading-none"
+                        title="Remove"
+                      >
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Selector or Custom Input */}
+              {showCustomMentorInput ? (
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    placeholder="Enter mentor name..."
+                    value={customMentorInput}
+                    onChange={(e) => setCustomMentorInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomMentor();
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddCustomMentor}
+                    disabled={!customMentorInput.trim()}
+                  >
+                    Add
+                  </Button>
+                </div>
               ) : (
                 <SearchableSelect
                   name="mentor_id"
-                  value={formData.mentor_id}
-                  onChange={handleMentorChange}
-                  options={mentorOptions}
-                  placeholder="Search mentor..."
+                  value=""
+                  onChange={handleAddMentorFromSelect}
+                  options={availableMentorOptions}
+                  placeholder={
+                    selectedMentors.length > 0
+                      ? '+ Add another mentor...'
+                      : 'Search & select mentor(s)...'
+                  }
                 />
               )}
             </div>
