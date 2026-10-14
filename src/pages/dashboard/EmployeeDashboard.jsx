@@ -68,7 +68,7 @@ export default function EmployeeDashboard() {
     <div className="space-y-6">
       <MissingCheckoutWarning user={user} />
       <div className="block sm:hidden">
-        <Card className="p-4 border border-primary-100 bg-primary-50/50 flex justify-center">
+        <Card className="p-3.5 sm:p-4 border border-primary-100 bg-primary-50/50 flex justify-center shadow-xs">
           <AttendanceControl user={user} />
         </Card>
       </div>

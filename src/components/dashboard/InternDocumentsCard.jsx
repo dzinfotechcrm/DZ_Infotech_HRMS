@@ -81,18 +81,20 @@ export default function InternDocumentsCard({ intern, onUpdate }) {
   if (!intern) return null;
 
   return (
-    <Card className="p-5">
-      <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-4">
+    <Card className="p-4 sm:p-5">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <DocumentTextIcon className="h-5 w-5 text-primary-500" />
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <DocumentTextIcon className="h-5 w-5 text-primary-500 shrink-0" />
             My Internship Documents
           </h2>
-          <p className="text-sm text-slate-500">Download your original offer letter and NDA, and upload the signed copies.</p>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Download your original offer letter and NDA, and upload the signed copies.</p>
         </div>
-        <Badge tone={intern.signed_offer_letter_url && intern.signed_nda_url ? 'success' : 'warning'}>
-          {intern.signed_offer_letter_url && intern.signed_nda_url ? 'All Signed' : 'Action Required'}
-        </Badge>
+        <div className="self-start sm:self-auto shrink-0">
+          <Badge tone={intern.signed_offer_letter_url && intern.signed_nda_url ? 'success' : 'warning'}>
+            {intern.signed_offer_letter_url && intern.signed_nda_url ? 'All Signed' : 'Action Required'}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
