@@ -261,7 +261,7 @@ export default function InternProjects() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
       <PageHeader
         eyebrow="HRMS"
@@ -273,7 +273,7 @@ export default function InternProjects() {
               setEditingAssignment(null);
               setModalOpen(true);
             }}
-            className="gap-2"
+            className="w-full sm:w-auto gap-2 justify-center shadow-xs"
           >
             <PlusIcon className="h-4 w-4" />
             Assign Project
@@ -282,65 +282,65 @@ export default function InternProjects() {
       />
 
       {/* KPI Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 bg-white border border-neutral-200">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-primary-100 p-2.5 text-primary-700">
-              <AcademicCapIcon className="h-6 w-6" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <Card className="p-3 sm:p-4 bg-white border border-neutral-200/90 shadow-xs hover:shadow-sm transition">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="rounded-xl bg-primary-100 p-2 sm:p-2.5 text-primary-700 shrink-0">
+              <AcademicCapIcon className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-semibold text-neutral-500 uppercase tracking-wider truncate">
                 Interns Assigned
               </p>
-              <h3 className="text-xl font-bold text-neutral-900 mt-0.5">
+              <h3 className="text-lg sm:text-xl font-bold text-neutral-900 mt-0.5">
                 {stats.uniqueInterns}
               </h3>
             </div>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border border-neutral-200">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-accent-100 p-2.5 text-accent-700">
-              <FolderIcon className="h-6 w-6" />
+        <Card className="p-3 sm:p-4 bg-white border border-neutral-200/90 shadow-xs hover:shadow-sm transition">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="rounded-xl bg-accent-100 p-2 sm:p-2.5 text-accent-700 shrink-0">
+              <FolderIcon className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-semibold text-neutral-500 uppercase tracking-wider truncate">
                 Active Projects
               </p>
-              <h3 className="text-xl font-bold text-neutral-900 mt-0.5">
+              <h3 className="text-lg sm:text-xl font-bold text-neutral-900 mt-0.5">
                 {stats.active}
               </h3>
             </div>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border border-neutral-200">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-success-100 p-2.5 text-success-700">
-              <CheckCircleIcon className="h-6 w-6" />
+        <Card className="p-3 sm:p-4 bg-white border border-neutral-200/90 shadow-xs hover:shadow-sm transition">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="rounded-xl bg-success-100 p-2 sm:p-2.5 text-success-700 shrink-0">
+              <CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-semibold text-neutral-500 uppercase tracking-wider truncate">
                 Completed
               </p>
-              <h3 className="text-xl font-bold text-neutral-900 mt-0.5">
+              <h3 className="text-lg sm:text-xl font-bold text-neutral-900 mt-0.5">
                 {stats.completed}
               </h3>
             </div>
           </div>
         </Card>
 
-        <Card className="p-4 bg-white border border-neutral-200">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-indigo-100 p-2.5 text-indigo-700">
-              <ClockIcon className="h-6 w-6" />
+        <Card className="p-3 sm:p-4 bg-white border border-neutral-200/90 shadow-xs hover:shadow-sm transition">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="rounded-xl bg-indigo-100 p-2 sm:p-2.5 text-indigo-700 shrink-0">
+              <ClockIcon className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
-            <div>
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-semibold text-neutral-500 uppercase tracking-wider truncate">
                 Total Assignments
               </p>
-              <h3 className="text-xl font-bold text-neutral-900 mt-0.5">
+              <h3 className="text-lg sm:text-xl font-bold text-neutral-900 mt-0.5">
                 {stats.totalAssignments}
               </h3>
             </div>
@@ -349,10 +349,10 @@ export default function InternProjects() {
       </div>
 
       {/* Filter and Control Toolbar */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-3.5 sm:p-4 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
           {/* Intern Select Dropdown (Searchable) */}
-          <div className="lg:col-span-4">
+          <div className="sm:col-span-2 lg:col-span-4">
             <SearchableSelect
               label="Filter by Intern"
               name="internFilter"
@@ -364,7 +364,7 @@ export default function InternProjects() {
           </div>
 
           {/* Status Dropdown */}
-          <div className="lg:col-span-3">
+          <div className="sm:col-span-1 lg:col-span-3">
             <Select
               label="Filter by Status"
               name="statusFilter"
@@ -374,62 +374,87 @@ export default function InternProjects() {
             />
           </div>
 
-          {/* Search Box */}
-          <div className="lg:col-span-4">
-            <label className="block text-sm font-medium text-neutral-700 mb-1.5">
-              Search Projects
-            </label>
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Search project, role, mentor..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-neutral-200 pl-9 pr-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition"
-              />
+          {/* Search Box & View Mode Toggle */}
+          <div className="sm:col-span-1 lg:col-span-5 flex flex-col justify-end">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-neutral-700">
+                Search Projects
+              </label>
+              <span className="text-xs font-medium text-neutral-400">
+                View
+              </span>
             </div>
-          </div>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
+                <input
+                  type="text"
+                  placeholder="Search project, role, mentor..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-200 pl-9 pr-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition"
+                />
+              </div>
 
-          {/* View Mode Toggle */}
-          <div className="lg:col-span-1 flex flex-col justify-end">
-            <span className="text-xs font-medium text-neutral-500 mb-1.5 hidden lg:block text-center">
-              View
-            </span>
-            <div className="flex items-center justify-center gap-1 border border-neutral-200 rounded-xl p-1 bg-neutral-50">
-              <button
-                type="button"
-                onClick={() => setViewMode('cards')}
-                title="Cards View"
-                className={`p-1.5 rounded-lg text-neutral-600 transition ${viewMode === 'cards'
-                    ? 'bg-white text-primary-700 shadow-sm font-bold'
-                    : 'hover:text-neutral-900'
+              {/* View Mode Toggle */}
+              <div className="flex items-center shrink-0 border border-neutral-200 rounded-xl p-1 bg-neutral-50 h-[38px]">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  title="Cards View"
+                  className={`p-1.5 rounded-lg transition ${
+                    viewMode === 'cards'
+                      ? 'bg-white text-primary-700 shadow-sm font-bold'
+                      : 'text-neutral-500 hover:text-neutral-900'
                   }`}
-              >
-                <Squares2X2Icon className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                title="Table View"
-                className={`p-1.5 rounded-lg text-neutral-600 transition ${viewMode === 'table'
-                    ? 'bg-white text-primary-700 shadow-sm font-bold'
-                    : 'hover:text-neutral-900'
+                >
+                  <Squares2X2Icon className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  title="Table View"
+                  className={`p-1.5 rounded-lg transition ${
+                    viewMode === 'table'
+                      ? 'bg-white text-primary-700 shadow-sm font-bold'
+                      : 'text-neutral-500 hover:text-neutral-900'
                   }`}
-              >
-                <ListBulletIcon className="h-4 w-4" />
-              </button>
+                >
+                  <ListBulletIcon className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Active Filters Summary & Reset */}
+        {(selectedInternId !== 'all' || statusFilter !== 'all' || searchQuery.trim()) && (
+          <div className="mt-3 pt-3 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-500">
+            <span>
+              Showing <strong className="text-neutral-800">{filteredAssignments.length}</strong> of{' '}
+              <strong className="text-neutral-800">{rawAssignments.length}</strong> assignments
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedInternId('all');
+                setStatusFilter('all');
+                setSearchQuery('');
+              }}
+              className="text-primary-600 hover:text-primary-800 font-semibold hover:underline"
+            >
+              Reset Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Selected Intern Profile Card (when a specific intern is filtered) */}
       {currentIntern && (
-        <div className="rounded-2xl border border-primary-200 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900 p-5 text-white shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white font-bold text-lg ring-2 ring-white/20">
+        <div className="rounded-2xl border border-primary-200 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900 p-4 sm:p-5 text-white shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 sm:gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white font-bold text-base sm:text-lg ring-2 ring-white/20">
                 {currentIntern.name
                   .split(' ')
                   .map((n) => n[0])
@@ -437,29 +462,29 @@ export default function InternProjects() {
                   .join('')
                   .toUpperCase()}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold">{currentIntern.name}</h2>
-                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white/90">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h2 className="text-base sm:text-lg font-bold truncate">{currentIntern.name}</h2>
+                  <span className="rounded-full bg-white/20 px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-white/90">
                     {currentIntern.position}
                   </span>
                 </div>
-                <p className="text-xs text-white/70 mt-0.5">
+                <p className="text-xs text-white/70 mt-0.5 truncate">
                   {currentIntern.email || 'No email registered'}
                   {currentIntern.phone && ` • 📞 ${currentIntern.phone}`}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3 bg-white/10 rounded-xl px-3 py-1.5 text-xs">
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-2.5">
+              <div className="flex items-center gap-2.5 bg-white/10 rounded-xl px-3 py-1.5 text-xs">
                 <div>
                   <span className="text-white/60">Active: </span>
                   <strong className="text-white font-bold">
                     {currentInternStats?.active || 0}
                   </strong>
                 </div>
-                <div className="border-l border-white/20 pl-3">
+                <div className="border-l border-white/20 pl-2.5">
                   <span className="text-white/60">Completed: </span>
                   <strong className="text-white font-bold">
                     {currentInternStats?.completed || 0}
@@ -473,7 +498,7 @@ export default function InternProjects() {
                   setEditingAssignment(null);
                   setModalOpen(true);
                 }}
-                className="bg-accent-500 text-white hover:bg-accent-600 gap-1.5 text-xs font-bold"
+                className="bg-accent-500 text-white hover:bg-accent-600 gap-1.5 text-xs font-bold shrink-0"
               >
                 <PlusIcon className="h-4 w-4" />
                 Assign Project
@@ -485,7 +510,7 @@ export default function InternProjects() {
 
       {/* Projects Display: Card View or Table View */}
       {filteredAssignments.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-12 text-center">
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 sm:p-12 text-center">
           <FolderIcon className="mx-auto h-12 w-12 text-neutral-400 mb-3" />
           <h3 className="text-base font-bold text-neutral-800">
             {currentIntern
@@ -503,7 +528,7 @@ export default function InternProjects() {
                 setEditingAssignment(null);
                 setModalOpen(true);
               }}
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto justify-center"
             >
               <PlusIcon className="h-4 w-4" />
               Assign Project Now
@@ -512,7 +537,7 @@ export default function InternProjects() {
         </div>
       ) : viewMode === 'cards' ? (
         /* Cards Grid View */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
           {filteredAssignments.map((assignment) => {
             const internName = assignment.intern_name || assignment.internName;
             const internRole = assignment.intern_role || assignment.internRole;
@@ -526,11 +551,11 @@ export default function InternProjects() {
             return (
               <div
                 key={assignment.id}
-                className="flex flex-col justify-between rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+                className="flex flex-col justify-between rounded-2xl border border-neutral-200/90 bg-white p-4 sm:p-5 shadow-xs hover:shadow-md transition-shadow"
               >
                 <div>
                   {/* Card Header: Status & Actions */}
-                  <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center justify-between gap-2 mb-3">
                     <Badge tone={tone}>{status}</Badge>
                     <div className="flex items-center gap-1">
                       <button
@@ -556,16 +581,16 @@ export default function InternProjects() {
                   </div>
 
                   {/* Project Title */}
-                  <div className="flex items-center gap-2 mb-2">
-                    <BriefcaseIcon className="h-4 w-4 text-primary-600 shrink-0" />
-                    <h3 className="text-base font-bold text-neutral-900 leading-snug truncate">
+                  <div className="flex items-start gap-2 mb-2">
+                    <BriefcaseIcon className="h-4 w-4 text-primary-600 shrink-0 mt-0.5" />
+                    <h3 className="text-sm sm:text-base font-bold text-neutral-900 leading-snug line-clamp-2">
                       {projectName}
                     </h3>
                   </div>
 
                   {/* Intern Information Tag */}
                   <div className="mt-3 flex items-center gap-2.5 rounded-xl bg-neutral-50 p-2.5 border border-neutral-100">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-[11px] font-bold text-primary-700">
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-[11px] sm:text-xs font-bold text-primary-700">
                       {internName
                         ?.split(' ')
                         .map((n) => n[0])
@@ -573,7 +598,7 @@ export default function InternProjects() {
                         .join('')
                         .toUpperCase()}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold text-neutral-900 truncate">
                         {internName}
                       </p>
@@ -584,54 +609,54 @@ export default function InternProjects() {
                   </div>
 
                   {/* Mentor(s) & Dates */}
-                  <div className="mt-3 space-y-1.5 text-xs text-neutral-600">
+                  <div className="mt-3 space-y-2 text-xs text-neutral-600">
                     <div className="flex items-start gap-2">
                       <UserIcon className="h-4 w-4 text-neutral-400 shrink-0 mt-0.5" />
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <span className="text-neutral-500">
+                      <div className="flex items-center gap-1 flex-wrap min-w-0">
+                        <span className="text-neutral-500 shrink-0">
                           {mentorName.includes(',') ? 'Mentors:' : 'Mentor:'}
                         </span>
                         {mentorName.split(',').map((m, idx) => (
                           <span
                             key={idx}
-                            className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-xs font-semibold text-neutral-800"
+                            className="inline-flex items-center rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] sm:text-xs font-semibold text-neutral-800 max-w-full truncate"
                           >
                             {m.trim()}
                           </span>
                         ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CalendarDaysIcon className="h-4 w-4 text-neutral-400 shrink-0" />
-                      <span>
-                        Started:{' '}
+                    <div className="flex items-start gap-2">
+                      <CalendarDaysIcon className="h-4 w-4 text-neutral-400 shrink-0 mt-0.5" />
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 leading-relaxed">
+                        <span className="text-neutral-500">Started:</span>
                         <strong className="text-neutral-800">
                           {startDate ? formatDate(startDate, 'dd MMM yyyy') : 'N/A'}
                         </strong>
                         {endDate && (
                           <>
-                            {' '}
-                            • Due:{' '}
+                            <span className="text-neutral-300">•</span>
+                            <span className="text-neutral-500">Due:</span>
                             <strong className="text-neutral-800">
                               {formatDate(endDate, 'dd MMM yyyy')}
                             </strong>
                           </>
                         )}
-                      </span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Description snippet */}
                   {assignment.description && (
-                    <div className="mt-3 rounded-lg bg-neutral-50/80 p-2.5 text-xs text-neutral-600 line-clamp-2 border border-neutral-100">
+                    <div className="mt-3 rounded-lg bg-neutral-50/80 p-2.5 text-xs text-neutral-600 line-clamp-2 border border-neutral-100 break-words">
                       {assignment.description}
                     </div>
                   )}
                 </div>
 
                 {/* Card Footer: Quick Status Changer */}
-                <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-neutral-500">Status:</span>
+                <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-neutral-500 shrink-0">Status:</span>
                   <StatusDropdown
                     value={status}
                     onChange={(newStatus) => handleQuickStatusChange(assignment.id, newStatus)}
@@ -645,7 +670,7 @@ export default function InternProjects() {
         /* Table View */
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-neutral-700">
+            <table className="w-full min-w-[640px] text-left text-xs text-neutral-700">
               <thead className="bg-neutral-50 text-[11px] font-bold text-neutral-500 uppercase tracking-wider border-b border-neutral-200">
                 <tr>
                   <th className="py-3 px-4">Intern</th>

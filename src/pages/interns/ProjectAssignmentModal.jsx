@@ -294,18 +294,18 @@ export default function ProjectAssignmentModal({
       title={isEdit ? 'Edit Project Assignment' : 'Assign Project to Intern'}
       maxWidth="680px"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto px-1 py-1">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 max-h-[78vh] overflow-y-auto px-1 sm:px-2 py-1">
         {/* Info Header */}
-        <div className="rounded-xl border border-primary-200 bg-primary-50/70 p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-primary-600 p-2.5 text-white shadow-sm">
+        <div className="rounded-xl border border-primary-200 bg-primary-50/70 p-3.5 sm:p-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="rounded-xl bg-primary-600 p-2 sm:p-2.5 text-white shadow-sm shrink-0">
               <AcademicCapIcon className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-primary-950">
+              <h4 className="text-xs sm:text-sm font-bold text-primary-950">
                 {isEdit ? 'Update Project Assignment' : 'New Project Allocation'}
               </h4>
-              <p className="text-xs text-primary-800">
+              <p className="text-[11px] sm:text-xs text-primary-800 leading-relaxed mt-0.5">
                 Assign projects, set roles, specify single or multiple mentors, and track deliverables.
               </p>
             </div>
@@ -313,13 +313,13 @@ export default function ProjectAssignmentModal({
         </div>
 
         {/* Section 1: Intern Details */}
-        <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-4">
+        <div className="space-y-3 sm:space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-3.5 sm:p-4">
           <h5 className="flex items-center gap-2 text-xs font-bold text-neutral-800 uppercase tracking-wider">
             <UserIcon className="h-4 w-4 text-primary-600" />
             Intern Details
           </h5>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <SearchableSelect
                 label="Select Intern *"
@@ -358,13 +358,13 @@ export default function ProjectAssignmentModal({
         </div>
 
         {/* Section 2: Project & Mentors */}
-        <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-4">
+        <div className="space-y-3 sm:space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-3.5 sm:p-4">
           <h5 className="flex items-center gap-2 text-xs font-bold text-neutral-800 uppercase tracking-wider">
             <BriefcaseIcon className="h-4 w-4 text-primary-600" />
             Project & Mentors
           </h5>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {/* Project Name (Manually typed) */}
             <div>
               <Input
@@ -378,7 +378,7 @@ export default function ProjectAssignmentModal({
 
             {/* Multiple Mentors Selection */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-1 mb-1.5">
                 <span className="text-sm font-medium text-neutral-700">
                   Mentor / Team Lead(s)
                   {selectedMentors.length > 0 && (
@@ -441,6 +441,7 @@ export default function ProjectAssignmentModal({
                     size="sm"
                     onClick={handleAddCustomMentor}
                     disabled={!customMentorInput.trim()}
+                    className="shrink-0"
                   >
                     Add
                   </Button>
@@ -499,11 +500,11 @@ export default function ProjectAssignmentModal({
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-200">
-          <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-neutral-200">
+          <Button type="button" variant="outline" onClick={onClose} disabled={saving} className="w-full sm:w-auto justify-center">
             Cancel
           </Button>
-          <Button type="submit" loading={saving}>
+          <Button type="submit" loading={saving} className="w-full sm:w-auto justify-center">
             {isEdit ? 'Save Changes' : 'Assign Project'}
           </Button>
         </div>
