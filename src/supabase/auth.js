@@ -27,6 +27,8 @@ export async function syncAuthenticatedUser(supabaseUser) {
     return null;
   }
 
+  const isActive = (status) => status === 'active' || status === 'Active';
+
   // 1. Fetch user profile from public.users table
   const { data: userSnap } = await supabase
     .from('users')
@@ -86,7 +88,48 @@ export async function syncAuthenticatedUser(supabaseUser) {
     }
 
     if (!internSnap) {
-      return null; // No employee or intern record found
+      // Agents are managed in SFMS and may not have a matching employee row
+      // when their employee profile could not be linked during setup.
+      const { data: agentSnap, error: agentError } = await supabase
+        .from('sfms_agents')
+        .select('*')
+        .ilike('email', supabaseUser.email)
+        .maybeSingle();
+
+      if (agentError) throw agentError;
+      if (!agentSnap || !isActive(agentSnap.status)) {
+        return null; // No active employee, intern, or SFMS agent record found
+      }
+
+      const userPayload = {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        display_name: agentSnap.name || supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || '',
+        photo_url: supabaseUser.user_metadata?.avatar_url || '',
+        role: 'agent',
+        employee_id: agentSnap.id,
+        employee_linked: true,
+        is_active: true,
+        last_login: new Date().toISOString(),
+      };
+
+      if (!userSnap) {
+        await supabase.from('users').upsert([{ ...userPayload }], { onConflict: 'email' });
+      } else {
+        await supabase.from('users').update(userPayload).eq('id', supabaseUser.id);
+      }
+
+      return {
+        ...supabaseUser,
+        ...userSnap,
+        ...userPayload,
+        uid: supabaseUser.id,
+        displayName: userPayload.display_name,
+        photoURL: userPayload.photo_url,
+        isActive: true,
+        status: 'active',
+        employeeId: agentSnap.id,
+      };
     }
 
     // Handle Intern payload
@@ -131,16 +174,31 @@ export async function syncAuthenticatedUser(supabaseUser) {
     };
   }
 
-  // If role is agent, verify the agent still exists in sfms_agents
+  let agentSnap = null;
+
+  // Agents are managed in SFMS; resolve older records by email if their IDs differ.
   if (employeeSnap.role === 'agent') {
-    const { data: agentSnap } = await supabase
+    const { data: agentById, error: agentByIdError } = await supabase
       .from('sfms_agents')
-      .select('id')
+      .select('*')
       .eq('id', employeeSnap.id)
       .maybeSingle();
 
-    if (!agentSnap) {
-      // Agent was deleted from the database
+    if (agentByIdError) throw agentByIdError;
+    agentSnap = agentById;
+
+    if (!agentSnap && employeeSnap.email) {
+      const { data: agentByEmail, error: agentByEmailError } = await supabase
+        .from('sfms_agents')
+        .select('*')
+        .ilike('email', employeeSnap.email)
+        .maybeSingle();
+
+      if (agentByEmailError) throw agentByEmailError;
+      agentSnap = agentByEmail;
+    }
+
+    if (!agentSnap || !isActive(agentSnap.status)) {
       return null;
     }
   }
@@ -157,7 +215,7 @@ export async function syncAuthenticatedUser(supabaseUser) {
     role: employeeSnap.role || 'employee',
     employee_id: employeeSnap.id || '',
     employee_linked: true,
-    is_active: employeeSnap.status === 'active' || employeeSnap.status === 'Active',
+    is_active: employeeSnap.role === 'agent' ? isActive(agentSnap.status) : isActive(employeeSnap.status),
     last_login: new Date().toISOString(),
   };
 
