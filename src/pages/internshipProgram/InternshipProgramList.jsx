@@ -27,6 +27,7 @@ import ConfirmModal from '../../components/ui/ConfirmModal';
 import Spinner from '../../components/ui/Spinner';
 import { useSupabaseCollection } from '../../hooks/useSupabase';
 import { createDocument, updateDocument, removeDocument, query, orderBy } from '../../supabase/db';
+import { supabase } from '../../supabase/config';
 import { formatDate } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
 
@@ -69,8 +70,6 @@ export default function InternshipProgramList() {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [selectedIntern, setSelectedIntern] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
-  const [previewModal, setPreviewModal] = useState({ open: false, title: '', url: null });
-  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Filtered interns
   const filteredInterns = useMemo(() => {
@@ -110,16 +109,49 @@ export default function InternshipProgramList() {
     setFormModalOpen(true);
   };
 
+  // Background sync helper to save generated PDFs to Supabase Storage 'intern_documents'
+  const uploadDocumentsToStorage = async (internRecord) => {
+    if (!internRecord?.id) return;
+    try {
+      const rawName = (internRecord.full_name || 'Intern').trim();
+      const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+      const offerPath = `${internRecord.id}/${safeName}_Offer_Letter.pdf`;
+      const ndaPath = `${internRecord.id}/${safeName}_NDA.pdf`;
+
+      const [offerBlob, ndaBlob] = await Promise.all([
+        pdf(<InternshipProgramOfferLetterPDF intern={internRecord} />).toBlob(),
+        pdf(<InternshipProgramNDAPDF intern={internRecord} />).toBlob(),
+      ]);
+
+      await Promise.all([
+        supabase.storage.from('intern_documents').upload(offerPath, offerBlob, {
+          contentType: 'application/pdf',
+          upsert: true,
+        }),
+        supabase.storage.from('intern_documents').upload(ndaPath, ndaBlob, {
+          contentType: 'application/pdf',
+          upsert: true,
+        }),
+      ]);
+    } catch (err) {
+      console.warn('Background document sync to storage:', err);
+    }
+  };
+
   const handleSaveIntern = async (data) => {
     try {
+      let savedRecord;
       if (selectedIntern) {
-        await updateDocument('internship_program', selectedIntern.id, data);
+        savedRecord = await updateDocument('internship_program', selectedIntern.id, data);
         toast.success('Intern details updated successfully');
       } else {
-        await createDocument('internship_program', data);
+        savedRecord = await createDocument('internship_program', data);
         toast.success('Intern added to program & documents ready!');
       }
       refetch();
+      if (savedRecord) {
+        uploadDocumentsToStorage(savedRecord);
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to save intern');
@@ -140,51 +172,89 @@ export default function InternshipProgramList() {
     }
   };
 
-  // Instant PDF Download
-  const handleDownloadOfferLetter = async (intern) => {
-    const toastId = toast.loading(`Generating Offer Letter for ${intern.full_name}...`);
+  // Open PDF in a new browser tab with proper name
+  const handleViewPdf = async (intern, type) => {
+    const rawName = (intern.full_name || 'Intern').trim();
+    const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+    const docSuffix = type === 'offer' ? 'Offer_Letter' : 'NDA';
+    const fileName = `${safeName}_${docSuffix}.pdf`;
+    const filePath = `${intern.id}/${fileName}`;
+
+    const toastId = toast.loading(`Opening ${fileName}...`);
     try {
-      const blob = await pdf(<InternshipProgramOfferLetterPDF intern={intern} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const safeName = (intern.full_name || 'Intern').replace(/[^a-zA-Z0-9]/g, '_');
-      link.download = `DZ_Infotech_Internship_Offer_Letter_${safeName}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('Offer Letter downloaded!', { id: toastId });
+      // 1. Try to get existing signed URL from Supabase Storage
+      let signedUrl = null;
+      try {
+        const { data: signedData, error: signErr } = await supabase.storage
+          .from('intern_documents')
+          .createSignedUrl(filePath, 60 * 60);
+
+        if (!signErr && signedData?.signedUrl) {
+          signedUrl = signedData.signedUrl;
+        }
+      } catch (e) {
+        // storage check fallback
+      }
+
+      // 2. If not yet in storage or lookup failed, generate PDF blob and upload
+      if (!signedUrl) {
+        const doc = type === 'offer' ? (
+          <InternshipProgramOfferLetterPDF intern={intern} />
+        ) : (
+          <InternshipProgramNDAPDF intern={intern} />
+        );
+        const blob = await pdf(doc).toBlob();
+
+        try {
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('intern_documents')
+            .upload(filePath, blob, {
+              contentType: 'application/pdf',
+              upsert: true,
+            });
+
+          if (!uploadErr && uploadData?.path) {
+            const { data: signedData } = await supabase.storage
+              .from('intern_documents')
+              .createSignedUrl(uploadData.path, 60 * 60);
+            if (signedData?.signedUrl) {
+              signedUrl = signedData.signedUrl;
+            }
+          }
+        } catch (storageErr) {
+          console.warn('Storage upload fallback:', storageErr);
+        }
+
+        // Fallback: If storage is completely unreachable, open Blob URL in new window with filename
+        if (!signedUrl) {
+          const file = new File([blob], fileName, { type: 'application/pdf' });
+          const blobUrl = URL.createObjectURL(file);
+          const newTab = window.open(blobUrl, '_blank');
+          if (newTab) {
+            newTab.document.title = fileName;
+          }
+          toast.success(`${fileName} opened in new tab`, { id: toastId });
+          return;
+        }
+      }
+
+      // Open in new browser tab
+      window.open(signedUrl, '_blank');
+      toast.success(`${fileName} opened in new tab`, { id: toastId });
     } catch (err) {
       console.error(err);
-      toast.error('Failed to generate Offer Letter PDF', { id: toastId });
+      toast.error(`Failed to open ${fileName}`, { id: toastId });
     }
   };
 
-  const handleDownloadNDA = async (intern) => {
-    const toastId = toast.loading(`Generating Student NDA for ${intern.full_name}...`);
-    try {
-      const blob = await pdf(<InternshipProgramNDAPDF intern={intern} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const safeName = (intern.full_name || 'Intern').replace(/[^a-zA-Z0-9]/g, '_');
-      link.download = `DZ_Infotech_Student_NDA_${safeName}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success('Student NDA downloaded!', { id: toastId });
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to generate Student NDA PDF', { id: toastId });
-    }
-  };
+  // Download PDF directly with proper filename
+  const handleDownloadPdf = async (intern, type) => {
+    const rawName = (intern.full_name || 'Intern').trim();
+    const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+    const docSuffix = type === 'offer' ? 'Offer_Letter' : 'NDA';
+    const fileName = `${safeName}_${docSuffix}.pdf`;
 
-  // Preview PDF in modal
-  const handlePreviewPdf = async (intern, type) => {
-    setGeneratingPdf(true);
-    const toastId = toast.loading(`Preparing ${type === 'offer' ? 'Offer Letter' : 'NDA'} preview...`);
+    const toastId = toast.loading(`Downloading ${fileName}...`);
     try {
       const doc = type === 'offer' ? (
         <InternshipProgramOfferLetterPDF intern={intern} />
@@ -193,17 +263,17 @@ export default function InternshipProgramList() {
       );
       const blob = await pdf(doc).toBlob();
       const url = URL.createObjectURL(blob);
-      setPreviewModal({
-        open: true,
-        title: `${type === 'offer' ? 'Offer Letter' : 'Student NDA'} — ${intern.full_name}`,
-        url,
-      });
-      toast.dismiss(toastId);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`${fileName} downloaded!`, { id: toastId });
     } catch (err) {
       console.error(err);
-      toast.error('Failed to preview document', { id: toastId });
-    } finally {
-      setGeneratingPdf(false);
+      toast.error(`Failed to download ${fileName}`, { id: toastId });
     }
   };
 
@@ -399,15 +469,15 @@ export default function InternshipProgramList() {
                           {/* Offer Letter Actions */}
                           <div className="inline-flex rounded-lg border border-neutral-200 p-0.5 bg-white shadow-xs">
                             <button
-                              onClick={() => handlePreviewPdf(item, 'offer')}
-                              title="Preview Offer Letter"
+                              onClick={() => handleViewPdf(item, 'offer')}
+                              title="View Offer Letter in New Tab"
                               className="px-2 py-1 text-xs font-semibold text-neutral-700 hover:text-primary-700 hover:bg-neutral-50 rounded flex items-center gap-1 transition"
                             >
                               <EyeIcon className="h-3.5 w-3.5" />
                               <span>Offer</span>
                             </button>
                             <button
-                              onClick={() => handleDownloadOfferLetter(item)}
+                              onClick={() => handleDownloadPdf(item, 'offer')}
                               title="Download Offer Letter PDF"
                               className="p-1 text-primary-600 hover:bg-primary-50 rounded transition"
                             >
@@ -418,15 +488,15 @@ export default function InternshipProgramList() {
                           {/* NDA Actions */}
                           <div className="inline-flex rounded-lg border border-neutral-200 p-0.5 bg-white shadow-xs">
                             <button
-                              onClick={() => handlePreviewPdf(item, 'nda')}
-                              title="Preview Student NDA"
+                              onClick={() => handleViewPdf(item, 'nda')}
+                              title="View Student NDA in New Tab"
                               className="px-2 py-1 text-xs font-semibold text-neutral-700 hover:text-primary-700 hover:bg-neutral-50 rounded flex items-center gap-1 transition"
                             >
                               <EyeIcon className="h-3.5 w-3.5" />
                               <span>NDA</span>
                             </button>
                             <button
-                              onClick={() => handleDownloadNDA(item)}
+                              onClick={() => handleDownloadPdf(item, 'nda')}
                               title="Download Student NDA PDF"
                               className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition"
                             >
@@ -482,31 +552,6 @@ export default function InternshipProgramList() {
         confirmText="Delete Intern"
         danger
       />
-
-      {/* PDF Document Preview Modal */}
-      <Modal
-        open={previewModal.open}
-        onClose={() => {
-          if (previewModal.url) URL.revokeObjectURL(previewModal.url);
-          setPreviewModal({ open: false, title: '', url: null });
-        }}
-        title={previewModal.title}
-        maxWidth="950px"
-      >
-        <div className="w-full h-[75vh] flex flex-col">
-          {previewModal.url ? (
-            <iframe
-              src={previewModal.url}
-              className="w-full h-full rounded-xl border border-neutral-300"
-              title="Document Preview"
-            />
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-neutral-400">
-              <Spinner className="h-8 w-8" />
-            </div>
-          )}
-        </div>
-      </Modal>
     </div>
   );
 }

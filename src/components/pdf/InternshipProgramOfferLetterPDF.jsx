@@ -190,8 +190,12 @@ export function InternshipProgramOfferLetterPDF({ intern = {} }) {
   const signatoryDesignation = intern.signatory_designation || 'Founder & Director';
   const signatoryPlace = intern.signatory_place || 'Bhavnagar, Gujarat, India';
 
+  const rawName = (intern.full_name || 'Candidate').trim();
+  const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+  const documentTitle = `${safeName}_Offer_Letter.pdf`;
+
   return (
-    <Document title={`Internship_Offer_Letter_${intern.full_name || 'Candidate'}`}>
+    <Document title={documentTitle} author="DZ Infotech" subject="Internship Offer Letter">
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <Text style={styles.header} fixed>DZ INFOTECH</Text>
@@ -333,32 +337,42 @@ export function InternshipProgramOfferLetterPDF({ intern = {} }) {
         </Text>
 
         {/* Sign-off Block */}
-        <View style={styles.signOffSection}>
+        <View wrap={false} style={styles.signOffSection}>
           <Text>Sincerely,</Text>
-          <Text style={{ fontFamily: 'Helvetica-Bold', marginTop: 2 }}>For DZ INFOTECH</Text>
-          {SIGNATURE_BASE64 ? (
-            <Image src={SIGNATURE_BASE64} style={styles.signatureImage} />
-          ) : (
-            <View style={{ height: 35 }} />
-          )}
-          <Text>Signature: _________________________________________</Text>
-          <Text>Authorized Signatory: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{signatoryName}</Text></Text>
-          <Text>Designation: {signatoryDesignation}</Text>
-          <Text>Date: {offerDateFormatted}</Text>
-          <Text>Place: {signatoryPlace}</Text>
+          <Text style={{ fontFamily: 'Helvetica-Bold', marginTop: 3, marginBottom: 4 }}>For DZ INFOTECH</Text>
+
+          <View style={{ width: 220, marginBottom: 5 }}>
+            <View style={{ height: 42, justifyContent: 'flex-end', alignItems: 'flex-start', marginBottom: 2 }}>
+              {SIGNATURE_BASE64 ? (
+                <Image src={SIGNATURE_BASE64} style={{ width: 110, height: 38, objectFit: 'contain' }} />
+              ) : null}
+              <View style={{ width: '100%', borderBottomWidth: 1, borderBottomColor: '#475569' }} />
+            </View>
+            <Text style={{ fontSize: 7.5, color: '#64748b', marginBottom: 4 }}>(Authorized Signature)</Text>
+          </View>
+
+          <Text style={{ marginTop: 1.5 }}>Authorized Signatory: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{signatoryName}</Text></Text>
+          <Text style={{ marginTop: 1.5 }}>Designation: {signatoryDesignation}</Text>
+          <Text style={{ marginTop: 1.5 }}>Date: {offerDateFormatted}</Text>
+          <Text style={{ marginTop: 1.5 }}>Place: {signatoryPlace}</Text>
         </View>
 
         {/* Acceptance Box */}
-        <View style={styles.acceptanceBox}>
+        <View wrap={false} style={styles.acceptanceBox}>
           <Text style={styles.acceptanceTitle}>ACCEPTANCE BY INTERN</Text>
           <Text style={styles.paragraph}>
             I, <Text style={{ fontFamily: 'Helvetica-Bold' }}>{fullName}</Text>, accept the internship offer made by DZ Infotech and agree to the terms stated in this letter.
           </Text>
-          <View style={{ marginTop: 8 }}>
-            <Text style={{ marginBottom: 4 }}>Intern's Signature: __________________________________</Text>
-            <Text style={{ marginBottom: 4 }}>Full Name: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{fullName}</Text></Text>
-            <Text style={{ marginBottom: 4 }}>Date: ______________________________________________</Text>
-            <Text>Place: _____________________________________________</Text>
+          <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <View style={{ width: '55%' }}>
+              <Text style={{ marginBottom: 4 }}>Full Name: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{fullName}</Text></Text>
+              <Text style={{ marginBottom: 4 }}>Date: _____________________________</Text>
+              <Text>Place: ____________________________</Text>
+            </View>
+            <View style={{ width: '40%', alignItems: 'center' }}>
+              <View style={{ width: '100%', borderBottomWidth: 1, borderBottomColor: '#475569', height: 28, marginBottom: 3 }} />
+              <Text style={{ fontSize: 7.5, color: '#64748b' }}>(Intern's Signature)</Text>
+            </View>
           </View>
         </View>
 

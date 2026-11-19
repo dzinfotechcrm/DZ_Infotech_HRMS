@@ -187,8 +187,12 @@ export function InternshipProgramNDAPDF({ intern = {} }) {
   const signatoryDesignation = intern.signatory_designation || 'Founder & Director';
   const signatoryPlace = intern.signatory_place || 'Bhavnagar, Gujarat, India';
 
+  const rawName = (intern.full_name || 'Student').trim();
+  const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+  const documentTitle = `${safeName}_NDA.pdf`;
+
   return (
-    <Document title={`Internship_NDA_${intern.full_name || 'Student'}`}>
+    <Document title={documentTitle} author="DZ Infotech" subject="Student Internship Non-Disclosure Agreement">
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <Text style={styles.header} fixed>DZ INFOTECH</Text>
@@ -395,40 +399,48 @@ export function InternshipProgramNDAPDF({ intern = {} }) {
         </Text>
 
         {/* Signatures Dual Box */}
-        <View style={styles.signatureBox}>
+        <View wrap={false} style={styles.signatureBox}>
           {/* Intern Side */}
           <View style={styles.signatureCol}>
-            <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9.5, marginBottom: 4, color: '#0f172a' }}>FOR THE INTERN:</Text>
-            <View style={{ height: 35 }} />
-            <Text style={{ marginBottom: 3 }}>Signature: ___________________________</Text>
-            <Text style={{ marginBottom: 3 }}>Full Name: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{fullName}</Text></Text>
-            <Text style={{ marginBottom: 3 }}>Date: {signDateFormatted}</Text>
+            <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9.5, marginBottom: 6, color: '#0f172a' }}>FOR THE INTERN:</Text>
+            <View style={{ height: 42, justifyContent: 'flex-end', marginBottom: 4 }}>
+              <View style={{ width: '100%', borderBottomWidth: 1, borderBottomColor: '#475569' }} />
+            </View>
+            <Text style={{ fontSize: 7.5, color: '#64748b', marginBottom: 4 }}>(Signature of Intern)</Text>
+            <Text style={{ marginBottom: 2.5 }}>Full Name: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{fullName}</Text></Text>
+            <Text style={{ marginBottom: 2.5 }}>Date: {signDateFormatted}</Text>
             <Text>Place: Bhavnagar, Gujarat</Text>
           </View>
 
           {/* DZ Infotech Side */}
           <View style={styles.signatureCol}>
-            <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9.5, marginBottom: 4, color: '#0f172a' }}>FOR DZ INFOTECH:</Text>
-            {SIGNATURE_BASE64 ? (
-              <Image src={SIGNATURE_BASE64} style={styles.signatureImage} />
-            ) : (
-              <View style={{ height: 35 }} />
-            )}
-            <Text style={{ marginBottom: 3 }}>Signature: ___________________________</Text>
-            <Text style={{ marginBottom: 3 }}>Authorized Signatory: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{signatoryName}</Text></Text>
-            <Text style={{ marginBottom: 3 }}>Designation: {signatoryDesignation}</Text>
-            <Text style={{ marginBottom: 3 }}>Date: {signDateFormatted}</Text>
+            <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9.5, marginBottom: 6, color: '#0f172a' }}>FOR DZ INFOTECH:</Text>
+            <View style={{ height: 42, justifyContent: 'flex-end', alignItems: 'flex-start', marginBottom: 4 }}>
+              {SIGNATURE_BASE64 ? (
+                <Image src={SIGNATURE_BASE64} style={{ width: 110, height: 38, objectFit: 'contain' }} />
+              ) : null}
+              <View style={{ width: '100%', borderBottomWidth: 1, borderBottomColor: '#475569' }} />
+            </View>
+            <Text style={{ fontSize: 7.5, color: '#64748b', marginBottom: 4 }}>(Authorized Signature)</Text>
+            <Text style={{ marginBottom: 2.5 }}>Authorized Signatory: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{signatoryName}</Text></Text>
+            <Text style={{ marginBottom: 2.5 }}>Designation: {signatoryDesignation}</Text>
+            <Text style={{ marginBottom: 2.5 }}>Date: {signDateFormatted}</Text>
             <Text>Place: {signatoryPlace}</Text>
           </View>
         </View>
 
         {/* Under 18 Parent Box */}
-        <View style={styles.parentSignatureBox}>
-          <Text style={{ fontSize: 8, fontStyle: 'italic', marginBottom: 3, color: '#64748b' }}>
+        <View wrap={false} style={styles.parentSignatureBox}>
+          <Text style={{ fontSize: 8, fontStyle: 'italic', marginBottom: 4, color: '#64748b' }}>
             (If the Intern is under 18 years of age, Parent / Guardian signature is required below:)
           </Text>
-          <Text style={{ fontSize: 8.5 }}>Parent / Guardian Signature: _________________________________________________</Text>
-          <Text style={{ fontSize: 8.5, marginTop: 2 }}>Parent / Guardian Name: {guardianName !== '______________________________________________________________' ? guardianName : '____________________________________________________'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 3 }}>
+            <Text style={{ fontSize: 8.5 }}>Parent / Guardian Signature: </Text>
+            <View style={{ flex: 1, borderBottomWidth: 1, borderBottomColor: '#94a3b8', height: 14 }} />
+          </View>
+          <Text style={{ fontSize: 8.5, marginTop: 2 }}>
+            Parent / Guardian Name: <Text style={{ fontFamily: 'Helvetica-Bold' }}>{guardianName !== '______________________________________________________________' ? guardianName : '______________________________'}</Text>
+          </Text>
           <Text style={{ fontSize: 8.5, marginTop: 2 }}>Relationship: Father / Mother / Legal Guardian</Text>
         </View>
 
