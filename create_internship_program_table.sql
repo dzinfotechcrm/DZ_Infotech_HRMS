@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS internship_program (
   work_mode TEXT DEFAULT 'Remote / Work From Home',
   mentor_name TEXT,                    -- Reporting Mentor / Supervisor
   working_days_hours TEXT DEFAULT 'Monday to Friday, 10:00 AM - 6:00 PM',
-  stipend TEXT DEFAULT 'Performance-based / Unpaid Industrial Internship',
+  stipend TEXT DEFAULT 'NA',
   offer_date DATE DEFAULT CURRENT_DATE,
   acceptance_deadline DATE,
   nda_effective_date DATE DEFAULT CURRENT_DATE,

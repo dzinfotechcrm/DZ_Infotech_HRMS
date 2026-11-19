@@ -184,7 +184,7 @@ export function InternshipProgramOfferLetterPDF({ intern = {} }) {
   const workMode = intern.work_mode || 'Remote / Work From Home';
   const mentor = intern.mentor_name || 'Designated Lead / Mentor';
   const timings = intern.working_days_hours || 'Monday to Friday, 10:00 AM - 6:00 PM';
-  const stipend = intern.stipend || 'Performance-based / Unpaid Industrial Internship';
+  const stipend = 'NA';
 
   const signatoryName = intern.signatory_name || 'Authorized Signatory';
   const signatoryDesignation = intern.signatory_designation || 'Founder & Director';

@@ -64,7 +64,7 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
     work_mode: 'Remote / Work From Home',
     mentor_name: 'Technical Lead / Senior Mentor',
     working_days_hours: 'Monday to Friday, 10:00 AM - 6:00 PM',
-    stipend: 'Performance-based / Unpaid Industrial Internship',
+    stipend: 'NA',
 
     // 3. Legal Dates & Signatory
     offer_date: todayStr,
@@ -99,7 +99,7 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
         work_mode: intern.work_mode || 'Remote / Work From Home',
         mentor_name: intern.mentor_name || 'Technical Lead / Senior Mentor',
         working_days_hours: intern.working_days_hours || 'Monday to Friday, 10:00 AM - 6:00 PM',
-        stipend: intern.stipend || 'Performance-based / Unpaid Industrial Internship',
+        stipend: intern.stipend && intern.stipend !== 'Performance-based / Unpaid Industrial Internship' ? intern.stipend : 'NA',
 
         offer_date: intern.offer_date || todayStr,
         acceptance_deadline: intern.acceptance_deadline || defaultDeadline,
@@ -439,7 +439,7 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
                 name="stipend"
                 value={formData.stipend}
                 onChange={handleChange}
-                placeholder="e.g. Performance-based / Unpaid"
+                placeholder="e.g. NA"
               />
             </div>
 
