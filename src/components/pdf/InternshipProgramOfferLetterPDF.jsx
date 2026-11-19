@@ -274,23 +274,23 @@ export function InternshipProgramOfferLetterPDF({ intern = {} }) {
           During the internship, you will participate in mentor-guided learning activities, interactive sessions, and practical assignments. Depending on the program and project allocation, your responsibilities may include:
         </Text>
         <View style={styles.bulletList}>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}>Attending scheduled training, mentoring, and review sessions.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}>Working on assigned individual projects and/or collaborative demo projects.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}>Applying relevant technical concepts, tools, and development practices to assigned tasks.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}>Providing progress updates and submitting assigned work within agreed timelines.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}>Following the Company's technical, security, communication, and project-management guidelines.</Text>
           </View>

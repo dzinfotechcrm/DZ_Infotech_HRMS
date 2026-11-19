@@ -180,66 +180,51 @@ export default function InternshipProgramList() {
     const fileName = `${safeName}_${docSuffix}.pdf`;
     const filePath = `${intern.id}/${fileName}`;
 
-    const toastId = toast.loading(`Opening ${fileName}...`);
+    const toastId = toast.loading(`Preparing ${fileName}...`);
     try {
-      // 1. Try to get existing signed URL from Supabase Storage
+      // 1. Always generate fresh PDF blob from latest component
+      const doc = type === 'offer' ? (
+        <InternshipProgramOfferLetterPDF intern={intern} />
+      ) : (
+        <InternshipProgramNDAPDF intern={intern} />
+      );
+      const blob = await pdf(doc).toBlob();
+
+      // 2. Upload/refresh in Supabase Storage with upsert: true
       let signedUrl = null;
       try {
-        const { data: signedData, error: signErr } = await supabase.storage
+        const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('intern_documents')
-          .createSignedUrl(filePath, 60 * 60);
+          .upload(filePath, blob, {
+            contentType: 'application/pdf',
+            upsert: true,
+          });
 
-        if (!signErr && signedData?.signedUrl) {
-          signedUrl = signedData.signedUrl;
-        }
-      } catch (e) {
-        // storage check fallback
-      }
-
-      // 2. If not yet in storage or lookup failed, generate PDF blob and upload
-      if (!signedUrl) {
-        const doc = type === 'offer' ? (
-          <InternshipProgramOfferLetterPDF intern={intern} />
-        ) : (
-          <InternshipProgramNDAPDF intern={intern} />
-        );
-        const blob = await pdf(doc).toBlob();
-
-        try {
-          const { data: uploadData, error: uploadErr } = await supabase.storage
+        if (!uploadErr && uploadData?.path) {
+          const { data: signedData } = await supabase.storage
             .from('intern_documents')
-            .upload(filePath, blob, {
-              contentType: 'application/pdf',
-              upsert: true,
-            });
-
-          if (!uploadErr && uploadData?.path) {
-            const { data: signedData } = await supabase.storage
-              .from('intern_documents')
-              .createSignedUrl(uploadData.path, 60 * 60);
-            if (signedData?.signedUrl) {
-              signedUrl = signedData.signedUrl;
-            }
+            .createSignedUrl(uploadData.path, 60 * 60);
+          if (signedData?.signedUrl) {
+            signedUrl = signedData.signedUrl;
           }
-        } catch (storageErr) {
-          console.warn('Storage upload fallback:', storageErr);
         }
+      } catch (storageErr) {
+        console.warn('Storage upload fallback:', storageErr);
+      }
 
-        // Fallback: If storage is completely unreachable, open Blob URL in new window with filename
-        if (!signedUrl) {
-          const file = new File([blob], fileName, { type: 'application/pdf' });
-          const blobUrl = URL.createObjectURL(file);
-          const newTab = window.open(blobUrl, '_blank');
-          if (newTab) {
-            newTab.document.title = fileName;
-          }
-          toast.success(`${fileName} opened in new tab`, { id: toastId });
-          return;
+      // 3. Open in new browser tab
+      if (signedUrl) {
+        window.open(signedUrl, '_blank');
+      } else {
+        // Fallback: If storage is unreachable, open Blob URL in new window with filename
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(file);
+        const newTab = window.open(blobUrl, '_blank');
+        if (newTab) {
+          newTab.document.title = fileName;
         }
       }
 
-      // Open in new browser tab
-      window.open(signedUrl, '_blank');
       toast.success(`${fileName} opened in new tab`, { id: toastId });
     } catch (err) {
       console.error(err);

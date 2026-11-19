@@ -243,19 +243,19 @@ export function InternshipProgramNDAPDF({ intern = {} }) {
         <Text style={styles.sectionHeading}>PREAMBLE / RECITALS</Text>
         <Text style={{ fontFamily: 'Helvetica-Bold', marginBottom: 3 }}>WHEREAS:</Text>
         <View style={styles.bulletList}>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>1.</Text>
             <Text style={styles.bulletText}>The Company is engaged in technology solutions, software engineering, enterprise automations, application development, and digital consulting.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>2.</Text>
             <Text style={styles.bulletText}>The Company conducts mentor-guided industrial internship programs (3-month fast-track and 6-month advanced batches) where students participate in live interactive sessions, execute individual live projects, and collaborate on demo group projects.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>3.</Text>
             <Text style={styles.bulletText}>In connection with the Intern’s enrollment and participation in the internship program, the Company will grant the Intern access to certain non-public, proprietary, and business-critical technical and commercial information.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>4.</Text>
             <Text style={styles.bulletText}>To protect the Company’s proprietary interests, intellectual property, client trust, and trade secrets, the Parties agree to enter into this Agreement.</Text>
           </View>
@@ -271,23 +271,23 @@ export function InternshipProgramNDAPDF({ intern = {} }) {
           For the purposes of this Agreement, “Confidential Information” shall mean any and all non-public, sensitive, or proprietary information, whether technical, operational, or commercial, disclosed directly or indirectly by the Company to the Intern, whether in writing, oral, electronic, visual, or machine-readable format, including but not limited to:
         </Text>
         <View style={styles.bulletList}>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>Source Code & Technical Assets: </Text>Source code, object code, system architectures, database schemas, API keys, credentials, algorithms, data structures, repositories, pull requests, frameworks, design patterns, testing suites, bug logs, and server configurations.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>Project Data & Client Information: </Text>Real-world client requirements, business specifications, wireframes, prototypes, user journeys, production datasets, operational workflows, customer lists, and client identities.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>Internal Materials & Sessions: </Text>Training curricula, session recordings, workshop notes, mentorship guidelines, internal roadmaps, internal discussion boards, and operational procedures.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>Business & Financial Information: </Text>Business strategies, pricing structures, marketing initiatives, partnership details, and operational practices.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>Derivative Works: </Text>Any code, notes, summaries, diagrams, or deliverables created by the Intern based upon or incorporating the Company's Confidential Information.</Text>
           </View>
@@ -303,27 +303,27 @@ export function InternshipProgramNDAPDF({ intern = {} }) {
         <Text style={styles.sectionHeading}>3. OBLIGATIONS OF THE INTERN</Text>
         <Text style={styles.paragraph}>The Intern explicitly agrees to the following covenants:</Text>
         <View style={styles.bulletList}>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>Standard of Care: </Text>The Intern shall hold all Confidential Information in strict confidence and shall apply the highest degree of care (at least reasonable care) to prevent unauthorized disclosure, leakage, copying, or misuse.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>Limited & Permitted Purpose: </Text>The Intern shall use Confidential Information solely and strictly for the purpose of completing their assigned internship tasks, projects, and guided sessions under the supervision of DZ Infotech mentors.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>No Third-Party Disclosure: </Text>The Intern shall not publish, share, transmit, forward, or disclose any Confidential Information to any third party (including friends, classmates, professors, or unauthorized individuals) without prior written authorization from DZ Infotech.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>Prohibition of Public Code Repositories: </Text>Under no circumstances shall the Intern push, upload, host, or publish any live project code, client code, proprietary scripts, database schemas, or API credentials to public code-hosting platforms (including public GitHub, GitLab, Bitbucket, Pastebin, Gist, or public Google Drive folders). All code must strictly remain in private company-designated repositories.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>No AI Scraping / Public Model Ingestion: </Text>The Intern shall not upload or feed the Company’s or clients’ proprietary source code, credentials, or sensitive business logic into public, unvetted AI tools or third-party web tools that use inputted data for public training.</Text>
           </View>
-          <View style={styles.bulletItem}>
+          <View wrap={false} style={styles.bulletItem}>
             <Text style={styles.bulletDot}>•</Text>
             <Text style={styles.bulletText}><Text style={styles.boldLabel}>No Reverse Engineering: </Text>The Intern shall not decompile, reverse-engineer, or attempt to derive underlying algorithms from the Company’s proprietary tools or platforms.</Text>
           </View>
