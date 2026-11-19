@@ -23,6 +23,7 @@ const Payslip = lazy(() => import('./pages/payroll/Payslip'));
 const Profile = lazy(() => import('./pages/profile/Profile'));
 const LeaveBalances = lazy(() => import('./pages/leave/LeaveBalances'));
 const InternProjects = lazy(() => import('./pages/interns/InternProjects'));
+const InternshipProgramList = lazy(() => import('./pages/internshipProgram/InternshipProgramList'));
 
 const SoftwareLicenses = lazy(() => import('./pages/assets/SoftwareLicenses'));
 const ActiveLicenses = lazy(() => import('./pages/assets/ActiveLicenses'));
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="employees/:id/edit" element={<ProtectedRoute allowedRoles={[ROLES.admin, ROLES.hr]}><EmployeeForm mode="edit" /></ProtectedRoute>} />
           <Route path="employees/:id" element={<ProtectedRoute allowedRoles={PERMISSIONS.employees}><EmployeeProfile /></ProtectedRoute>} />
           <Route path="intern-projects" element={<ProtectedRoute allowedRoles={PERMISSIONS.internProjects}><InternProjects /></ProtectedRoute>} />
+          <Route path="internship-program" element={<ProtectedRoute allowedRoles={PERMISSIONS.internshipProgram}><InternshipProgramList /></ProtectedRoute>} />
           <Route path="departments" element={<ProtectedRoute allowedRoles={PERMISSIONS.departments}><DepartmentList /></ProtectedRoute>} />
           <Route path="departments/new" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><DepartmentForm mode="create" /></ProtectedRoute>} />
           <Route path="departments/:id/edit" element={<ProtectedRoute allowedRoles={[ROLES.admin]}><DepartmentForm mode="edit" /></ProtectedRoute>} />

@@ -30,6 +30,7 @@ import {
   ComputerDesktopIcon,
   MegaphoneIcon,
   DocumentTextIcon,
+  DocumentCheckIcon,
   ReceiptPercentIcon,
   ChevronLeftIcon,
   ChevronRightIcon
@@ -43,6 +44,7 @@ const hrmsNavigation = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
   { to: '/employees', label: 'Employees', icon: UsersIcon },
   { to: '/intern-projects', label: 'Intern Projects', icon: AcademicCapIcon, adminOnly: true },
+  { to: '/internship-program', label: 'Internship Program', icon: DocumentCheckIcon, adminOnly: true },
   { to: '/departments', label: 'Departments', icon: BuildingOffice2Icon, adminOnly: true },
   { to: '/attendance', label: 'Attendance', icon: CalendarDaysIcon },
   { to: '/leave', label: 'Leave', icon: ClipboardDocumentListIcon },
