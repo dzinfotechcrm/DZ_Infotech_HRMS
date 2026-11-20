@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabase/config';
+import { subscribeToTable } from '../supabase/realtimeSync';
 
 export function useSupabaseCollection(tableName, buildQuery) {
   const [items, setItems] = useState([]);
@@ -85,31 +86,47 @@ export function useSupabaseCollection(tableName, buildQuery) {
 
     fetchData();
 
-    // We previously disabled this to stop the "refreshing" issue, but since the 
-    // loading spinner flash is fixed, we can re-enable silent realtime updates 
-    // so edits appear instantly without a manual page reload.
+    // 1. Subscribe to central real-time updates (cross-browser WebSockets, CDC, local tabs)
+    const unsubscribeSync = subscribeToTable(dbTableName, () => {
+      if (isMounted) {
+        fetchData(true);
+      }
+    });
+
+    // 2. Direct Supabase postgres_changes channel
     subscription = supabase
       .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: dbTableName },
         () => {
-          fetchData(true); // Refetch silently on any change
+          if (isMounted) fetchData(true);
         }
       )
       .subscribe();
 
-    // Local tab-to-tab realtime updates
-    const bc = new BroadcastChannel('app-updates');
-    bc.onmessage = (event) => {
-      if (event.data?.type === 'table-update' && event.data?.table === dbTableName) {
+    // 3. Window focus and visibilitychange sync (when switching tabs/windows, immediately grab fresh data)
+    const handleFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && isMounted) {
         fetchData(true);
       }
     };
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', handleFocus);
+
+    // 4. Gentle 5s polling fallback if tab is visible
+    const pollTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible' && isMounted) {
+        fetchData(true);
+      }
+    }, 5000);
 
     return () => {
       isMounted = false;
-      bc.close();
+      unsubscribeSync();
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('visibilitychange', handleFocus);
+      clearInterval(pollTimer);
       if (subscription) {
         supabase.removeChannel(subscription);
       }

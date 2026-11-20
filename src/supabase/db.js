@@ -1,4 +1,5 @@
 import { supabase } from './config';
+import { notifyTableChange } from './realtimeSync';
 
 export async function createDocument(tableName, payload) {
   const id = payload.id || crypto.randomUUID();
@@ -16,11 +17,7 @@ export async function createDocument(tableName, payload) {
     .single();
 
   if (error) throw error;
-  try {
-    const bc = new BroadcastChannel('app-updates');
-    bc.postMessage({ type: 'table-update', table: mapTableName(tableName) });
-    bc.close();
-  } catch (err) {}
+  notifyTableChange(tableName);
   return data;
 }
 
@@ -46,11 +43,7 @@ export async function updateDocument(tableName, id, payload) {
     .single();
 
   if (error) throw error;
-  try {
-    const bc = new BroadcastChannel('app-updates');
-    bc.postMessage({ type: 'table-update', table: mapTableName(tableName) });
-    bc.close();
-  } catch (err) {}
+  notifyTableChange(tableName);
   return data;
 }
 
@@ -68,11 +61,7 @@ export async function upsertDocument(tableName, id, payload) {
     .single();
 
   if (error) throw error;
-  try {
-    const bc = new BroadcastChannel('app-updates');
-    bc.postMessage({ type: 'table-update', table: mapTableName(tableName) });
-    bc.close();
-  } catch (err) {}
+  notifyTableChange(tableName);
   return data;
 }
 
@@ -83,11 +72,7 @@ export async function removeDocument(tableName, id) {
     .eq('id', id);
 
   if (error) throw error;
-  try {
-    const bc = new BroadcastChannel('app-updates');
-    bc.postMessage({ type: 'table-update', table: mapTableName(tableName) });
-    bc.close();
-  } catch (err) {}
+  notifyTableChange(tableName);
 }
 
 export async function fetchDocument(tableName, id) {
@@ -212,21 +197,25 @@ export async function setDoc({ path, id }, payload, options = {}) {
     const { error } = await supabase.from(mapTableName(path)).insert([{ id, ...payload }]);
     if (error) throw error;
   }
+  notifyTableChange(path);
 }
 
 export async function updateDoc({ path, id }, payload) {
   const { error } = await supabase.from(mapTableName(path)).update(payload).eq('id', id);
   if (error) throw error;
+  notifyTableChange(path);
 }
 
 export async function addDoc(pathString, payload) {
   const id = payload.id || crypto.randomUUID();
   const { data, error } = await supabase.from(mapTableName(pathString)).insert([{ id, ...payload }]).select().single();
   if (error) throw error;
+  notifyTableChange(pathString);
   return { id: data.id };
 }
 
 export async function deleteDoc({ path, id }) {
   const { error } = await supabase.from(mapTableName(path)).delete().eq('id', id);
   if (error) throw error;
+  notifyTableChange(path);
 }
