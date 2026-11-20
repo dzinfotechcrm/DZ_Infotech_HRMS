@@ -7,8 +7,6 @@ import { formatDate } from '../../utils/dateHelpers';
 import toast from 'react-hot-toast';
 
 const DURATION_OPTIONS = [
-  { value: '3 Months (Fast-Track)', label: '3 Months (Fast-Track)' },
-  { value: '6 Months (Advanced)', label: '6 Months (Advanced)' },
   { value: '3 Months', label: '3 Months' },
   { value: '6 Months', label: '6 Months' },
 ];
@@ -58,7 +56,7 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
     // 2. Internship Offer Details
     position_domain: 'Full Stack Web Development (MERN)',
     department: 'Software Engineering',
-    duration: '3 Months (Fast-Track)',
+    duration: '3 Months',
     start_date: todayStr,
     end_date: defaultEndDate,
     work_mode: 'Remote / Work From Home',
@@ -93,7 +91,7 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
 
         position_domain: intern.position_domain || 'Full Stack Web Development (MERN)',
         department: intern.department || 'Software Engineering',
-        duration: intern.duration || '3 Months (Fast-Track)',
+        duration: (intern.duration || '').toLowerCase().includes('6') ? '6 Months' : '3 Months',
         start_date: intern.start_date || todayStr,
         end_date: intern.end_date || defaultEndDate,
         work_mode: intern.work_mode || 'Remote / Work From Home',
@@ -207,11 +205,10 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
           <button
             type="button"
             onClick={() => setActiveTab('candidate')}
-            className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
-              activeTab === 'candidate'
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'candidate'
                 ? 'border-primary-600 text-primary-700'
                 : 'border-transparent text-neutral-500 hover:text-neutral-700'
-            }`}
+              }`}
           >
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-xs font-bold">1</span>
             Candidate & College
@@ -220,11 +217,10 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
           <button
             type="button"
             onClick={() => setActiveTab('internship')}
-            className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
-              activeTab === 'internship'
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'internship'
                 ? 'border-primary-600 text-primary-700'
                 : 'border-transparent text-neutral-500 hover:text-neutral-700'
-            }`}
+              }`}
           >
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-xs font-bold">2</span>
             Offer & Terms
@@ -233,11 +229,10 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
           <button
             type="button"
             onClick={() => setActiveTab('legal')}
-            className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
-              activeTab === 'legal'
+            className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'legal'
                 ? 'border-primary-600 text-primary-700'
                 : 'border-transparent text-neutral-500 hover:text-neutral-700'
-            }`}
+              }`}
           >
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-xs font-bold">3</span>
             NDA & Signatory
@@ -323,11 +318,10 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
                 value={formData.permanent_address}
                 onChange={handleChange}
                 placeholder="e.g. Plot No. 124, Diamond Park, Kaliyabid, Bhavnagar, Gujarat - 364002"
-                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm transition focus:outline-none focus:ring-2 ${
-                  errors.permanent_address
+                className={`w-full rounded-xl border px-3.5 py-2.5 text-sm transition focus:outline-none focus:ring-2 ${errors.permanent_address
                     ? 'border-danger-500 focus:ring-danger-500/20'
                     : 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500/20'
-                }`}
+                  }`}
                 required
               />
               {errors.permanent_address && (

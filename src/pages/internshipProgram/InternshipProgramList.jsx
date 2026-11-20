@@ -306,7 +306,7 @@ export default function InternshipProgramList() {
         <Card className="p-4 border-l-4 border-l-sky-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">3 Months Fast-Track</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">3 Months</p>
               <p className="text-2xl font-bold text-sky-600 mt-1">{metrics.threeMonth}</p>
             </div>
             <div className="rounded-xl bg-sky-50 p-2.5 text-sky-600">
@@ -318,7 +318,7 @@ export default function InternshipProgramList() {
         <Card className="p-4 border-l-4 border-l-indigo-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">6 Months Advanced</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">6 Months</p>
               <p className="text-2xl font-bold text-indigo-600 mt-1">{metrics.sixMonth}</p>
             </div>
             <div className="rounded-xl bg-indigo-50 p-2.5 text-indigo-600">
@@ -429,7 +429,7 @@ export default function InternshipProgramList() {
                         <p className="font-semibold text-neutral-800">{item.position_domain}</p>
                         <div className="flex items-center gap-1.5 mt-1">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
-                            {item.duration || '3 Months'}
+                            {(item.duration || '').toLowerCase().includes('6') ? '6 Months' : '3 Months'}
                           </span>
                           <span className="text-xs text-neutral-500">{item.work_mode?.split('/')[0]}</span>
                         </div>

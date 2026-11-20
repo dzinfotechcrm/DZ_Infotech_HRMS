@@ -176,7 +176,7 @@ export function InternshipProgramNDAPDF({ intern = {} }) {
   const address = intern.permanent_address || '______________________________________________________________';
   const email = intern.email || '__________________________________________________________';
   const phone = intern.phone || '______________________________________________________';
-  const duration = intern.duration || '3 Months';
+  const duration = (intern.duration || '').toLowerCase().includes('6') ? '6 Months' : '3 Months';
 
   const signatoryName = intern.signatory_name || 'Authorized Signatory';
   const signatoryDesignation = intern.signatory_designation || 'Founder & Director';

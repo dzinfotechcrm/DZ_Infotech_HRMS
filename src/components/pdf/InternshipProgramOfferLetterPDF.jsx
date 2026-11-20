@@ -180,7 +180,7 @@ export function InternshipProgramOfferLetterPDF({ intern = {} }) {
 
   const position = intern.position_domain || 'Intern';
   const department = intern.department || 'Software Engineering';
-  const duration = intern.duration || '3 months / 6 months';
+  const duration = (intern.duration || '').toLowerCase().includes('6') ? '6 Months' : '3 Months';
   const workMode = intern.work_mode || 'Remote / Work From Home';
   const mentor = intern.mentor_name || 'Designated Lead / Mentor';
   const timings = intern.working_days_hours || 'Monday to Friday, 10:00 AM - 6:00 PM';
