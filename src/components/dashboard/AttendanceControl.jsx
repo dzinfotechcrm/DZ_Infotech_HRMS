@@ -40,9 +40,27 @@ export default function AttendanceControl({ user }) {
   const activeBreak = breaks.find(b => !b.out);
   const isOnBreak = !!activeBreak;
 
-  const isOnLeaveToday = useMemo(() => {
-    return approvedLeaves.some(leave => todayStr >= leave.fromDate && todayStr <= leave.toDate);
+  const isFullLeaveToday = useMemo(() => {
+    return approvedLeaves.some(leave => {
+      const isHalf = Boolean(leave.isHalfDay || leave.data?.isHalfDay || leave.is_half_day || leave.totalDays === 0.5 || leave.data?.totalDays === 0.5);
+      if (isHalf) return false;
+      const from = leave.fromDate || leave.data?.fromDate || leave.start_date;
+      const to = leave.toDate || leave.data?.toDate || leave.end_date || from;
+      return todayStr >= from && todayStr <= to;
+    });
   }, [approvedLeaves, todayStr]);
+
+  const isHalfDayToday = useMemo(() => {
+    return approvedLeaves.find(leave => {
+      const isHalf = Boolean(leave.isHalfDay || leave.data?.isHalfDay || leave.is_half_day || leave.totalDays === 0.5 || leave.data?.totalDays === 0.5);
+      if (!isHalf) return false;
+      const from = leave.fromDate || leave.data?.fromDate || leave.start_date;
+      const to = leave.toDate || leave.data?.toDate || leave.end_date || from;
+      return todayStr >= from && todayStr <= to;
+    });
+  }, [approvedLeaves, todayStr]);
+
+  const isOnLeaveToday = isFullLeaveToday;
 
   useEffect(() => {
     let interval;
@@ -230,6 +248,11 @@ export default function AttendanceControl({ user }) {
         {isOnLeaveToday && (
           <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
             On Leave
+          </span>
+        )}
+        {isHalfDayToday && (
+          <span className="text-xs font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-lg border border-sky-200">
+            Half Day ({(isHalfDayToday.halfDayType || isHalfDayToday.data?.halfDayType || isHalfDayToday.half_day_type) === 'second_half' ? '2nd Half' : '1st Half'})
           </span>
         )}
         {!hasCheckedIn ? (

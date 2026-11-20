@@ -146,7 +146,7 @@ export default function LeaveApproval({ isTab = false, empTypeTab = 'employees' 
         const employeeId = request.employeeId;
         const year = new Date(request.fromDate).getFullYear().toString();
         const balanceId = `${employeeId}_${year}`;
-        const days = request.totalDays || daysBetween(request.fromDate, request.toDate);
+        const days = request.totalDays ?? request.data?.totalDays ?? ((request.isHalfDay || request.data?.isHalfDay || request.is_half_day) ? 0.5 : daysBetween(request.fromDate, request.toDate));
 
         let existingBalance = { balances: {} };
         try {
@@ -173,7 +173,7 @@ export default function LeaveApproval({ isTab = false, empTypeTab = 'employees' 
       } else if (status === 'rejected') {
         // Restore the days to the employee's balance
         const employeeId = request.employeeId;
-        const days = request.totalDays || daysBetween(request.fromDate, request.toDate);
+        const days = request.totalDays ?? request.data?.totalDays ?? ((request.isHalfDay || request.data?.isHalfDay || request.is_half_day) ? 0.5 : daysBetween(request.fromDate, request.toDate));
         
         const requestEmp = allEmployees.find(e => e.uid === employeeId || e.id === employeeId);
 
@@ -248,8 +248,12 @@ export default function LeaveApproval({ isTab = false, empTypeTab = 'employees' 
                 {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>}
                 {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>}
                 <td className="px-4 py-3">{request.leaveTypeName || request.leaveType || request.leaveTypeId}</td>
-                <td className="px-4 py-3">{formatDate(request.fromDate)} - {formatDate(request.toDate)}</td>
-                <td className="px-4 py-3">{request.totalDays || daysBetween(request.fromDate, request.toDate)}</td>
+                <td className="px-4 py-3">
+                  {formatDate(request.fromDate) === formatDate(request.toDate)
+                    ? `${formatDate(request.fromDate)}${(request.isHalfDay || request.data?.isHalfDay || request.is_half_day) ? ` (${(request.halfDayType || request.data?.halfDayType || request.half_day_type) === 'second_half' ? '2nd Half' : '1st Half'})` : ''}`
+                    : `${formatDate(request.fromDate)} - ${formatDate(request.toDate)}`}
+                </td>
+                <td className="px-4 py-3">{request.totalDays ?? request.data?.totalDays ?? ((request.isHalfDay || request.data?.isHalfDay || request.is_half_day) ? 0.5 : daysBetween(request.fromDate, request.toDate))}</td>
                 <td className="px-4 py-3">
                   {request.attachmentURL ? (
                     <a href={request.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
@@ -283,7 +287,11 @@ export default function LeaveApproval({ isTab = false, empTypeTab = 'employees' 
             {confirmApprove && (
               <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 text-sm mt-3 space-y-1.5">
                 <p><span className="font-medium text-neutral-500 w-20 inline-block">Employee:</span> <span className="font-semibold text-neutral-900">{getEmpName(confirmApprove.employeeId)}</span></p>
-                <p><span className="font-medium text-neutral-500 w-20 inline-block">Dates:</span> <span className="font-semibold text-neutral-900">{formatDate(confirmApprove.fromDate)} - {formatDate(confirmApprove.toDate)}</span></p>
+                <p><span className="font-medium text-neutral-500 w-20 inline-block">Dates:</span> <span className="font-semibold text-neutral-900">
+                  {formatDate(confirmApprove.fromDate) === formatDate(confirmApprove.toDate)
+                    ? `${formatDate(confirmApprove.fromDate)}${(confirmApprove.isHalfDay || confirmApprove.data?.isHalfDay || confirmApprove.is_half_day) ? ` (${(confirmApprove.halfDayType || confirmApprove.data?.halfDayType || confirmApprove.half_day_type) === 'second_half' ? '2nd Half' : '1st Half'})` : ''}`
+                    : `${formatDate(confirmApprove.fromDate)} - ${formatDate(confirmApprove.toDate)}`}
+                </span></p>
                 <p><span className="font-medium text-neutral-500 w-20 inline-block">Type:</span> <span className="font-semibold text-neutral-900">{confirmApprove.leaveTypeName || confirmApprove.leaveType || confirmApprove.leaveTypeId}</span></p>
               </div>
             )}

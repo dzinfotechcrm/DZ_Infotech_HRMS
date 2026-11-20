@@ -19,6 +19,8 @@ export default function LeaveForm({ mode = 'create' }) {
   const navigate = useNavigate();
   const { id } = useParams();
   const [attachment, setAttachment] = useState(null);
+  const [isHalfDay, setIsHalfDay] = useState(false);
+  const [halfDayType, setHalfDayType] = useState('first_half');
   const [loadingDoc, setLoadingDoc] = useState(mode === 'edit');
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
   const { items: leaveTypes } = useSupabaseCollection('leaveTypes');
@@ -35,6 +37,7 @@ export default function LeaveForm({ mode = 'create' }) {
       fetchDocument('leaveRequests', id).then((doc) => {
         if (doc.exists()) {
           const data = doc.data();
+          const docData = data.data || data;
           if (data.employeeId !== user?.uid && user?.role !== 'admin' && user?.role !== 'hr') {
             toast.error('Unauthorized');
             navigate('/leave');
@@ -45,12 +48,14 @@ export default function LeaveForm({ mode = 'create' }) {
             navigate('/leave');
             return;
           }
+          const leaveDateVal = docData.leaveDate || docData.fromDate || data.start_date || '';
           reset({
-            leaveTypeId: data.leaveTypeId,
-            fromDate: data.fromDate,
-            toDate: data.toDate,
-            reason: data.reason,
+            leaveTypeId: docData.leaveTypeId || data.type_id || '',
+            leaveDate: leaveDateVal,
+            reason: docData.reason || data.reason || '',
           });
+          setIsHalfDay(Boolean(docData.isHalfDay || data.is_half_day || docData.totalDays === 0.5));
+          setHalfDayType(docData.halfDayType || data.half_day_type || 'first_half');
         } else {
           toast.error('Leave request not found');
           navigate('/leave');
@@ -75,26 +80,37 @@ export default function LeaveForm({ mode = 'create' }) {
         );
       }
 
-      const newStart = new Date(values.fromDate);
-      newStart.setHours(0, 0, 0, 0);
-      const newEnd = new Date(values.toDate);
-      newEnd.setHours(0, 0, 0, 0);
+      const leaveDateStr = values.leaveDate;
+      const targetDate = new Date(leaveDateStr);
+      targetDate.setHours(0, 0, 0, 0);
 
       const hasOverlap = existingLeaves.some(leave => {
         if (mode === 'edit' && leave.id === id) return false;
         // fetchCollection returns raw Supabase rows; dates may be inside the data JSON column
-        const fromDateStr = leave.data?.fromDate || leave.fromDate || leave.from_date;
-        const toDateStr = leave.data?.toDate || leave.toDate || leave.to_date;
-        if (!fromDateStr || !toDateStr) return false;
+        const fromDateStr = leave.data?.leaveDate || leave.data?.fromDate || leave.fromDate || leave.from_date || leave.leave_date;
+        const toDateStr = leave.data?.toDate || leave.toDate || leave.to_date || fromDateStr;
+        if (!fromDateStr) return false;
+
         const existStart = new Date(fromDateStr);
         existStart.setHours(0, 0, 0, 0);
         const existEnd = new Date(toDateStr);
         existEnd.setHours(0, 0, 0, 0);
-        return newStart <= existEnd && newEnd >= existStart;
+
+        const dateOverlaps = targetDate >= existStart && targetDate <= existEnd;
+        if (!dateOverlaps) return false;
+
+        // If existing leave is also on the exact same date and both are half days with different sessions, allow!
+        const existIsHalf = Boolean(leave.data?.isHalfDay || leave.is_half_day || leave.data?.totalDays === 0.5);
+        const existSession = leave.data?.halfDayType || leave.half_day_type;
+        if (existIsHalf && isHalfDay && existStart.getTime() === targetDate.getTime()) {
+          return existSession === halfDayType;
+        }
+
+        return true;
       });
 
       if (hasOverlap) {
-        toast.error('You already have a pending or approved leave for the selected dates. Please choose different dates.');
+        toast.error('You already have a pending or approved leave for this date/session. Please choose different date or session.');
         return;
       }
 
@@ -109,14 +125,14 @@ export default function LeaveForm({ mode = 'create' }) {
 
       const typeDoc = leaveTypes.find(t => t.id === values.leaveTypeId);
       const leaveTypeName = typeDoc ? typeDoc.name : (isIntern ? (values.leaveTypeId === 'unpaid-leave' ? 'Unpaid Leave' : 'Intern Leave') : '');
-      const totalDays = daysBetween(values.fromDate, values.toDate);
+      const totalDays = isHalfDay ? 0.5 : 1;
 
       // Quota validation
       if (currentEmployee) {
         if (isIntern) {
           // Intern monthly limit check
           if (leaveTypeName !== 'Unpaid Leave') {
-            const now = new Date(values.fromDate);
+            const now = new Date(leaveDateStr);
 
             let existingLeaves = [];
             if (employeeDbId) {
@@ -130,11 +146,13 @@ export default function LeaveForm({ mode = 'create' }) {
               const typeName = leave.data?.leaveTypeName || leave.leaveTypeName;
               if (typeName === 'Unpaid Leave') return false;
 
-              const leaveDate = new Date(leave.data?.fromDate || leave.fromDate || leave.from_date);
-              return leaveDate.getMonth() === now.getMonth() && leaveDate.getFullYear() === now.getFullYear();
+              const lDateStr = leave.data?.leaveDate || leave.data?.fromDate || leave.fromDate || leave.from_date;
+              if (!lDateStr) return false;
+              const lDate = new Date(lDateStr);
+              return lDate.getMonth() === now.getMonth() && lDate.getFullYear() === now.getFullYear();
             });
 
-            const used = currentMonthLeaves.reduce((acc, curr) => acc + (curr.totalDays || curr.data?.totalDays || 0), 0);
+            const used = currentMonthLeaves.reduce((acc, curr) => acc + (curr.totalDays || curr.data?.totalDays || (curr.isHalfDay ? 0.5 : 1)), 0);
             const total = Number(currentEmployee.max_leave_per_month || 0);
             const remaining = total - used;
 
@@ -161,7 +179,8 @@ export default function LeaveForm({ mode = 'create' }) {
             if (mode === 'edit' && id) {
               const oldDoc = await fetchDocument('leaveRequests', id);
               if (oldDoc.exists()) {
-                oldDays = oldDoc.data().totalDays || 0;
+                const oldData = oldDoc.data();
+                oldDays = oldData.totalDays || oldData.data?.totalDays || 0;
               }
             }
 
@@ -183,9 +202,12 @@ export default function LeaveForm({ mode = 'create' }) {
       const jsonData = {
         leaveTypeId: values.leaveTypeId || 'intern-leave',
         leaveTypeName,
-        fromDate: values.fromDate,
-        toDate: values.toDate,
+        leaveDate: leaveDateStr,
+        fromDate: leaveDateStr,
+        toDate: leaveDateStr,
         totalDays,
+        isHalfDay,
+        halfDayType: isHalfDay ? halfDayType : null,
         reason: values.reason,
       };
 
@@ -195,20 +217,45 @@ export default function LeaveForm({ mode = 'create' }) {
 
       if (mode === 'edit') {
         const payload = {
+          start_date: leaveDateStr,
+          end_date: leaveDateStr,
+          leave_date: leaveDateStr,
+          is_half_day: isHalfDay,
+          half_day_type: isHalfDay ? halfDayType : null,
           reason: values.reason,
           data: jsonData
         };
-        await updateDocument('leaveRequests', id, payload);
+        try {
+          await updateDocument('leaveRequests', id, payload);
+        } catch (err) {
+          await updateDocument('leaveRequests', id, { reason: values.reason, data: jsonData });
+        }
         toast.success('Leave request updated');
       } else {
         jsonData.employeeId = user.uid; // Keeping backward compatibility for LeaveList.jsx
         const payload = {
           employee_id: currentEmployee.id, // Using the correct DB primary key to satisfy foreign key
+          type_id: values.leaveTypeId || null,
+          start_date: leaveDateStr,
+          end_date: leaveDateStr,
+          leave_date: leaveDateStr,
+          is_half_day: isHalfDay,
+          half_day_type: isHalfDay ? halfDayType : null,
           status: 'pending',
           reason: values.reason,
           data: jsonData
         };
-        await createDocument('leaveRequests', payload);
+        try {
+          await createDocument('leaveRequests', payload);
+        } catch (err) {
+          const fallbackPayload = {
+            employee_id: currentEmployee.id,
+            status: 'pending',
+            reason: values.reason,
+            data: jsonData
+          };
+          await createDocument('leaveRequests', fallbackPayload);
+        }
         toast.success('Leave request submitted');
       }
       navigate('/leave');
@@ -273,41 +320,71 @@ export default function LeaveForm({ mode = 'create' }) {
             </Select>
           )}
           <Input type="file" label="Attachment (optional)" accept="application/pdf,image/*" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
+          {/* Single Leave Date */}
           <Input
             type="date"
-            label="From Date"
+            label="Leave Date"
             min={minDateStr}
-            {...register('fromDate', {
-              required: 'From date is required',
+            {...register('leaveDate', {
+              required: 'Leave date is required',
               validate: (value) => {
                 if (value < minDateStr) return 'Leave must be for today or a future date';
                 return true;
               }
             })}
-            error={errors.fromDate?.message}
+            error={errors.leaveDate?.message}
           />
-          <Input
-            type="date"
-            label="To Date"
-            min={minDateStr}
-            {...register('toDate', {
-              required: 'To date is required',
-              validate: (value, formValues) => {
-                if (!formValues.fromDate) return true;
-                if (value < minDateStr) return 'Leave must be for today or a future date';
-                const from = new Date(formValues.fromDate);
-                const to = new Date(value);
-                // reset time for accurate day comparison
-                from.setHours(0, 0, 0, 0);
-                to.setHours(0, 0, 0, 0);
-                if (to < from) {
-                  return 'To Date cannot be earlier than From Date';
-                }
-                return true;
-              }
-            })}
-            error={errors.toDate?.message}
-          />
+
+          {/* Half Day Option Toggle */}
+          <div className="flex flex-col gap-1.5 justify-end">
+            <span className="text-sm font-medium text-neutral-700">Half Day Option</span>
+            <div className="flex items-center justify-between h-[42px] px-3.5 rounded-xl border border-neutral-200 bg-white shadow-xs">
+              <span className="text-sm font-medium text-neutral-700">
+                {isHalfDay ? (
+                  <span className="text-primary-600 font-semibold flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-primary-600 animate-pulse"></span>
+                    Half Day (0.5 Day)
+                  </span>
+                ) : (
+                  <span className="text-neutral-500">Full Day (1.0 Day)</span>
+                )}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isHalfDay}
+                onClick={() => setIsHalfDay(!isHalfDay)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                  isHalfDay ? 'bg-primary-600' : 'bg-neutral-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    isHalfDay ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* If Half Day is selected, show session selector */}
+          {isHalfDay && (
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 animate-fadeIn">
+              <Select
+                label="Half Day Session *"
+                value={halfDayType}
+                onChange={(e) => setHalfDayType(e.target.value)}
+              >
+                <option value="first_half">First Half (Morning Session)</option>
+                <option value="second_half">Second Half (Afternoon Session)</option>
+              </Select>
+              <div className="flex items-center text-xs text-neutral-600 p-3 rounded-xl bg-sky-50/70 border border-sky-100">
+                <span className="text-sky-800">
+                  ℹ️ Applying for a half day will deduct <strong>0.5 day</strong> from your leave balance.
+                </span>
+              </div>
+            </div>
+          )}
           <Input className="md:col-span-2" label="Reason" {...register('reason', { required: 'Reason is required' })} error={errors.reason?.message} />
           <div className="md:col-span-2 flex gap-3">
             <Button type="button" variant="secondary" onClick={() => navigate('/leave')}>Cancel</Button>

@@ -150,6 +150,27 @@ export default function LeaveList() {
   const [leaveReasonOpen, setLeaveReasonOpen] = useState(false);
   const [leaveReasonItem, setLeaveReasonItem] = useState(null);
 
+  const formatLeaveDates = (item) => {
+    const from = item.fromDate || item.data?.fromDate || item.start_date || item.data?.leaveDate || item.leave_date;
+    const to = item.toDate || item.data?.toDate || item.end_date || from;
+    const isHalf = Boolean(item.isHalfDay || item.data?.isHalfDay || item.is_half_day || item.totalDays === 0.5 || item.data?.totalDays === 0.5);
+    const halfType = item.halfDayType || item.data?.halfDayType || item.half_day_type;
+    const sessionLabel = isHalf ? ` (${halfType === 'second_half' ? '2nd Half' : '1st Half'})` : '';
+
+    if (!from && !to) return '—';
+    if (!to || from === to) {
+      return `${formatDate(from)}${sessionLabel}`;
+    }
+    return `${formatDate(from)} - ${formatDate(to)}`;
+  };
+
+  const getLeaveDays = (item) => {
+    if (item.totalDays !== undefined && item.totalDays !== null) return item.totalDays;
+    if (item.data?.totalDays !== undefined && item.data?.totalDays !== null) return item.data.totalDays;
+    if (item.isHalfDay || item.data?.isHalfDay || item.is_half_day) return 0.5;
+    return daysBetween(item.fromDate, item.toDate);
+  };
+
   const renderReason = (item) => {
     if (!item.reason && !item.approverComment) return <span className="text-neutral-400 text-sm">—</span>;
     return (
@@ -415,8 +436,8 @@ export default function LeaveList() {
               renderRow={(item) => (
                 <tr key={item.id}>
                   <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
-                  <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
-                  <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                  <td className="px-4 py-3">{formatLeaveDates(item)}</td>
+                  <td className="px-4 py-3">{getLeaveDays(item)}</td>
                   <td className="px-4 py-3">
                     {item.attachmentURL ? (
                       <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
@@ -453,8 +474,8 @@ export default function LeaveList() {
                     {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>}
                     {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>}
                     <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
-                    <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
-                    <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                    <td className="px-4 py-3">{formatLeaveDates(item)}</td>
+                    <td className="px-4 py-3">{getLeaveDays(item)}</td>
                     <td className="px-4 py-3">
                       {item.attachmentURL ? (
                         <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
@@ -501,8 +522,8 @@ export default function LeaveList() {
                     {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>}
                     {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>}
                     <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
-                    <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
-                    <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                    <td className="px-4 py-3">{formatLeaveDates(item)}</td>
+                    <td className="px-4 py-3">{getLeaveDays(item)}</td>
                     <td className="px-4 py-3">
                       {item.attachmentURL ? (
                         <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
@@ -540,8 +561,8 @@ export default function LeaveList() {
                     {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.department}</td>}
                     {empTypeTab !== 'interns' && <td className="px-4 py-3 text-neutral-600">{empInfo.designation}</td>}
                     <td className="px-4 py-3">{item.leaveTypeName || item.leaveType || item.leaveTypeId}</td>
-                    <td className="px-4 py-3">{formatDate(item.fromDate)} - {formatDate(item.toDate)}</td>
-                    <td className="px-4 py-3">{daysBetween(item.fromDate, item.toDate)}</td>
+                    <td className="px-4 py-3">{formatLeaveDates(item)}</td>
+                    <td className="px-4 py-3">{getLeaveDays(item)}</td>
                     <td className="px-4 py-3">
                       {item.attachmentURL ? (
                         <a href={item.attachmentURL} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 hover:underline text-sm font-semibold">
