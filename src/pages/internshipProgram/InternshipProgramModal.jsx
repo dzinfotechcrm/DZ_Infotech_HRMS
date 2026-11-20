@@ -11,6 +11,11 @@ const DURATION_OPTIONS = [
   { value: '6 Months', label: '6 Months' },
 ];
 
+const GENDER_OPTIONS = [
+  { value: 'Male', label: 'Male (Mr.)' },
+  { value: 'Female', label: 'Female (Ms.)' },
+];
+
 const WORK_MODE_OPTIONS = [
   { value: 'Remote / Work From Home', label: 'Remote / Work From Home' },
   { value: 'Hybrid (Remote + Office)', label: 'Hybrid (Remote + Office)' },
@@ -46,6 +51,7 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
   const initialFormState = {
     // 1. Candidate Personal & College Details
     full_name: '',
+    gender: 'Male',
     guardian_name: '',
     email: '',
     phone: '',
@@ -82,6 +88,7 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
     if (intern) {
       setFormData({
         full_name: intern.full_name || '',
+        gender: intern.gender || 'Male',
         guardian_name: intern.guardian_name || '',
         email: intern.email || '',
         phone: intern.phone || '',
@@ -242,17 +249,29 @@ export default function InternshipProgramModal({ open, onClose, intern, onSave }
         {/* TAB 1: Candidate Personal & College Info */}
         {activeTab === 'candidate' && (
           <div className="space-y-4 animate-fadeIn">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Full Name *"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleChange}
-                placeholder="e.g. Yash Sharma"
-                error={errors.full_name}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <Input
+                  label="Full Name *"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleChange}
+                  placeholder="e.g. Yash Sharma"
+                  error={errors.full_name}
+                  required
+                />
+              </div>
 
+              <Select
+                label="Gender *"
+                name="gender"
+                value={formData.gender || 'Male'}
+                onChange={handleChange}
+                options={GENDER_OPTIONS}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Son / Daughter of (Parent / Guardian) *"
                 name="guardian_name"

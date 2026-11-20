@@ -170,6 +170,8 @@ export function InternshipProgramNDAPDF({ intern = {} }) {
   const signDateFormatted = formatDateStr(intern.nda_effective_date || intern.start_date || intern.offer_date);
 
   const fullName = intern.full_name || '______________________________________________________________';
+  const isFemale = (intern.gender || '').trim().toLowerCase() === 'female';
+  const prefix = isFemale ? 'Ms.' : 'Mr.';
   const guardianName = intern.guardian_name || '______________________________________________________________';
   const collegeName = intern.college_name || '______________________________________________________________';
   const degreeBranch = intern.degree_branch || '______________________________________________________________';
@@ -210,7 +212,7 @@ export function InternshipProgramNDAPDF({ intern = {} }) {
         <Text style={{ fontFamily: 'Helvetica-Bold', marginVertical: 2.5 }}>AND</Text>
 
         <View style={styles.partiesBox}>
-          <Text style={styles.partyRow}><Text style={styles.boldLabel}>Mr. / Ms.: </Text>{fullName}</Text>
+          <Text style={styles.partyRow}><Text style={styles.boldLabel}>{prefix}: </Text>{fullName}</Text>
           <Text style={styles.partyRow}><Text style={styles.boldLabel}>Son / Daughter of: </Text>{guardianName}</Text>
           <Text style={styles.partyRow}><Text style={styles.boldLabel}>College / University: </Text>{collegeName}</Text>
           <Text style={styles.partyRow}><Text style={styles.boldLabel}>Degree / Branch & Year: </Text>{degreeBranch}</Text>

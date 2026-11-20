@@ -417,7 +417,12 @@ export default function InternshipProgramList() {
                             {(item.full_name || 'I').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-neutral-900">{item.full_name}</p>
+                            <p className="font-bold text-neutral-900">
+                              <span className="text-neutral-500 font-medium mr-1">
+                                {(item.gender || '').toLowerCase() === 'female' ? 'Ms.' : 'Mr.'}
+                              </span>
+                              {item.full_name}
+                            </p>
                             <p className="text-xs text-neutral-500">{item.college_name}</p>
                             <p className="text-[11px] text-neutral-400">{item.degree_branch}</p>
                           </div>

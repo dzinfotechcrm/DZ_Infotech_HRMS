@@ -174,6 +174,8 @@ export function InternshipProgramOfferLetterPDF({ intern = {} }) {
   const deadlineFormatted = formatDateStr(intern.acceptance_deadline);
 
   const fullName = intern.full_name || '__________________________________________';
+  const isFemale = (intern.gender || '').trim().toLowerCase() === 'female';
+  const prefix = isFemale ? 'Ms.' : 'Mr.';
   const firstName = fullName.split(' ')[0] || 'Candidate';
   const address = intern.permanent_address || '___________________________________________';
   const email = intern.email || '_____________________________________________';
@@ -208,7 +210,7 @@ export function InternshipProgramOfferLetterPDF({ intern = {} }) {
 
         <View style={styles.recipientBox}>
           <Text>To,</Text>
-          <Text style={{ fontFamily: 'Helvetica-Bold' }}>Mr. / Ms. {fullName}</Text>
+          <Text style={{ fontFamily: 'Helvetica-Bold' }}>{prefix} {fullName}</Text>
           <Text>Address: {address}</Text>
           <Text>Email: {email}</Text>
         </View>

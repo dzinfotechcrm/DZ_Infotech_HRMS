@@ -7,6 +7,7 @@
 CREATE TABLE IF NOT EXISTS internship_program (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   full_name TEXT NOT NULL,
+  gender TEXT DEFAULT 'Male',          -- 'Male', 'Female'
   guardian_name TEXT,                  -- Son / Daughter of (Parent/Guardian)
   college_name TEXT,                   -- College / University
   degree_branch TEXT,                  -- Degree / Branch & Year
