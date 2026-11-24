@@ -6,7 +6,7 @@ import Select from '../ui/Select';
 import Button from '../ui/Button';
 import InternshipCertificatePDF from './InternshipCertificatePDF';
 import { formatDate } from '../../utils/dateHelpers';
-import { openPdfInNewTab, downloadPdfBlob } from '../../utils/internPdfGenerator';
+import { openPdfInNewTab, downloadPdfBlob, viewPdfWithProperName } from '../../utils/internPdfGenerator';
 import toast from 'react-hot-toast';
 
 export default function CertificateCustomModal({ open, onClose, intern }) {
@@ -97,8 +97,8 @@ export default function CertificateCustomModal({ open, onClose, intern }) {
       const blob = await pdf(doc).toBlob();
 
       if (actionType === 'view') {
-        openPdfInNewTab(blob, fileName);
-        toast.success('Certificate opened in new tab', { id: toastId });
+        await viewPdfWithProperName({ blob, fileName, internId: intern.id });
+        toast.success(`${fileName} opened in new tab`, { id: toastId });
       } else {
         downloadPdfBlob(blob, fileName);
         toast.success(`${fileName} downloaded successfully`, { id: toastId });

@@ -77,7 +77,7 @@ export async function generateCertificateBlob(intern, options = {}) {
 }
 
 /**
- * Opens a PDF Blob in a new browser tab with proper title and favicon.
+ * Opens a PDF Blob in a new browser tab with proper title, favicon, and download bar.
  */
 export function openPdfInNewTab(blob, fileName) {
   const blobUrl = URL.createObjectURL(blob);
@@ -105,17 +105,75 @@ export function openPdfInNewTab(blob, fileName) {
             height: 100%;
             overflow: hidden;
             background-color: #323639;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          }
+          .top-bar {
+            height: 44px;
+            background: #202124;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            color: #ffffff;
+            border-bottom: 1px solid #3c4043;
+            box-sizing: border-box;
+          }
+          .brand-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+          }
+          .btn-download {
+            background: #EA6B23;
+            color: white;
+            border: none;
+            padding: 5px 14px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .btn-download:hover {
+            background: #d45d1b;
           }
           iframe {
             width: 100%;
-            height: 100%;
+            height: calc(100% - 44px);
             border: none;
             display: block;
           }
         </style>
       </head>
       <body>
+        <div class="top-bar">
+          <div class="brand-info">
+            <img src="/DZ_Infotech_Logo.jpeg" style="height: 24px; width: 24px; object-fit: contain; border-radius: 4px;" alt="DZ Infotech" />
+            <span>${fileName}</span>
+          </div>
+          <button class="btn-download" onclick="savePdf()">
+            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span>Download</span>
+          </button>
+        </div>
         <iframe src="${blobUrl}#title=${encodeURIComponent(fileName)}" title="${fileName}"></iframe>
+        <script>
+          function savePdf() {
+            const a = document.createElement('a');
+            a.href = '${blobUrl}';
+            a.download = '${fileName}';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }
+        </script>
       </body>
     </html>
   `);
@@ -134,4 +192,41 @@ export function downloadPdfBlob(blob, fileName) {
   link.click();
   document.body.removeChild(link);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * High-level helper to view PDF with proper filename and tab title.
+ * Uploads to Supabase Storage first so Chrome PDF viewer has the real filename in the URL.
+ * Falls back to openPdfInNewTab if offline or upload fails.
+ */
+export async function viewPdfWithProperName({ blob, fileName, internId }) {
+  let signedUrl = null;
+  if (internId) {
+    try {
+      const filePath = `${internId}/${fileName}`;
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('intern_documents')
+        .upload(filePath, blob, {
+          contentType: 'application/pdf',
+          upsert: true,
+        });
+
+      if (!uploadErr && uploadData?.path) {
+        const { data: signedData } = await supabase.storage
+          .from('intern_documents')
+          .createSignedUrl(uploadData.path, 60 * 60);
+        if (signedData?.signedUrl) {
+          signedUrl = signedData.signedUrl;
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase storage preview sync fallback:', err);
+    }
+  }
+
+  if (signedUrl) {
+    window.open(signedUrl, '_blank');
+  } else {
+    openPdfInNewTab(blob, fileName);
+  }
 }

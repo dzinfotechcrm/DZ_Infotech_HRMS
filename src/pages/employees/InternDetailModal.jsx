@@ -6,7 +6,7 @@ import ConfirmModal from '../../components/ui/ConfirmModal';
 import InternshipCertificatePDF from '../../components/pdf/InternshipCertificatePDF';
 import CertificateCustomModal from '../../components/pdf/CertificateCustomModal';
 import { formatDate } from '../../utils/dateHelpers';
-import { getDocumentDownloadUrl, openPdfInNewTab, downloadPdfBlob } from '../../utils/internPdfGenerator';
+import { getDocumentDownloadUrl, openPdfInNewTab, downloadPdfBlob, viewPdfWithProperName } from '../../utils/internPdfGenerator';
 import toast from 'react-hot-toast';
 
 export default function InternDetailModal({ intern, managers, open, onClose, onRegenerate, onClearSigned }) {
@@ -39,8 +39,8 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
     try {
       const doc = <InternshipCertificatePDF intern={intern} options={{ fileName }} />;
       const blob = await pdf(doc).toBlob();
-      openPdfInNewTab(blob, fileName);
-      toast.success('Certificate opened in new tab', { id: toastId });
+      await viewPdfWithProperName({ blob, fileName, internId: intern.id });
+      toast.success(`${fileName} opened in new tab`, { id: toastId });
     } catch (err) {
       console.error(err);
       toast.error('Failed to open certificate', { id: toastId });

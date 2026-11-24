@@ -37,7 +37,7 @@ import InternshipProgramOfferLetterPDF from '../../components/pdf/InternshipProg
 import InternshipProgramNDAPDF from '../../components/pdf/InternshipProgramNDAPDF';
 import InternshipCertificatePDF from '../../components/pdf/InternshipCertificatePDF';
 import CertificateCustomModal from '../../components/pdf/CertificateCustomModal';
-import { openPdfInNewTab, downloadPdfBlob } from '../../utils/internPdfGenerator';
+import { openPdfInNewTab, downloadPdfBlob, viewPdfWithProperName } from '../../utils/internPdfGenerator';
 
 const STATUS_TONES = {
   'Offer Issued': 'accent',
@@ -203,21 +203,8 @@ export default function InternshipProgramList() {
       );
       const blob = await pdf(doc).toBlob();
 
-      // 2. Upload/refresh in Supabase Storage in background with upsert: true
-      try {
-        supabase.storage
-          .from('intern_documents')
-          .upload(filePath, blob, {
-            contentType: 'application/pdf',
-            upsert: true,
-          })
-          .catch((e) => console.warn('Background sync:', e));
-      } catch (storageErr) {
-        console.warn('Storage upload fallback:', storageErr);
-      }
-
-      // 3. Open in new browser tab with clean filename and tab title
-      openPdfInNewTab(blob, fileName);
+      // 2. Open in new browser tab with clean filename and tab title via Supabase Storage signed URL (or enhanced viewer fallback)
+      await viewPdfWithProperName({ blob, fileName, internId: intern.id });
 
       toast.success(`${fileName} opened in new tab`, { id: toastId });
     } catch (err) {
