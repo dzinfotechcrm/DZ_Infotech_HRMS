@@ -144,8 +144,11 @@ export const OfferLetterPDF = ({ intern }) => {
     acceptance_deadline,
   } = intern;
 
+  const safeName = (full_name || 'Intern').trim().replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+  const docTitle = `${safeName}_Offer_Letter.pdf`;
+
   return (
-    <Document>
+    <Document title={docTitle} author="DZ Infotech" subject="Offer Letter">
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.companyName}>DZ INFOTECH</Text>

@@ -120,8 +120,11 @@ export const NDAPDF = ({ intern }) => {
     ? `${address.line1 || ''}, ${address.city || ''}, ${address.state || ''} - ${address.pincode || ''}`.replace(/^[,\s]+|[,\s]+$/g, '').replace(/,\s*,/g, ',')
     : '____________________________________';
 
+  const safeName = (full_name || 'Intern').trim().replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+  const docTitle = `${safeName}_NDA.pdf`;
+
   return (
-    <Document>
+    <Document title={docTitle} author="DZ Infotech" subject="Non-Disclosure Agreement">
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>NON-DISCLOSURE AGREEMENT</Text>
         <Text style={{ ...styles.title, fontSize: 12 }}>(NDA)</Text>

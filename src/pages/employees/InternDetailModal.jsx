@@ -1,13 +1,18 @@
 import { useState } from 'react';
+import { pdf } from '@react-pdf/renderer';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ui/ConfirmModal';
+import InternshipCertificatePDF from '../../components/pdf/InternshipCertificatePDF';
+import CertificateCustomModal from '../../components/pdf/CertificateCustomModal';
 import { formatDate } from '../../utils/dateHelpers';
-import { getDocumentDownloadUrl } from '../../utils/internPdfGenerator';
+import { getDocumentDownloadUrl, openPdfInNewTab, downloadPdfBlob } from '../../utils/internPdfGenerator';
 import toast from 'react-hot-toast';
 
 export default function InternDetailModal({ intern, managers, open, onClose, onRegenerate, onClearSigned }) {
   const [clearingDoc, setClearingDoc] = useState(null);
+  const [customCertOpen, setCustomCertOpen] = useState(false);
+  const [generatingCert, setGeneratingCert] = useState(false);
 
   if (!intern) return null;
 
@@ -21,6 +26,46 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
       }
     } catch (error) {
       toast.error('Error opening document');
+    }
+  };
+
+  const handleViewCertificate = async () => {
+    const rawName = (intern.full_name || `${intern.first_name || ''} ${intern.last_name || ''}`).trim() || 'Intern';
+    const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+    const fileName = `${safeName}_Internship_Certificate.pdf`;
+    const toastId = toast.loading(`Preparing ${fileName}...`);
+    setGeneratingCert(true);
+
+    try {
+      const doc = <InternshipCertificatePDF intern={intern} options={{ fileName }} />;
+      const blob = await pdf(doc).toBlob();
+      openPdfInNewTab(blob, fileName);
+      toast.success('Certificate opened in new tab', { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to open certificate', { id: toastId });
+    } finally {
+      setGeneratingCert(false);
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    const rawName = (intern.full_name || `${intern.first_name || ''} ${intern.last_name || ''}`).trim() || 'Intern';
+    const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+    const fileName = `${safeName}_Internship_Certificate.pdf`;
+    const toastId = toast.loading(`Downloading ${fileName}...`);
+    setGeneratingCert(true);
+
+    try {
+      const doc = <InternshipCertificatePDF intern={intern} options={{ fileName }} />;
+      const blob = await pdf(doc).toBlob();
+      downloadPdfBlob(blob, fileName);
+      toast.success(`${fileName} downloaded successfully`, { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to download certificate', { id: toastId });
+    } finally {
+      setGeneratingCert(false);
     }
   };
 
@@ -129,48 +174,106 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
             )}
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* Offer Letter Block */}
-            <div className="rounded-xl border border-slate-200 p-4">
-              <h5 className="font-semibold text-slate-800 mb-2">Offer Letter</h5>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Generated PDF:</span>
-                  <Button size="sm" variant="outline" onClick={() => handleDownload(intern.offer_letter_pdf_url)}>View</Button>
-                </div>
-                {hasSignedOffer ? (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-sm font-medium text-emerald-600">Signed Copy:</span>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => handleDownload(intern.signed_offer_letter_url)}>View</Button>
-                      <Button size="sm" variant="danger" onClick={() => setClearingDoc('signed_offer_letter_url')}>Clear</Button>
-                    </div>
+            <div className="rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+              <div>
+                <h5 className="font-semibold text-slate-800 mb-2">Offer Letter</h5>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Generated PDF:</span>
+                    <Button size="sm" variant="outline" onClick={() => handleDownload(intern.offer_letter_pdf_url)}>View</Button>
                   </div>
-                ) : (
-                  <div className="pt-2 border-t border-slate-100 text-sm text-slate-400 italic">No signed copy uploaded yet.</div>
-                )}
+                  {hasSignedOffer ? (
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <span className="text-sm font-medium text-emerald-600">Signed Copy:</span>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => handleDownload(intern.signed_offer_letter_url)}>View</Button>
+                        <Button size="sm" variant="danger" onClick={() => setClearingDoc('signed_offer_letter_url')}>Clear</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-slate-100 text-sm text-slate-400 italic">No signed copy uploaded yet.</div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* NDA Block */}
-            <div className="rounded-xl border border-slate-200 p-4">
-              <h5 className="font-semibold text-slate-800 mb-2">Non-Disclosure Agreement</h5>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Generated PDF:</span>
-                  <Button size="sm" variant="outline" onClick={() => handleDownload(intern.nda_pdf_url)}>View</Button>
+            <div className="rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+              <div>
+                <h5 className="font-semibold text-slate-800 mb-2">Non-Disclosure Agreement</h5>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Generated PDF:</span>
+                    <Button size="sm" variant="outline" onClick={() => handleDownload(intern.nda_pdf_url)}>View</Button>
+                  </div>
+                  {hasSignedNDA ? (
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                      <span className="text-sm font-medium text-emerald-600">Signed Copy:</span>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="secondary" onClick={() => handleDownload(intern.signed_nda_url)}>View</Button>
+                        <Button size="sm" variant="danger" onClick={() => setClearingDoc('signed_nda_url')}>Clear</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-slate-100 text-sm text-slate-400 italic">No signed copy uploaded yet.</div>
+                  )}
                 </div>
-                {hasSignedNDA ? (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-sm font-medium text-emerald-600">Signed Copy:</span>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => handleDownload(intern.signed_nda_url)}>View</Button>
-                      <Button size="sm" variant="danger" onClick={() => setClearingDoc('signed_nda_url')}>Clear</Button>
+              </div>
+            </div>
+
+            {/* Internship Completion Certificate Block */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50/20 p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="font-semibold text-slate-800">Completion Certificate</h5>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                    intern.certificate_eligible
+                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                      : 'bg-slate-100 text-slate-600 border border-slate-300'
+                  }`}>
+                    {intern.certificate_eligible ? 'Eligible' : 'Completed'}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Generated PDF:</span>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleViewCertificate}
+                        disabled={generatingCert}
+                        title="View Certificate in New Tab"
+                      >
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleDownloadCertificate}
+                        disabled={generatingCert}
+                        title="Download Certificate PDF"
+                      >
+                        Download
+                      </Button>
                     </div>
                   </div>
-                ) : (
-                  <div className="pt-2 border-t border-slate-100 text-sm text-slate-400 italic">No signed copy uploaded yet.</div>
-                )}
+                  <div className="pt-2 border-t border-amber-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>Company Format</span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomCertOpen(true)}
+                      className="text-primary-600 hover:text-primary-700 font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Customize</span>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -183,6 +286,12 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
           Close
         </Button>
       </div>
+
+      <CertificateCustomModal
+        open={customCertOpen}
+        onClose={() => setCustomCertOpen(false)}
+        intern={intern}
+      />
 
       <ConfirmModal
         open={!!clearingDoc}

@@ -14,6 +14,7 @@ import {
   BuildingLibraryIcon,
   UserIcon,
   CheckCircleIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline';
 import PageHeader from '../../components/ui/PageHeader';
 import Card from '../../components/ui/Card';
@@ -34,6 +35,9 @@ import toast from 'react-hot-toast';
 import InternshipProgramModal from './InternshipProgramModal';
 import InternshipProgramOfferLetterPDF from '../../components/pdf/InternshipProgramOfferLetterPDF';
 import InternshipProgramNDAPDF from '../../components/pdf/InternshipProgramNDAPDF';
+import InternshipCertificatePDF from '../../components/pdf/InternshipCertificatePDF';
+import CertificateCustomModal from '../../components/pdf/CertificateCustomModal';
+import { openPdfInNewTab, downloadPdfBlob } from '../../utils/internPdfGenerator';
 
 const STATUS_TONES = {
   'Offer Issued': 'accent',
@@ -70,6 +74,7 @@ export default function InternshipProgramList() {
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [selectedIntern, setSelectedIntern] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [customCertIntern, setCustomCertIntern] = useState(null);
 
   // Filtered interns
   const filteredInterns = useMemo(() => {
@@ -117,10 +122,12 @@ export default function InternshipProgramList() {
       const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
       const offerPath = `${internRecord.id}/${safeName}_Offer_Letter.pdf`;
       const ndaPath = `${internRecord.id}/${safeName}_NDA.pdf`;
+      const certPath = `${internRecord.id}/${safeName}_Internship_Certificate.pdf`;
 
-      const [offerBlob, ndaBlob] = await Promise.all([
+      const [offerBlob, ndaBlob, certBlob] = await Promise.all([
         pdf(<InternshipProgramOfferLetterPDF intern={internRecord} />).toBlob(),
         pdf(<InternshipProgramNDAPDF intern={internRecord} />).toBlob(),
+        pdf(<InternshipCertificatePDF intern={internRecord} />).toBlob(),
       ]);
 
       await Promise.all([
@@ -129,6 +136,10 @@ export default function InternshipProgramList() {
           upsert: true,
         }),
         supabase.storage.from('intern_documents').upload(ndaPath, ndaBlob, {
+          contentType: 'application/pdf',
+          upsert: true,
+        }),
+        supabase.storage.from('intern_documents').upload(certPath, certBlob, {
           contentType: 'application/pdf',
           upsert: true,
         }),
@@ -176,7 +187,7 @@ export default function InternshipProgramList() {
   const handleViewPdf = async (intern, type) => {
     const rawName = (intern.full_name || 'Intern').trim();
     const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
-    const docSuffix = type === 'offer' ? 'Offer_Letter' : 'NDA';
+    const docSuffix = type === 'offer' ? 'Offer_Letter' : (type === 'nda' ? 'NDA' : 'Internship_Certificate');
     const fileName = `${safeName}_${docSuffix}.pdf`;
     const filePath = `${intern.id}/${fileName}`;
 
@@ -185,45 +196,28 @@ export default function InternshipProgramList() {
       // 1. Always generate fresh PDF blob from latest component
       const doc = type === 'offer' ? (
         <InternshipProgramOfferLetterPDF intern={intern} />
-      ) : (
+      ) : type === 'nda' ? (
         <InternshipProgramNDAPDF intern={intern} />
+      ) : (
+        <InternshipCertificatePDF intern={intern} options={{ fileName }} />
       );
       const blob = await pdf(doc).toBlob();
 
-      // 2. Upload/refresh in Supabase Storage with upsert: true
-      let signedUrl = null;
+      // 2. Upload/refresh in Supabase Storage in background with upsert: true
       try {
-        const { data: uploadData, error: uploadErr } = await supabase.storage
+        supabase.storage
           .from('intern_documents')
           .upload(filePath, blob, {
             contentType: 'application/pdf',
             upsert: true,
-          });
-
-        if (!uploadErr && uploadData?.path) {
-          const { data: signedData } = await supabase.storage
-            .from('intern_documents')
-            .createSignedUrl(uploadData.path, 60 * 60);
-          if (signedData?.signedUrl) {
-            signedUrl = signedData.signedUrl;
-          }
-        }
+          })
+          .catch((e) => console.warn('Background sync:', e));
       } catch (storageErr) {
         console.warn('Storage upload fallback:', storageErr);
       }
 
-      // 3. Open in new browser tab
-      if (signedUrl) {
-        window.open(signedUrl, '_blank');
-      } else {
-        // Fallback: If storage is unreachable, open Blob URL in new window with filename
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-        const blobUrl = URL.createObjectURL(file);
-        const newTab = window.open(blobUrl, '_blank');
-        if (newTab) {
-          newTab.document.title = fileName;
-        }
-      }
+      // 3. Open in new browser tab with clean filename and tab title
+      openPdfInNewTab(blob, fileName);
 
       toast.success(`${fileName} opened in new tab`, { id: toastId });
     } catch (err) {
@@ -236,25 +230,20 @@ export default function InternshipProgramList() {
   const handleDownloadPdf = async (intern, type) => {
     const rawName = (intern.full_name || 'Intern').trim();
     const safeName = rawName.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
-    const docSuffix = type === 'offer' ? 'Offer_Letter' : 'NDA';
+    const docSuffix = type === 'offer' ? 'Offer_Letter' : (type === 'nda' ? 'NDA' : 'Internship_Certificate');
     const fileName = `${safeName}_${docSuffix}.pdf`;
 
     const toastId = toast.loading(`Downloading ${fileName}...`);
     try {
       const doc = type === 'offer' ? (
         <InternshipProgramOfferLetterPDF intern={intern} />
-      ) : (
+      ) : type === 'nda' ? (
         <InternshipProgramNDAPDF intern={intern} />
+      ) : (
+        <InternshipCertificatePDF intern={intern} options={{ fileName }} />
       );
       const blob = await pdf(doc).toBlob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      downloadPdfBlob(blob, fileName);
       toast.success(`${fileName} downloaded!`, { id: toastId });
     } catch (err) {
       console.error(err);
@@ -453,15 +442,15 @@ export default function InternshipProgramList() {
                         <Badge tone={tone}>{item.status || 'Offer Issued'}</Badge>
                       </td>
 
-                      {/* Documents (Offer Letter & NDA) */}
+                      {/* Documents (Offer Letter, NDA & Certificate) */}
                       <td className="py-3 px-4 text-center">
-                        <div className="inline-flex items-center gap-2">
+                        <div className="inline-flex items-center gap-1.5 flex-wrap justify-center">
                           {/* Offer Letter Actions */}
                           <div className="inline-flex rounded-lg border border-neutral-200 p-0.5 bg-white shadow-xs">
                             <button
                               onClick={() => handleViewPdf(item, 'offer')}
                               title="View Offer Letter in New Tab"
-                              className="px-2 py-1 text-xs font-semibold text-neutral-700 hover:text-primary-700 hover:bg-neutral-50 rounded flex items-center gap-1 transition"
+                              className="px-2 py-1 text-xs font-semibold text-neutral-700 hover:text-primary-700 hover:bg-neutral-50 rounded flex items-center gap-1 transition cursor-pointer"
                             >
                               <EyeIcon className="h-3.5 w-3.5" />
                               <span>Offer</span>
@@ -469,7 +458,7 @@ export default function InternshipProgramList() {
                             <button
                               onClick={() => handleDownloadPdf(item, 'offer')}
                               title="Download Offer Letter PDF"
-                              className="p-1 text-primary-600 hover:bg-primary-50 rounded transition"
+                              className="p-1 text-primary-600 hover:bg-primary-50 rounded transition cursor-pointer"
                             >
                               <DocumentArrowDownIcon className="h-4 w-4" />
                             </button>
@@ -480,7 +469,7 @@ export default function InternshipProgramList() {
                             <button
                               onClick={() => handleViewPdf(item, 'nda')}
                               title="View Student NDA in New Tab"
-                              className="px-2 py-1 text-xs font-semibold text-neutral-700 hover:text-primary-700 hover:bg-neutral-50 rounded flex items-center gap-1 transition"
+                              className="px-2 py-1 text-xs font-semibold text-neutral-700 hover:text-primary-700 hover:bg-neutral-50 rounded flex items-center gap-1 transition cursor-pointer"
                             >
                               <EyeIcon className="h-3.5 w-3.5" />
                               <span>NDA</span>
@@ -488,9 +477,35 @@ export default function InternshipProgramList() {
                             <button
                               onClick={() => handleDownloadPdf(item, 'nda')}
                               title="Download Student NDA PDF"
-                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition"
+                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition cursor-pointer"
                             >
                               <DocumentArrowDownIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Completion Certificate Actions */}
+                          <div className="inline-flex rounded-lg border border-amber-200 p-0.5 bg-amber-50/40 shadow-xs">
+                            <button
+                              onClick={() => handleViewPdf(item, 'certificate')}
+                              title="View Internship Certificate in New Tab"
+                              className="px-2 py-1 text-xs font-semibold text-neutral-800 hover:text-amber-800 hover:bg-amber-100/50 rounded flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <EyeIcon className="h-3.5 w-3.5 text-amber-600" />
+                              <span>Cert</span>
+                            </button>
+                            <button
+                              onClick={() => handleDownloadPdf(item, 'certificate')}
+                              title="Download Internship Certificate PDF"
+                              className="p-1 text-amber-700 hover:bg-amber-100/60 rounded transition cursor-pointer"
+                            >
+                              <DocumentArrowDownIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setCustomCertIntern(item)}
+                              title="Customize Certificate Details (Project, Date, Title)"
+                              className="p-1 text-neutral-400 hover:text-amber-700 hover:bg-amber-100/60 rounded transition cursor-pointer"
+                            >
+                              <AdjustmentsHorizontalIcon className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </div>
@@ -541,6 +556,13 @@ export default function InternshipProgramList() {
         message="Are you sure you want to delete this intern record? This will permanently remove their application and associated document records."
         confirmText="Delete Intern"
         danger
+      />
+
+      {/* Certificate Customization Modal */}
+      <CertificateCustomModal
+        open={!!customCertIntern}
+        onClose={() => setCustomCertIntern(null)}
+        intern={customCertIntern}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 import { pdf } from '@react-pdf/renderer';
 import { OfferLetterPDF } from '../components/pdf/OfferLetterPDF';
 import { NDAPDF } from '../components/pdf/NDAPDF';
+import { InternshipCertificatePDF } from '../components/pdf/InternshipCertificatePDF';
 import { supabase } from '../supabase/config';
 
 /**
@@ -66,4 +67,71 @@ export async function getDocumentDownloadUrl(path) {
     return null;
   }
   return data.signedUrl;
+}
+
+/**
+ * Generates an Internship Completion Certificate Blob.
+ */
+export async function generateCertificateBlob(intern, options = {}) {
+  return await pdf(<InternshipCertificatePDF intern={intern} options={options} />).toBlob();
+}
+
+/**
+ * Opens a PDF Blob in a new browser tab with proper title and favicon.
+ */
+export function openPdfInNewTab(blob, fileName) {
+  const blobUrl = URL.createObjectURL(blob);
+  const newTab = window.open('', '_blank');
+  if (!newTab) {
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+    const fallbackUrl = URL.createObjectURL(file);
+    window.open(fallbackUrl, '_blank');
+    return;
+  }
+
+  newTab.document.open();
+  newTab.document.write(`
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <title>${fileName}</title>
+        <link rel="icon" type="image/jpeg" href="/DZ_Infotech_Logo.jpeg" />
+        <style>
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #323639;
+          }
+          iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+          }
+        </style>
+      </head>
+      <body>
+        <iframe src="${blobUrl}#title=${encodeURIComponent(fileName)}" title="${fileName}"></iframe>
+      </body>
+    </html>
+  `);
+  newTab.document.close();
+}
+
+/**
+ * Downloads a PDF Blob with a clean, proper filename.
+ */
+export function downloadPdfBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
