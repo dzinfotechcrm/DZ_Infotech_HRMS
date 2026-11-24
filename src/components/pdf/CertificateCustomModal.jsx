@@ -20,7 +20,6 @@ export default function CertificateCustomModal({ open, onClose, intern }) {
     project_title: '',
     college_name: '',
     degree_branch: '',
-    skills_technologies: '',
     certificate_no: '',
     start_date: todayStr,
     end_date: todayStr,
@@ -48,7 +47,6 @@ export default function CertificateCustomModal({ open, onClose, intern }) {
         project_title: defaultProject,
         college_name: intern.college_name || intern.data?.college_name || '',
         degree_branch: intern.degree_branch || intern.data?.degree_branch || '',
-        skills_technologies: intern.skills_technologies || intern.data?.skills_technologies || '',
         certificate_no: intern.certificate_no || '',
         start_date: intern.start_date || todayStr,
         end_date: intern.end_date || todayStr,
@@ -83,7 +81,6 @@ export default function CertificateCustomModal({ open, onClose, intern }) {
             project_title: formData.project_title,
             college_name: formData.college_name,
             degree_branch: formData.degree_branch,
-            skills_technologies: formData.skills_technologies,
             certificate_no: formData.certificate_no,
             start_date: formData.start_date,
             end_date: formData.end_date,
@@ -151,19 +148,10 @@ export default function CertificateCustomModal({ open, onClose, intern }) {
           <div className="sm:col-span-2">
             <Input
               label="Project Title / Domain (Appears in certificate quotes)"
-              placeholder="e.g. Full Stack Web Development (MERN) or Project Name"
+              placeholder="e.g. Full Stack Web Development or Project Name"
               value={formData.project_title}
               onChange={(e) => setFormData((prev) => ({ ...prev, project_title: e.target.value }))}
               required
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <Input
-              label="Key Technologies / Domain Scope (Appears in technical paragraph)"
-              placeholder="e.g. React.js, Node.js, REST APIs, Tailwind CSS and Git"
-              value={formData.skills_technologies}
-              onChange={(e) => setFormData((prev) => ({ ...prev, skills_technologies: e.target.value }))}
             />
           </div>
 

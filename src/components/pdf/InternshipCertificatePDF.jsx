@@ -54,10 +54,10 @@ const styles = StyleSheet.create({
   },
   bodyParagraph: {
     fontSize: 10.5,
-    lineHeight: 1.68,
+    lineHeight: 1.7,
     textAlign: 'justify',
     color: '#1a1a1a',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   boldText: {
     fontFamily: 'Helvetica-Bold',
@@ -65,13 +65,13 @@ const styles = StyleSheet.create({
   },
   wishesText: {
     fontSize: 10.5,
-    lineHeight: 1.65,
+    lineHeight: 1.7,
     color: '#1a1a1a',
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'justify',
   },
   thankingSection: {
-    marginBottom: 10,
+    marginBottom: 14,
   },
   thankingText: {
     fontSize: 10.5,
@@ -217,24 +217,6 @@ export const InternshipCertificatePDF = ({ intern = {}, options = {} }) => {
 
   const internshipTypeText = isSummer ? 'a summer internship' : 'an internship';
 
-  // Key Technical Skills / Exposure Data
-  const defaultTechStack = projectTitle.toLowerCase().includes('mern')
-    ? 'MongoDB, Express.js, React.js, Node.js, and REST APIs'
-    : projectTitle.toLowerCase().includes('react')
-    ? 'React.js, JavaScript (ES6+), Modern UI Architecture, and Tailwind CSS'
-    : projectTitle.toLowerCase().includes('full stack')
-    ? 'Full Stack Web Architecture, Frontend & Backend Development, and Database Systems'
-    : projectTitle.toLowerCase().includes('python') || projectTitle.toLowerCase().includes('ai')
-    ? 'Python, AI/Machine Learning Frameworks, Cloud Integrations, and Data Engineering'
-    : 'Modern Software Engineering Standards, Agile Practices, and Web Technologies';
-
-  const techStack = (
-    options.skills_technologies ||
-    intern.skills_technologies ||
-    intern.data?.skills_technologies ||
-    defaultTechStack
-  ).trim();
-
   // Signatory
   const signatoryName = options.signatory_name || intern.signatory_name || 'Soumyarajsinh Zala';
   const signatoryDesignation = options.signatory_designation || intern.signatory_designation || 'Co-Founder';
@@ -292,18 +274,12 @@ export const InternshipCertificatePDF = ({ intern = {}, options = {} }) => {
           <Text style={styles.boldText}>{endDateStr}</Text>.
         </Text>
 
-        {/* Paragraph 2: Technical Responsibilities & Project Exposure */}
-        <Text style={styles.bodyParagraph}>
-          During this tenure, {pronoun} actively worked on practical deliverables, demonstrating strong proficiency in{' '}
-          <Text style={styles.boldText}>{techStack}</Text>. {pronounCaps} gained comprehensive exposure to real-world software architecture, development lifecycle, and industry engineering standards.
-        </Text>
-
-        {/* Paragraph 3: Performance, Character & Conduct Assessment */}
+        {/* Paragraph 2: Performance, Character & Conduct Assessment */}
         <Text style={styles.bodyParagraph}>
           Throughout the internship period, we found {pronoun} to be hardworking, inquisitive, disciplined, and proactive. {possessivePronounCaps} performance, conduct, and dedication towards assigned tasks and collaborative team discussions were found to be exemplary.
         </Text>
 
-        {/* Paragraph 4: Wishes for Future Career */}
+        {/* Paragraph 3: Wishes for Future Career */}
         <Text style={styles.wishesText}>
           We appreciate {possessivePronoun} sincere contributions to the organization and wish {pronoun} all the very best for {possessivePronoun} upcoming endeavors and a bright, successful career ahead.
         </Text>
