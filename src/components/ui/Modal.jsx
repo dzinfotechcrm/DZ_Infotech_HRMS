@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function Modal({ open, title, onClose, children, footer, headerActions, disableBackdropClick = false, overflowVisible = false, maxWidth = '780px' }) {
+export default function Modal({ open, title, onClose, children, footer, headerActions, disableBackdropClick = false, overflowVisible = false, maxWidth, size }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && !disableBackdropClick) {
@@ -26,6 +26,19 @@ export default function Modal({ open, title, onClose, children, footer, headerAc
     return null;
   }
 
+  const sizeMap = {
+    'max-w-sm': '384px',
+    'max-w-md': '448px',
+    'max-w-lg': '512px',
+    'max-w-xl': '576px',
+    'max-w-2xl': '672px',
+    'max-w-3xl': '768px',
+    'max-w-4xl': '896px',
+    'max-w-5xl': '1024px',
+    'max-w-6xl': '1152px',
+  };
+  const resolvedMaxWidth = maxWidth || (size && sizeMap[size]) || (size && !size.startsWith('max-w-') ? size : null) || '820px';
+
   const modalContent = (
     <>
       {/* Modal Overlay */}
@@ -37,13 +50,13 @@ export default function Modal({ open, title, onClose, children, footer, headerAc
 
       {/* Modal Container */}
       <div
-        className="fixed bg-white rounded-2xl shadow-soft flex flex-col"
+        className="fixed bg-white rounded-2xl shadow-soft flex flex-col overflow-hidden"
         style={{
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '90%',
-          maxWidth: maxWidth,
+          width: '92%',
+          maxWidth: resolvedMaxWidth,
           maxHeight: '90vh',
           zIndex: 1001
         }}
@@ -62,7 +75,7 @@ export default function Modal({ open, title, onClose, children, footer, headerAc
           </div>
         </div>
 
-        <div className={`px-4 sm:px-6 py-4 sm:py-5 flex-1 ${overflowVisible ? 'overflow-visible' : 'overflow-y-auto'}`}>
+        <div className={`px-4 sm:px-6 py-4 sm:py-5 flex-1 overflow-x-hidden ${overflowVisible ? 'overflow-visible' : 'overflow-y-auto'}`}>
           {children}
         </div>
 

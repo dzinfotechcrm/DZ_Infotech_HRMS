@@ -62,3 +62,13 @@ body {
     @apply text-sm text-neutral-500;
   }
 }
+
+/* Toast Notification Custom Styling */
+.dz-toast-item {
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08) !important;
+  font-family: inherit !important;
+}
+
+div:has(> .dz-toast-item) {
+  z-index: 99999 !important;
+}

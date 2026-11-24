@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { pdf } from '@react-pdf/renderer';
+import { EyeIcon, ArrowDownTrayIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import ConfirmModal from '../../components/ui/ConfirmModal';
@@ -81,7 +82,7 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
 
   return (
     <Modal open={open} title="Intern Details" onClose={onClose} size="max-w-4xl">
-      <div className="space-y-8 h-[75vh] overflow-y-auto px-2 pb-4">
+      <div className="space-y-8 h-[75vh] overflow-y-auto overflow-x-hidden px-1 pb-4">
 
         {/* Profile Header */}
         <div className="flex items-center justify-between">
@@ -170,64 +171,122 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
               </Button>
             )}
             {hasAnySigned && (
-              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-md">Regeneration disabled (signed docs exist)</span>
+              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 font-medium">
+                Regeneration disabled (signed docs exist)
+              </span>
             )}
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Offer Letter Block */}
-            <div className="rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between shadow-2xs">
               <div>
-                <h5 className="font-semibold text-slate-800 mb-2">Offer Letter</h5>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h5 className="font-semibold text-slate-800 text-sm">Offer Letter</h5>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                    Official
+                  </span>
+                </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Generated PDF:</span>
-                    <Button size="sm" variant="outline" onClick={() => handleDownload(intern.offer_letter_pdf_url)}>View</Button>
+                    <span className="text-xs font-medium text-slate-500">Generated PDF:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(intern.offer_letter_pdf_url)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-2xs transition cursor-pointer"
+                      title="View Offer Letter PDF"
+                    >
+                      <EyeIcon className="w-3.5 h-3.5 text-slate-500" />
+                      <span>View</span>
+                    </button>
                   </div>
                   {hasSignedOffer ? (
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <span className="text-sm font-medium text-emerald-600">Signed Copy:</span>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => handleDownload(intern.signed_offer_letter_url)}>View</Button>
-                        <Button size="sm" variant="danger" onClick={() => setClearingDoc('signed_offer_letter_url')}>Clear</Button>
+                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-emerald-600">Signed Copy:</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(intern.signed_offer_letter_url)}
+                          className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+                          title="View Signed Offer Letter"
+                        >
+                          <EyeIcon className="w-3.5 h-3.5 text-slate-500" />
+                          <span>View</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setClearingDoc('signed_offer_letter_url')}
+                          className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 shadow-2xs transition cursor-pointer"
+                          title="Clear Signed Offer Letter"
+                        >
+                          Clear
+                        </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="pt-2 border-t border-slate-100 text-sm text-slate-400 italic">No signed copy uploaded yet.</div>
+                    <div className="pt-2 border-t border-slate-100 text-xs text-slate-400 italic">No signed copy uploaded yet.</div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* NDA Block */}
-            <div className="rounded-xl border border-slate-200 p-4 flex flex-col justify-between">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between shadow-2xs">
               <div>
-                <h5 className="font-semibold text-slate-800 mb-2">Non-Disclosure Agreement</h5>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h5 className="font-semibold text-slate-800 text-sm">Non-Disclosure Agreement</h5>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                    Official
+                  </span>
+                </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Generated PDF:</span>
-                    <Button size="sm" variant="outline" onClick={() => handleDownload(intern.nda_pdf_url)}>View</Button>
+                    <span className="text-xs font-medium text-slate-500">Generated PDF:</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(intern.nda_pdf_url)}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-2xs transition cursor-pointer"
+                      title="View Non-Disclosure Agreement PDF"
+                    >
+                      <EyeIcon className="w-3.5 h-3.5 text-slate-500" />
+                      <span>View</span>
+                    </button>
                   </div>
                   {hasSignedNDA ? (
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <span className="text-sm font-medium text-emerald-600">Signed Copy:</span>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => handleDownload(intern.signed_nda_url)}>View</Button>
-                        <Button size="sm" variant="danger" onClick={() => setClearingDoc('signed_nda_url')}>Clear</Button>
+                    <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                      <span className="text-xs font-semibold text-emerald-600">Signed Copy:</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(intern.signed_nda_url)}
+                          className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-2xs transition cursor-pointer"
+                          title="View Signed NDA"
+                        >
+                          <EyeIcon className="w-3.5 h-3.5 text-slate-500" />
+                          <span>View</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setClearingDoc('signed_nda_url')}
+                          className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 shadow-2xs transition cursor-pointer"
+                          title="Clear Signed NDA"
+                        >
+                          Clear
+                        </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="pt-2 border-t border-slate-100 text-sm text-slate-400 italic">No signed copy uploaded yet.</div>
+                    <div className="pt-2 border-t border-slate-100 text-xs text-slate-400 italic">No signed copy uploaded yet.</div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Internship Completion Certificate Block */}
-            <div className="rounded-xl border border-amber-200 bg-amber-50/20 p-4 flex flex-col justify-between">
+            <div className="rounded-xl border border-amber-200 bg-amber-50/20 p-4 flex flex-col justify-between shadow-2xs">
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-semibold text-slate-800">Completion Certificate</h5>
+                <div className="flex items-center justify-between mb-2.5">
+                  <h5 className="font-semibold text-slate-800 text-sm">Completion Certificate</h5>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                     intern.certificate_eligible
                       ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
@@ -237,40 +296,43 @@ export default function InternDetailModal({ intern, managers, open, onClose, onR
                   </span>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Generated PDF:</span>
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-medium text-slate-500">Generated PDF:</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
                         onClick={handleViewCertificate}
                         disabled={generatingCert}
                         title="View Certificate in New Tab"
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-2xs transition disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                       >
-                        View
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
+                        <EyeIcon className="w-3.5 h-3.5 text-slate-500" />
+                        <span>View</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={handleDownloadCertificate}
                         disabled={generatingCert}
                         title="Download Certificate PDF"
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-900 bg-amber-50/80 border border-amber-300 hover:bg-amber-100 hover:border-amber-400 shadow-2xs transition disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                       >
-                        Download
-                      </Button>
+                        <ArrowDownTrayIcon className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Download</span>
+                      </button>
                     </div>
                   </div>
                   <div className="pt-2 border-t border-amber-100 flex items-center justify-between text-xs text-slate-500">
-                    <span>Company Format</span>
+                    <span className="text-xs text-slate-500 font-medium">Company Format</span>
                     <button
                       type="button"
                       onClick={() => setCustomCertOpen(true)}
                       className="text-primary-600 hover:text-primary-700 font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                      title="Customize Certificate Details"
                     >
                       <span>Customize</span>
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                      <PencilSquareIcon className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
